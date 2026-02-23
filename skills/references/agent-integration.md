@@ -103,8 +103,14 @@ Choose based on your agent's environment:
 
 ```python
 import platform, subprocess, os
+from urllib.parse import urlparse
 
 def deliver_url(url: str, mode: str = "auto"):
+    # Validate URL to prevent command injection via malicious schemes
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError(f"Invalid review URL: must be HTTPS with a valid host")
+
     if mode == "auto":
         if os.environ.get("TELEGRAM_BOT_TOKEN"):
             mode = "messaging"

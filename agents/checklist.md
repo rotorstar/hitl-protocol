@@ -292,10 +292,15 @@ Choose URL delivery based on agent environment:
 | **Terminal QR** | Remote terminal, user has phone | Render QR code (`qrencode -t ANSI`) |
 
 ```python
-import platform
-import subprocess
+import platform, subprocess, os
+from urllib.parse import urlparse
 
 def deliver_review_url(url: str, mode: str = "auto"):
+    # Validate URL to prevent command injection via malicious schemes
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError(f"Invalid review URL: must be HTTPS with a valid host")
+
     if mode == "auto":
         # Detect environment
         if os.environ.get("TELEGRAM_BOT_TOKEN"):
