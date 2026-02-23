@@ -312,7 +312,7 @@ def deliver_review_url(url: str, mode: str = "auto"):
         elif system == "Linux":
             subprocess.run(["xdg-open", url])
         elif system == "Windows":
-            subprocess.run(["start", url], shell=True)
+            os.startfile(url)
 
     elif mode == "qr":
         subprocess.run(["qrencode", "-t", "ANSI", url])
