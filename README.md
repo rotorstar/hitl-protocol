@@ -157,6 +157,7 @@ HITL Protocol fills a gap no existing standard addresses:
 ```
 hitl-protocol/
 ├── README.md                          ← You are here
+├── SKILL.md                           ← Agent skill (protocol knowledge)
 ├── LICENSE                            ← Apache 2.0
 ├── CONTRIBUTING.md                    ← How to contribute
 ├── CHANGELOG.md                       ← Version history
@@ -198,6 +199,12 @@ hitl-protocol/
 │
 ├── agents/
 │   └── checklist.md                  ← Agent implementation checklist
+│
+├── skills/
+│   ├── README.md                     ← Skill publishing guide
+│   └── references/                   ← Detailed integration guides
+│       ├── service-integration.md   ← For service builders
+│       └── agent-integration.md     ← For agent developers
 │
 ├── playground/
 │   └── index.html                    ← Interactive playground
@@ -259,6 +266,7 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 - [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
 - [Interactive Playground](playground/)
 - [Agent Implementation Checklist](agents/checklist.md)
+- [Agent Skill (SKILL.md)](SKILL.md) — Teach agents the HITL Protocol
 - [SDK Design Guide](docs/sdk-guide.md) — Build a community SDK
 
 ---
