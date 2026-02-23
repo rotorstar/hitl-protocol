@@ -1,6 +1,7 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Structured Input Form",
+  "_comment": "HITL Protocol v0.5 — Example: Structured Input Form (Single-Step)",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "_note": "Migrated from context.required_fields to context.form.fields (v0.5 form field definitions)",
   "scenario": "A job application service needs information that the agent cannot infer from the applicant's profile: salary expectations, earliest start date, visa/work authorization status, and relocation willingness. The service presents a structured form. The human fills it out and submits.",
   "steps": [
     {
@@ -28,7 +29,7 @@
     },
     {
       "step": 2,
-      "description": "Service returns HTTP 202 with an input-type hitl object. The context includes the form field definitions for the review page to render.",
+      "description": "Service returns HTTP 202 with an input-type hitl object. The context.form defines structured form fields for the review page to render.",
       "response": {
         "status": 202,
         "headers": {
@@ -64,62 +65,72 @@
               "job_title": "Staff Frontend Developer",
               "company": "Klarna",
               "location": "Berlin, Germany",
-              "required_fields": [
-                {
-                  "key": "salary_expectation",
-                  "label": "Salary Expectation (EUR, annual gross)",
-                  "type": "number",
-                  "required": true,
-                  "placeholder": "e.g. 105000",
-                  "hint": "The listed range is 95,000 - 120,000 EUR"
-                },
-                {
-                  "key": "salary_negotiable",
-                  "label": "Salary Negotiable?",
-                  "type": "boolean",
-                  "required": true,
-                  "default": true
-                },
-                {
-                  "key": "earliest_start_date",
-                  "label": "Earliest Start Date",
-                  "type": "date",
-                  "required": true,
-                  "hint": "Consider your current notice period"
-                },
-                {
-                  "key": "work_authorization",
-                  "label": "Work Authorization in Germany",
-                  "type": "select",
-                  "required": true,
-                  "options": [
-                    {"value": "citizen", "label": "EU/EEA Citizen"},
-                    {"value": "permanent_resident", "label": "Permanent Residence Permit"},
-                    {"value": "work_visa", "label": "Current Work Visa"},
-                    {"value": "needs_sponsorship", "label": "Requires Visa Sponsorship"},
-                    {"value": "blue_card", "label": "EU Blue Card Holder"}
-                  ]
-                },
-                {
-                  "key": "willing_to_relocate",
-                  "label": "Willing to Relocate to Berlin?",
-                  "type": "select",
-                  "required": true,
-                  "options": [
-                    {"value": "already_local", "label": "Already in Berlin"},
-                    {"value": "yes_immediately", "label": "Yes, immediately"},
-                    {"value": "yes_with_time", "label": "Yes, need 1-3 months"},
-                    {"value": "remote_only", "label": "Prefer fully remote"}
-                  ]
-                },
-                {
-                  "key": "additional_notes",
-                  "label": "Additional Notes (optional)",
-                  "type": "textarea",
-                  "required": false,
-                  "placeholder": "Any other information relevant to your application"
-                }
-              ]
+              "form": {
+                "fields": [
+                  {
+                    "key": "salary_expectation",
+                    "label": "Salary Expectation (EUR, annual gross)",
+                    "type": "number",
+                    "required": true,
+                    "placeholder": "e.g. 105000",
+                    "hint": "The listed range is 95,000 - 120,000 EUR",
+                    "sensitive": true,
+                    "validation": {
+                      "min": 0,
+                      "max": 500000
+                    }
+                  },
+                  {
+                    "key": "salary_negotiable",
+                    "label": "Salary Negotiable?",
+                    "type": "boolean",
+                    "required": true,
+                    "default": true
+                  },
+                  {
+                    "key": "earliest_start_date",
+                    "label": "Earliest Start Date",
+                    "type": "date",
+                    "required": true,
+                    "hint": "Consider your current notice period"
+                  },
+                  {
+                    "key": "work_authorization",
+                    "label": "Work Authorization in Germany",
+                    "type": "select",
+                    "required": true,
+                    "options": [
+                      { "value": "citizen", "label": "EU/EEA Citizen" },
+                      { "value": "permanent_resident", "label": "Permanent Residence Permit" },
+                      { "value": "work_visa", "label": "Current Work Visa" },
+                      { "value": "needs_sponsorship", "label": "Requires Visa Sponsorship" },
+                      { "value": "blue_card", "label": "EU Blue Card Holder" }
+                    ]
+                  },
+                  {
+                    "key": "willing_to_relocate",
+                    "label": "Willing to Relocate to Berlin?",
+                    "type": "select",
+                    "required": true,
+                    "options": [
+                      { "value": "already_local", "label": "Already in Berlin" },
+                      { "value": "yes_immediately", "label": "Yes, immediately" },
+                      { "value": "yes_with_time", "label": "Yes, need 1-3 months" },
+                      { "value": "remote_only", "label": "Prefer fully remote" }
+                    ]
+                  },
+                  {
+                    "key": "additional_notes",
+                    "label": "Additional Notes (optional)",
+                    "type": "textarea",
+                    "required": false,
+                    "placeholder": "Any other information relevant to your application",
+                    "validation": {
+                      "maxLength": 1000
+                    }
+                  }
+                ]
+              }
             },
             "surface": {
               "format": "json-render",

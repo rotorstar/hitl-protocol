@@ -90,7 +90,53 @@
     "context": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Arbitrary key-value pairs providing additional context about the review. Not processed by the agent — for human consumption on the review page."
+      "properties": {
+        "form": {
+          "type": "object",
+          "description": "Structured form definition for Input-type reviews. Use either 'fields' (single-step) or 'steps' (multi-step), not both.",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": { "$ref": "form-field.json" },
+              "description": "Array of form field definitions for single-step forms."
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["title", "fields"],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Step heading displayed in the wizard UI."
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Subtitle or helper text for the step."
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": { "$ref": "form-field.json" },
+                    "description": "Array of form field definitions for this step."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "description": "Array of wizard steps for multi-step forms."
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Optional session identifier for form state persistence. Enables resume after browser close."
+            }
+          },
+          "oneOf": [
+            { "required": ["fields"] },
+            { "required": ["steps"] }
+          ],
+          "additionalProperties": false
+        }
+      },
+      "description": "Arbitrary key-value pairs providing additional context about the review. Not processed by the agent — for human consumption on the review page. For Input-type reviews, MAY include a 'form' object with structured field definitions."
     },
     "reminder_at": {
       "oneOf": [

@@ -645,7 +645,7 @@ The spec defines five standard review types. Each type represents a category of 
 
 **When:** The service needs information that the agent does not have.
 
-**UI pattern:** Form with typed fields (text, number, date, select, checkbox, etc.).
+**UI pattern:** Form with typed fields. The service declares form fields in `context.form`, and the review page renders them.
 
 **Result structure:**
 
@@ -653,14 +653,265 @@ The spec defines five standard review types. Each type represents a category of 
 {
   "action": "submit",
   "data": {
-    "field_name_1": "value",
-    "field_name_2": 85000,
-    "field_name_3": true
+    "salary_expectation": 108000,
+    "earliest_start_date": "2026-05-01",
+    "work_authorization": "blue_card",
+    "willing_to_relocate": "already_local"
   }
 }
 ```
 
 **Example:** Job application API needs salary expectations, start date, and visa status that the agent cannot infer.
+
+#### 10.3.1 Form Field Definitions
+
+When using the Input review type, services SHOULD declare form fields in `context.form`. This enables review pages to render structured forms without hardcoded layouts.
+
+**Single-step form:**
+
+```json
+{
+  "context": {
+    "form": {
+      "fields": [
+        {
+          "key": "salary_expectation",
+          "label": "Salary Expectation (EUR, annual gross)",
+          "type": "number",
+          "required": true,
+          "placeholder": "e.g. 105000",
+          "hint": "The listed range is 95,000 - 120,000 EUR",
+          "sensitive": true,
+          "validation": {
+            "min": 0,
+            "max": 1000000
+          }
+        },
+        {
+          "key": "work_authorization",
+          "label": "Work Authorization in Germany",
+          "type": "select",
+          "required": true,
+          "options": [
+            { "value": "citizen", "label": "EU/EEA Citizen" },
+            { "value": "needs_sponsorship", "label": "Requires Visa Sponsorship" }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+**Standard field types:**
+
+| Type | HTML Equivalent | Value Type | Notes |
+|------|----------------|------------|-------|
+| `text` | `<input type="text">` | string | Single-line text |
+| `textarea` | `<textarea>` | string | Multi-line text |
+| `number` | `<input type="number">` | number | Integer or decimal |
+| `date` | `<input type="date">` | string (ISO 8601) | Date picker |
+| `email` | `<input type="email">` | string | Email with validation |
+| `url` | `<input type="url">` | string | URL with validation |
+| `boolean` | `<input type="checkbox">` | boolean | True/false toggle |
+| `select` | `<select>` | string | Single choice from options |
+| `multiselect` | `<select multiple>` | string[] | Multiple choices from options |
+| `range` | `<input type="range">` | number | Slider within min/max |
+
+Services MAY extend with custom types using an `x-` prefix (e.g., `x-file-upload`, `x-color-picker`). Review pages that do not recognize a custom type SHOULD fall back to `text`.
+
+**Field properties:**
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `key` | string | REQUIRED | Unique identifier for the field. Used as key in `result.data`. |
+| `label` | string | REQUIRED | Human-readable label displayed next to the field. |
+| `type` | string | REQUIRED | One of the standard field types above, or a custom `x-` prefixed type. |
+| `required` | boolean | OPTIONAL | Whether the field must be filled. Default: `false`. |
+| `placeholder` | string | OPTIONAL | Placeholder text shown when the field is empty. |
+| `hint` | string | OPTIONAL | Help text displayed below or beside the field. |
+| `default` | any | OPTIONAL | Pre-filled value. MUST NOT contain sensitive data (see Security below). |
+| `default_ref` | string (URL) | OPTIONAL | URL to securely fetch a pre-fill value. Used instead of `default` for sensitive data. |
+| `sensitive` | boolean | OPTIONAL | If `true`, the review page SHOULD mask the input (e.g., password-style dots) and MUST NOT log the value. Default: `false`. |
+| `options` | array | When select/multiselect | Array of `{ "value": string, "label": string }` objects. |
+| `validation` | object | OPTIONAL | Validation rules (see below). |
+| `conditional` | object | OPTIONAL | Conditional visibility (see Section 10.3.3). |
+
+**Validation properties:**
+
+| Property | Type | Applies to | Description |
+|----------|------|------------|-------------|
+| `minLength` | integer | text, textarea, email, url | Minimum character length |
+| `maxLength` | integer | text, textarea, email, url | Maximum character length |
+| `pattern` | string (regex) | text, email, url | Regular expression the value must match |
+| `min` | number | number, range, date | Minimum value (or earliest date) |
+| `max` | number | number, range, date | Maximum value (or latest date) |
+
+> **Security:** Services SHOULD NOT transmit pre-filled sensitive data (PII, credentials) in the `default` field. Instead, use `default_ref` pointing to a secure endpoint that requires the review URL token for access, or mark fields with `sensitive: true` to signal the review page to mask input and suppress logging.
+
+#### 10.3.2 Multi-Step Forms (RECOMMENDED Pattern)
+
+For complex input flows, services MAY organize fields into steps using `context.form.steps`. This enables wizard-style UIs with progressive disclosure.
+
+> **Important:** Multi-step forms are a **service-hosted UI pattern**, not a transport-layer feature. The agent sees only the `review_url` and polls for the result. Whether the review page renders 1 form or 5 wizard steps is entirely a service implementation choice.
+
+```json
+{
+  "context": {
+    "form": {
+      "session_id": "form_sess_x7k9m2",
+      "steps": [
+        {
+          "title": "Personal Information",
+          "description": "Basic contact details",
+          "fields": [
+            { "key": "full_name", "label": "Full Name", "type": "text", "required": true },
+            { "key": "email", "label": "Email", "type": "email", "required": true },
+            { "key": "phone", "label": "Phone", "type": "text", "required": false }
+          ]
+        },
+        {
+          "title": "Preferences",
+          "description": "Employment and compensation preferences",
+          "fields": [
+            { "key": "employment_type", "label": "Employment Type", "type": "select", "required": true,
+              "options": [
+                { "value": "fulltime", "label": "Full-time" },
+                { "value": "parttime", "label": "Part-time" },
+                { "value": "contract", "label": "Contract" }
+              ]
+            },
+            { "key": "salary_range", "label": "Expected Salary (EUR)", "type": "range", "sensitive": true,
+              "validation": { "min": 40000, "max": 200000 },
+              "conditional": { "field": "employment_type", "operator": "eq", "value": "fulltime" }
+            },
+            { "key": "start_date", "label": "Earliest Start Date", "type": "date", "required": true }
+          ]
+        },
+        {
+          "title": "Review & Submit",
+          "description": "Review your answers before submitting",
+          "fields": []
+        }
+      ]
+    }
+  }
+}
+```
+
+**Step properties:**
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `title` | string | REQUIRED | Step heading displayed in the wizard UI. |
+| `description` | string | OPTIONAL | Subtitle or helper text for the step. |
+| `fields` | array | REQUIRED | Array of field objects for this step. Empty array for summary/review steps. |
+
+**`session_id`:** Services MAY include a `session_id` in `context.form` to enable form state persistence. This allows humans to partially fill a form, close the browser, and resume later. The session mechanism is an implementation choice:
+
+- **Service-owned (RECOMMENDED):** The service stores form state server-side. The review page auto-saves on field changes. The `session_id` is an opaque server reference.
+- **Agent-owned:** The service returns partial form data in poll responses. The agent stores the state.
+- **Hybrid:** The `session_id` enables the review page to look up saved state from the service.
+
+When `steps` is present, `fields` at the top level MUST NOT also be present. Use either `fields` (single-step) or `steps` (multi-step), not both.
+
+#### 10.3.3 Conditional Fields
+
+Fields MAY include a `conditional` property to control visibility based on another field's value. This enables dynamic forms where later fields adapt based on earlier answers.
+
+```json
+{
+  "key": "salary_range",
+  "type": "range",
+  "conditional": {
+    "field": "employment_type",
+    "operator": "eq",
+    "value": "fulltime"
+  }
+}
+```
+
+**Conditional properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `field` | string | The `key` of the field this condition depends on. |
+| `operator` | string | One of: `eq`, `neq`, `in`, `gt`, `lt`. |
+| `value` | any | The value to compare against. For `in`, an array of values. |
+
+When the condition is not met, the field SHOULD be hidden and its value excluded from the submitted `result.data`. Conditional fields MAY reference fields in previous steps (for multi-step forms) or fields earlier in the same step.
+
+#### 10.3.4 Progress Tracking (Optional)
+
+For multi-step forms, services MAY include a `progress` object in `in_progress` poll responses. This enables agents to provide richer status updates to the human (e.g., "Filling step 2 of 3...").
+
+```json
+{
+  "status": "in_progress",
+  "case_id": "review_input_q1w2e3r4",
+  "created_at": "2026-02-22T10:30:00Z",
+  "opened_at": "2026-02-22T11:15:03Z",
+  "expires_at": "2026-02-25T10:30:00Z",
+  "progress": {
+    "current_step": 2,
+    "total_steps": 3,
+    "completed_fields": 4,
+    "total_fields": 8
+  }
+}
+```
+
+The `progress` object is OPTIONAL. Services that do not track step-level interaction MAY return `in_progress` without `progress`. Agents MUST function correctly with or without this data. The SSE event `review.in_progress` MAY also include the `progress` object.
+
+#### 10.3.5 Input Flow Diagrams
+
+**Single-step input form:**
+
+```mermaid
+sequenceDiagram
+    actor R as Requestor (Human)
+    participant A as Agent
+    participant S as Service
+    participant P as Review Page
+
+    A->>S: POST /api/apply (job application)
+    S-->>A: HTTP 202 + hitl {type: "input", context.form.fields}
+    A->>R: "Please fill in your details: [review_url]"
+    R->>P: Opens review_url in browser
+    P-->>R: Renders form fields from context.form
+    R->>P: Fills fields, clicks Submit
+    P->>S: POST /review/{caseId}/respond {action: "submit", data: {...}}
+
+    loop Agent polls
+        A->>S: GET {poll_url}
+        S-->>A: {status: "completed", result: {action: "submit", data: {...}}}
+    end
+
+    A->>R: "Application submitted with your details ✓"
+```
+
+**Multi-step wizard (service-internal):**
+
+```mermaid
+sequenceDiagram
+    actor R as Requestor (Human)
+    participant P as Review Page
+    participant S as Service
+
+    R->>P: Opens review_url
+    P-->>R: Step 1: Personal Information
+    R->>P: Fills name, email, phone → Next
+    P->>S: Auto-save (session_id)
+    P-->>R: Step 2: Preferences
+    R->>P: Selects employment type
+    Note over P: Conditional: salary_range appears (fulltime selected)
+    R->>P: Fills salary, start date → Next
+    P-->>R: Step 3: Review & Submit
+    R->>P: Reviews all answers → Submit
+    P->>S: POST /review/{caseId}/respond
+
+    Note over S: Agent sees only: pending → in_progress → completed
+```
 
 ### 10.4 Confirmation
 
@@ -1256,7 +1507,9 @@ When using json-render as the UI format, these components are RECOMMENDED for ea
 | `Checkbox` | Boolean fields |
 | `RadioGroup` | Mutually exclusive choices |
 | `Slider` | Range values (salary, budget) |
-| `Button` | Submit form |
+| `Tabs` / `Stepper` | Multi-step wizard navigation |
+| `Progress` | Step progress indicator |
+| `Button` | Submit form / Next step / Previous step |
 
 ### Confirmation Type
 

@@ -1,0 +1,283 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: Multi-Step Input Wizard",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A freelancer platform onboards a new contractor. The platform needs structured information across three steps: personal details, work preferences (with conditional fields based on employment type), and a final review. The agent forwards the wizard URL, and the human completes the multi-step form at their own pace.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Agent registers a new contractor on the platform. The service needs structured onboarding data that only the human can provide.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.freelancehub.example/v1/contractors/onboard",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_onboard_m3n4o5p6",
+          "X-Agent-Id": "goose-agent-7b2e"
+        },
+        "body": {
+          "contractor_name": "Sarah Chen",
+          "email": "sarah.chen@example.com",
+          "referred_by": "contractor_j8k9l0"
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Service returns HTTP 202 with an input-type hitl object. The context.form.steps defines a 3-step wizard with conditional fields.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "60"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Contractor onboarding for Sarah Chen requires additional details across 3 steps.",
+          "data": {
+            "onboarding_id": "onb_s4r5t6u7",
+            "contractor_name": "Sarah Chen"
+          },
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_onboard_v8w9x0y1",
+            "review_url": "https://freelancehub.example/review/onboard_v8w9x0y1?token=A2bC4dE6fG8hI0jK2lM4nO6pQ8rS0tU2vW4xY6z",
+            "poll_url": "https://api.freelancehub.example/v1/reviews/onboard_v8w9x0y1/status",
+            "callback_url": null,
+            "type": "input",
+            "prompt": "Complete your contractor onboarding — 3 short steps (personal info, work preferences, review)",
+            "timeout": "7d",
+            "default_action": "skip",
+            "created_at": "2026-02-22T14:00:00Z",
+            "expires_at": "2026-03-01T14:00:00Z",
+            "reminder_at": [
+              "2026-02-24T10:00:00Z",
+              "2026-02-27T10:00:00Z"
+            ],
+            "context": {
+              "contractor_name": "Sarah Chen",
+              "platform": "FreelanceHub",
+              "form": {
+                "session_id": "form_sess_z1a2b3c4",
+                "steps": [
+                  {
+                    "title": "Personal Information",
+                    "description": "Basic contact and identity details",
+                    "fields": [
+                      {
+                        "key": "full_name",
+                        "label": "Full Legal Name",
+                        "type": "text",
+                        "required": true,
+                        "default": "Sarah Chen",
+                        "validation": {
+                          "minLength": 2,
+                          "maxLength": 100
+                        }
+                      },
+                      {
+                        "key": "email",
+                        "label": "Email Address",
+                        "type": "email",
+                        "required": true,
+                        "default": "sarah.chen@example.com"
+                      },
+                      {
+                        "key": "phone",
+                        "label": "Phone Number",
+                        "type": "text",
+                        "required": false,
+                        "placeholder": "+49 170 1234567",
+                        "validation": {
+                          "pattern": "^\\+?[0-9\\s-]{7,20}$"
+                        }
+                      },
+                      {
+                        "key": "tax_id",
+                        "label": "Tax ID / VAT Number",
+                        "type": "text",
+                        "required": true,
+                        "sensitive": true,
+                        "hint": "Required for invoicing. Will be stored encrypted."
+                      }
+                    ]
+                  },
+                  {
+                    "title": "Work Preferences",
+                    "description": "Employment type, availability, and compensation",
+                    "fields": [
+                      {
+                        "key": "employment_type",
+                        "label": "Employment Type",
+                        "type": "select",
+                        "required": true,
+                        "options": [
+                          { "value": "fulltime", "label": "Full-time (40h/week)" },
+                          { "value": "parttime", "label": "Part-time (20h/week)" },
+                          { "value": "contract", "label": "Project-based Contract" }
+                        ]
+                      },
+                      {
+                        "key": "annual_salary",
+                        "label": "Expected Annual Salary (EUR)",
+                        "type": "range",
+                        "sensitive": true,
+                        "validation": {
+                          "min": 40000,
+                          "max": 200000
+                        },
+                        "hint": "Gross annual compensation",
+                        "conditional": {
+                          "field": "employment_type",
+                          "operator": "eq",
+                          "value": "fulltime"
+                        }
+                      },
+                      {
+                        "key": "hourly_rate",
+                        "label": "Hourly Rate (EUR)",
+                        "type": "number",
+                        "sensitive": true,
+                        "placeholder": "e.g. 95",
+                        "validation": {
+                          "min": 20,
+                          "max": 500
+                        },
+                        "conditional": {
+                          "field": "employment_type",
+                          "operator": "in",
+                          "value": ["parttime", "contract"]
+                        }
+                      },
+                      {
+                        "key": "available_from",
+                        "label": "Available From",
+                        "type": "date",
+                        "required": true
+                      },
+                      {
+                        "key": "remote_preference",
+                        "label": "Remote Work Preference",
+                        "type": "select",
+                        "required": true,
+                        "options": [
+                          { "value": "fully_remote", "label": "Fully Remote" },
+                          { "value": "hybrid", "label": "Hybrid (2-3 days office)" },
+                          { "value": "onsite", "label": "On-site" }
+                        ]
+                      },
+                      {
+                        "key": "skills",
+                        "label": "Primary Skills",
+                        "type": "multiselect",
+                        "required": true,
+                        "hint": "Select all that apply",
+                        "options": [
+                          { "value": "frontend", "label": "Frontend (React, Vue)" },
+                          { "value": "backend", "label": "Backend (Node, Python)" },
+                          { "value": "mobile", "label": "Mobile (iOS, Android)" },
+                          { "value": "devops", "label": "DevOps / Infrastructure" },
+                          { "value": "data", "label": "Data Engineering / ML" },
+                          { "value": "design", "label": "UI/UX Design" }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "title": "Review & Submit",
+                    "description": "Review your answers and submit the onboarding form",
+                    "fields": []
+                  }
+                ]
+              }
+            },
+            "surface": {
+              "format": "json-render",
+              "version": "1.0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Agent forwards the wizard URL to the human via Telegram",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Your contractor onboarding for FreelanceHub is ready — just 3 quick steps:\n\n1. Personal info\n2. Work preferences\n3. Review & submit\n\nComplete it here: https://freelancehub.example/review/onboard_v8w9x0y1?token=A2bC4dE6fG8hI0jK2lM4nO6pQ8rS0tU2vW4xY6z\n\nYou can save progress and resume anytime within 7 days."
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent polls and receives 'in_progress' with step progress — human is on step 2 of 3",
+      "request": {
+        "method": "GET",
+        "url": "https://api.freelancehub.example/v1/reviews/onboard_v8w9x0y1/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_onboard_m3n4o5p6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "in_progress",
+          "case_id": "review_onboard_v8w9x0y1",
+          "created_at": "2026-02-22T14:00:00Z",
+          "opened_at": "2026-02-22T15:30:00Z",
+          "expires_at": "2026-03-01T14:00:00Z",
+          "progress": {
+            "current_step": 2,
+            "total_steps": 3,
+            "completed_fields": 4,
+            "total_fields": 9
+          }
+        }
+      }
+    },
+    {
+      "step": 5,
+      "description": "Agent polls again and receives 'completed' — human submitted all steps. Conditional field hourly_rate was excluded (fulltime selected).",
+      "request": {
+        "method": "GET",
+        "url": "https://api.freelancehub.example/v1/reviews/onboard_v8w9x0y1/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_onboard_m3n4o5p6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_onboard_v8w9x0y1",
+          "created_at": "2026-02-22T14:00:00Z",
+          "opened_at": "2026-02-22T15:30:00Z",
+          "expires_at": "2026-03-01T14:00:00Z",
+          "completed_at": "2026-02-22T15:42:18Z",
+          "result": {
+            "action": "submit",
+            "data": {
+              "full_name": "Sarah Chen",
+              "email": "sarah.chen@example.com",
+              "phone": "+49 170 9876543",
+              "tax_id": "DE123456789",
+              "employment_type": "fulltime",
+              "annual_salary": 115000,
+              "available_from": "2026-04-01",
+              "remote_preference": "hybrid",
+              "skills": ["frontend", "mobile", "design"]
+            }
+          },
+          "responded_by": {
+            "name": "Sarah Chen",
+            "email": "sarah.chen@example.com"
+          }
+        }
+      }
+    }
+  ]
+}

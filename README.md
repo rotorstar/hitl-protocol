@@ -109,13 +109,15 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
 ## Five Review Types
 
-| Type | Actions | Use Case |
-|------|---------|----------|
-| **Approval** | approve, edit, reject | Artifact ready for review (CV, email draft, deployment plan) |
-| **Selection** | select | Multiple options to choose from (job listings, candidates) |
-| **Input** | submit | Missing data agent cannot infer (salary, dates, preferences) |
-| **Confirmation** | confirm, cancel | Irreversible action imminent (send emails, deploy to prod) |
-| **Escalation** | retry, skip, abort | Error or unexpected state (deployment failed, rate limit hit) |
+| Type | Actions | Multi-round | Form Fields | Use Case |
+|------|---------|:-----------:|:-----------:|----------|
+| **Approval** | approve, edit, reject | Yes | No | Artifact review (CV, deployment plan) |
+| **Selection** | select | No | No | Choose from options (job listings) |
+| **Input** | submit | No | Yes | Structured data entry (salary, dates) |
+| **Confirmation** | confirm, cancel | No | No | Irreversible action gate (send emails) |
+| **Escalation** | retry, skip, abort | No | No | Error recovery (deployment failed) |
+
+**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.5/hitl-protocol.md#103-input) for details.
 
 ## Three Transport Modes
 
@@ -155,16 +157,18 @@ protocol/hitl/
 │
 ├── schemas/
 │   ├── hitl-object.schema.json        ← JSON Schema: HITL object
-│   └── poll-response.schema.json      ← JSON Schema: Poll response
+│   ├── poll-response.schema.json      ← JSON Schema: Poll response
+│   └── form-field.schema.json         ← JSON Schema: Form field definitions
 │
 ├── examples/
 │   ├── 01-job-search-selection.json   ← Selection flow
 │   ├── 02-deployment-approval.json    ← Approval flow
 │   ├── 03-content-review-edit.json    ← Multi-round approval
-│   ├── 04-input-form.json            ← Input flow
+│   ├── 04-input-form.json            ← Input flow (single-step form)
 │   ├── 05-confirmation-gate.json      ← Confirmation flow
 │   ├── 06-escalation-error.json       ← Escalation flow
-│   └── 07-well-known-hitl.json        ← Discovery endpoint example
+│   ├── 07-well-known-hitl.json        ← Discovery endpoint example
+│   └── 08-multi-step-input.json       ← Multi-step wizard flow
 │
 ├── agents/
 │   └── checklist.md                   ← Agent implementation checklist
@@ -230,8 +234,8 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 ## Links
 
 - [Full Specification (v0.5)](spec/v0.5/hitl-protocol.md)
-- [JSON Schemas](schemas/)
-- [Examples](examples/)
+- [JSON Schemas](schemas/) — HITL object, poll response, form field definitions
+- [Examples](examples/) — 8 end-to-end flows including multi-step wizard
 - [Interactive Playground](playground/)
 - [Agent Implementation Checklist](agents/checklist.md)
 

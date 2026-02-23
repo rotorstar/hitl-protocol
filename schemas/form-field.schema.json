@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.5/form-field.json",
+  "title": "HITL Form Field",
+  "description": "A form field definition used in context.form for Input-type reviews, as defined by HITL Protocol v0.5",
+  "type": "object",
+  "required": ["key", "label", "type"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+      "description": "Unique identifier for the field. Used as key in result.data."
+    },
+    "label": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Human-readable label displayed next to the field."
+    },
+    "type": {
+      "type": "string",
+      "description": "Field type. Standard types: text, textarea, number, date, email, url, boolean, select, multiselect, range. Services MAY extend with x-prefixed custom types.",
+      "examples": ["text", "textarea", "number", "date", "email", "url", "boolean", "select", "multiselect", "range"]
+    },
+    "required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the field must be filled before submission."
+    },
+    "placeholder": {
+      "type": "string",
+      "description": "Placeholder text shown when the field is empty."
+    },
+    "hint": {
+      "type": "string",
+      "description": "Help text displayed below or beside the field."
+    },
+    "default": {
+      "description": "Pre-filled value. MUST NOT contain sensitive data — use default_ref instead."
+    },
+    "default_ref": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to securely fetch a pre-fill value. Used instead of default for sensitive data. Requires review URL token for access."
+    },
+    "sensitive": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, the review page SHOULD mask the input and MUST NOT log the value."
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value", "label"],
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Machine-readable option value."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable option label."
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Available choices. Required for select and multiselect types."
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum character length. Applies to: text, textarea, email, url."
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum character length. Applies to: text, textarea, email, url."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Regular expression the value must match. Applies to: text, email, url."
+        },
+        "min": {
+          "type": "number",
+          "description": "Minimum value or earliest date. Applies to: number, range, date."
+        },
+        "max": {
+          "type": "number",
+          "description": "Maximum value or latest date. Applies to: number, range, date."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Validation rules for the field."
+    },
+    "conditional": {
+      "type": "object",
+      "required": ["field", "operator", "value"],
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "The key of the field this condition depends on."
+        },
+        "operator": {
+          "type": "string",
+          "enum": ["eq", "neq", "in", "gt", "lt"],
+          "description": "Comparison operator."
+        },
+        "value": {
+          "description": "The value to compare against. For 'in' operator, an array of values."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Conditional visibility. When the condition is not met, the field is hidden and excluded from result.data."
+    }
+  },
+  "additionalProperties": false
+}

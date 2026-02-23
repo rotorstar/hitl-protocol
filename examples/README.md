@@ -13,6 +13,7 @@ Complete end-to-end examples demonstrating every review type and transport patte
 | 5 | [`05-confirmation-gate.json`](05-confirmation-gate.json) | Confirmation | Email service confirms sending 3 application emails |
 | 6 | [`06-escalation-error.json`](06-escalation-error.json) | Escalation | Deployment failed, human decides retry with modified params |
 | 7 | [`07-well-known-hitl.json`](07-well-known-hitl.json) | Discovery | `.well-known/hitl.json` endpoint response |
+| 8 | [`08-multi-step-input.json`](08-multi-step-input.json) | Input (multi-step) | Contractor onboarding wizard with 3 steps, conditional fields, and progress tracking |
 
 ## Structure
 

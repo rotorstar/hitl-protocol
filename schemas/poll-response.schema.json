@@ -112,6 +112,33 @@
       },
       "description": "Optional identity of the person who submitted the response."
     },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "current_step": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The step the human is currently on (1-indexed)."
+        },
+        "total_steps": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total number of steps in the form."
+        },
+        "completed_fields": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of fields the human has filled so far."
+        },
+        "total_fields": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of required fields across all steps."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional progress tracking for multi-step Input forms. Present only when status is 'in_progress' and the service tracks step-level interaction."
+    },
     "reminder_sent_at": {
       "type": "string",
       "format": "date-time",

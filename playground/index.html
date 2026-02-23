@@ -286,7 +286,8 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
     <button onclick="switchTab(2)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>Deploy</button>
     <button onclick="switchTab(3)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>Content</button>
     <button onclick="switchTab(4)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Agent Deal</button>
-    <button onclick="switchTab(5)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Compare</button>
+    <button onclick="switchTab(5)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>Input Form</button>
+    <button onclick="switchTab(6)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Compare</button>
   </div>
 </nav>
 
@@ -382,9 +383,9 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
     <div class="card rt-card anim-card">
       <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></div>
       <div class="rt-name">Input</div>
-      <div class="rt-desc">Structured data entry. Salary, dates, addresses, preferences.</div>
+      <div class="rt-desc">Structured data entry via <code style="font-size:10px">context.form</code>. Supports multi-step wizards.</div>
       <div style="margin-top:8px"><span class="badge badge-blue">submit</span></div>
-      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Returns typed form data (text, number, date, boolean)</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">10 field types, validation, conditional fields, sensitive data</div>
     </div>
     <div class="card rt-card anim-card">
       <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
@@ -552,8 +553,50 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   </div>
 </div>
 
-<!-- TAB 5: Compare -->
+<!-- TAB 5: Input Form -->
 <div class="section" id="tab-5">
+  <h2>Use Case 5: Input Form <span class="badge badge-purple">Structured Input</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">Service needs structured data from the human — form fields, validation, conditional visibility, and optional multi-step wizard flows.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>Field Types</div>
+        <label class="check-option"><input type="checkbox" id="uc5-text" checked onchange="renderUC5()"> text / email</label>
+        <label class="check-option"><input type="checkbox" id="uc5-number" checked onchange="renderUC5()"> number / range</label>
+        <label class="check-option"><input type="checkbox" id="uc5-date" checked onchange="renderUC5()"> date</label>
+        <label class="check-option"><input type="checkbox" id="uc5-select" checked onchange="renderUC5()"> select / multiselect</label>
+        <label class="check-option"><input type="checkbox" id="uc5-boolean" onchange="renderUC5()"> boolean</label>
+        <label class="check-option"><input type="checkbox" id="uc5-textarea" onchange="renderUC5()"> textarea</label>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/></svg>Mode</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc5-mode" value="single" checked onchange="renderUC5()"> Single-step form</label>
+          <label class="radio-option"><input type="radio" name="uc5-mode" value="multi" onchange="renderUC5()"> Multi-step wizard</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Options</div>
+        <label class="check-option"><input type="checkbox" id="uc5-sensitive" checked onchange="renderUC5()"> Sensitive fields</label>
+        <label class="check-option"><input type="checkbox" id="uc5-conditional" checked onchange="renderUC5()"> Conditional fields</label>
+        <label class="check-option"><input type="checkbox" id="uc5-validation" checked onchange="renderUC5()"> Validation rules</label>
+        <label class="check-option"><input type="checkbox" id="uc5-progress" onchange="renderUC5()"> Show progress poll</label>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Delivery</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc5-delivery" value="telegram" checked onchange="renderUC5()"> Telegram</label>
+          <label class="radio-option"><input type="radio" name="uc5-delivery" value="desktop" onchange="renderUC5()"> Desktop CLI</label>
+        </div>
+      </div>
+    </div>
+    <div id="uc5-main"></div>
+  </div>
+</div>
+
+<!-- TAB 6: Compare -->
+<div class="section" id="tab-6">
   <h2>Comparison Matrix</h2>
   <p class="subtitle" style="margin-bottom:16px">How HITL Protocol compares to existing standards for human interaction in agent workflows.</p>
 
@@ -650,6 +693,7 @@ function switchTab(n) {
   if (n === 2) renderUC2();
   if (n === 3) renderUC3();
   if (n === 4) renderUC4();
+  if (n === 5) renderUC5();
 }
 
 // --- JSON syntax highlighting ---
@@ -1436,11 +1480,330 @@ function renderUC4() {
   ${stateMappingHtml}`;
 }
 
+// ========== UC5: Input Form ==========
+function renderUC5() {
+  const hasText = getCheck('uc5-text');
+  const hasNumber = getCheck('uc5-number');
+  const hasDate = getCheck('uc5-date');
+  const hasSelect = getCheck('uc5-select');
+  const hasBool = getCheck('uc5-boolean');
+  const hasTextarea = getCheck('uc5-textarea');
+  const isMulti = getRadio('uc5-mode') === 'multi';
+  const showSensitive = getCheck('uc5-sensitive');
+  const showConditional = getCheck('uc5-conditional');
+  const showValidation = getCheck('uc5-validation');
+  const showProgress = getCheck('uc5-progress');
+  const delivery = getRadio('uc5-delivery') || 'telegram';
+
+  // Build field definitions based on selections
+  const fields = [];
+  if (hasText) {
+    fields.push({
+      key: 'full_name', label: 'Full Legal Name', type: 'text', required: true,
+      ...(showValidation ? { validation: { minLength: 2, maxLength: 100 } } : {}),
+      default: 'Sarah Chen'
+    });
+    fields.push({
+      key: 'email', label: 'Email Address', type: 'email', required: true,
+      default: 'sarah.chen@example.com'
+    });
+  }
+  if (hasNumber) {
+    const salaryField = {
+      key: 'salary_expectation', label: 'Expected Annual Salary (EUR)', type: 'range',
+      ...(showSensitive ? { sensitive: true } : {}),
+      ...(showValidation ? { validation: { min: 40000, max: 200000 } } : {}),
+      hint: 'Gross annual compensation'
+    };
+    if (showConditional) {
+      salaryField.conditional = { field: 'employment_type', operator: 'eq', value: 'fulltime' };
+    }
+    fields.push(salaryField);
+
+    if (showConditional) {
+      fields.push({
+        key: 'hourly_rate', label: 'Hourly Rate (EUR)', type: 'number',
+        ...(showSensitive ? { sensitive: true } : {}),
+        placeholder: 'e.g. 95',
+        ...(showValidation ? { validation: { min: 20, max: 500 } } : {}),
+        conditional: { field: 'employment_type', operator: 'in', value: ['parttime', 'contract'] }
+      });
+    }
+  }
+  if (hasDate) {
+    fields.push({ key: 'available_from', label: 'Available From', type: 'date', required: true });
+  }
+  if (hasSelect) {
+    fields.push({
+      key: 'employment_type', label: 'Employment Type', type: 'select', required: true,
+      options: [
+        { value: 'fulltime', label: 'Full-time (40h/week)' },
+        { value: 'parttime', label: 'Part-time (20h/week)' },
+        { value: 'contract', label: 'Project-based Contract' }
+      ]
+    });
+    fields.push({
+      key: 'skills', label: 'Primary Skills', type: 'multiselect', required: true,
+      hint: 'Select all that apply',
+      options: [
+        { value: 'frontend', label: 'Frontend (React, Vue)' },
+        { value: 'backend', label: 'Backend (Node, Python)' },
+        { value: 'mobile', label: 'Mobile (iOS, Android)' },
+        { value: 'devops', label: 'DevOps / Infrastructure' },
+        { value: 'data', label: 'Data Engineering / ML' }
+      ]
+    });
+  }
+  if (hasBool) {
+    fields.push({ key: 'salary_negotiable', label: 'Salary Negotiable?', type: 'boolean', required: true, default: true });
+  }
+  if (hasTextarea) {
+    fields.push({
+      key: 'additional_notes', label: 'Additional Notes', type: 'textarea', required: false,
+      placeholder: 'Any other relevant information',
+      ...(showValidation ? { validation: { maxLength: 1000 } } : {})
+    });
+  }
+
+  if (fields.length === 0) {
+    document.getElementById('uc5-main').innerHTML = '<div class="card" style="text-align:center;padding:32px;color:var(--muted)">Select at least one field type from the controls.</div>';
+    return;
+  }
+
+  // Build context.form — single or multi-step
+  let formObj;
+  if (isMulti) {
+    const step1Fields = fields.filter(f => ['full_name','email','salary_negotiable'].includes(f.key));
+    const step2Fields = fields.filter(f => !['full_name','email','salary_negotiable','additional_notes'].includes(f.key));
+    const step3Fields = fields.filter(f => f.key === 'additional_notes');
+    formObj = {
+      session_id: 'form_sess_z1a2b3c4',
+      steps: [
+        { title: 'Personal Information', description: 'Basic contact and identity details', fields: step1Fields.length > 0 ? step1Fields : [fields[0]] },
+        { title: 'Work Preferences', description: 'Employment type, availability, and compensation', fields: step2Fields.length > 0 ? step2Fields : [fields[fields.length > 1 ? 1 : 0]] },
+        { title: 'Review & Submit', description: 'Review your answers and submit', fields: step3Fields }
+      ]
+    };
+  } else {
+    formObj = { fields: fields };
+  }
+
+  // Build HITL object
+  const hitlObj = {
+    spec_version: '0.5',
+    case_id: 'review_input_q1w2e3r4',
+    review_url: 'https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q',
+    poll_url: 'https://api.service.example.com/v1/reviews/input_q1w2e3r4/status',
+    type: 'input',
+    prompt: isMulti
+      ? 'Complete your onboarding — ' + (formObj.steps ? formObj.steps.length : 1) + ' short steps'
+      : 'Please provide the requested information',
+    timeout: isMulti ? '7d' : '72h',
+    default_action: 'skip',
+    created_at: '2026-02-22T10:00:00Z',
+    expires_at: isMulti ? '2026-03-01T10:00:00Z' : '2026-02-25T10:00:00Z',
+    context: {
+      service: 'FreelanceHub',
+      form: formObj
+    },
+    surface: { format: 'json-render', version: '1.0' }
+  };
+
+  // Build poll result
+  const resultData = {};
+  fields.forEach(f => {
+    if (f.key === 'full_name') resultData[f.key] = 'Sarah Chen';
+    else if (f.key === 'email') resultData[f.key] = 'sarah.chen@example.com';
+    else if (f.key === 'salary_expectation') resultData[f.key] = 115000;
+    else if (f.key === 'hourly_rate') resultData[f.key] = 95;
+    else if (f.key === 'available_from') resultData[f.key] = '2026-04-01';
+    else if (f.key === 'employment_type') resultData[f.key] = 'fulltime';
+    else if (f.key === 'skills') resultData[f.key] = ['frontend', 'mobile', 'data'];
+    else if (f.key === 'salary_negotiable') resultData[f.key] = true;
+    else if (f.key === 'additional_notes') resultData[f.key] = 'Open to equity compensation.';
+  });
+  // Remove conditional fields that wouldn't be shown (hourly_rate when fulltime)
+  if (showConditional && resultData.employment_type === 'fulltime') {
+    delete resultData.hourly_rate;
+  }
+
+  const pollResult = {
+    status: 'completed',
+    case_id: 'review_input_q1w2e3r4',
+    created_at: '2026-02-22T10:00:00Z',
+    opened_at: '2026-02-22T11:15:03Z',
+    completed_at: '2026-02-22T11:19:46Z',
+    result: { action: 'submit', data: resultData },
+    responded_by: { name: 'Sarah Chen', email: 'sarah.chen@example.com' }
+  };
+
+  // Progress poll (optional)
+  const progressPollObj = isMulti ? {
+    status: 'in_progress',
+    case_id: 'review_input_q1w2e3r4',
+    created_at: '2026-02-22T10:00:00Z',
+    opened_at: '2026-02-22T11:15:03Z',
+    progress: {
+      current_step: 2,
+      total_steps: formObj.steps ? formObj.steps.length : 1,
+      completed_fields: Math.min(4, fields.length),
+      total_fields: fields.length
+    }
+  } : {
+    status: 'in_progress',
+    case_id: 'review_input_q1w2e3r4',
+    created_at: '2026-02-22T10:00:00Z',
+    opened_at: '2026-02-22T11:15:03Z'
+  };
+
+  // Delivery mock
+  let deliveryHtml;
+  if (delivery === 'telegram') {
+    deliveryHtml = `<div class="delivery-mock"><span class="dm-meta">Telegram Bot &rarr; User Chat</span>\n\n<span class="dm-prompt">${isMulti ? 'Your onboarding is ready — just ' + (formObj.steps ? formObj.steps.length : 1) + ' quick steps.' : 'We need a few more details from you.'}</span>\n\nPlease fill out the form:\n<span class="dm-url">https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q</span>\n\n<span class="dm-meta">${isMulti ? 'You can save progress and resume anytime within 7 days.' : 'Expires in 72 hours.'}</span></div>`;
+  } else {
+    deliveryHtml = `<div class="delivery-mock"><span class="dm-meta">$ agent-cli</span>\n\n${isMulti ? 'Onboarding form ready (' + (formObj.steps ? formObj.steps.length : 1) + ' steps).' : 'Additional information needed.'} Opening in browser...\n<span class="dm-prompt">$ xdg-open "https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q"</span>\n\n<span class="dm-meta">Browser opened. Waiting for submission...</span></div>`;
+  }
+
+  // State machine visualization
+  const statesHtml = isMulti ? `
+    <div class="state-machine" style="margin:16px 0">
+      <div class="sm-state pending">pending</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state opened">opened</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state in_progress" style="position:relative">in_progress
+        <div style="font-size:10px;opacity:0.7;margin-top:2px">Step 1 &rarr; 2 &rarr; 3</div>
+      </div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state completed">completed</div>
+    </div>` : `
+    <div class="state-machine" style="margin:16px 0">
+      <div class="sm-state pending">pending</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state opened">opened</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state completed">completed</div>
+    </div>`;
+
+  // Build form preview (visual mock)
+  let formPreviewHtml = '<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">';
+  const previewFields = isMulti && formObj.steps ? formObj.steps[1].fields : fields.slice(0, 4);
+  previewFields.forEach(f => {
+    const sensitiveMark = f.sensitive ? ' <span style="color:var(--red);font-size:10px;font-weight:700">SENSITIVE</span>' : '';
+    const conditionalMark = f.conditional ? ' <span style="color:var(--purple);font-size:10px;font-weight:700">CONDITIONAL</span>' : '';
+    const requiredMark = f.required ? '<span style="color:var(--red)">*</span>' : '';
+    let inputMock = '';
+    if (f.type === 'select' || f.type === 'multiselect') {
+      const opts = (f.options || []).slice(0, 3).map(o => o.label).join(' | ');
+      inputMock = `<div style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--muted);background:var(--bg2)">${opts}${f.options && f.options.length > 3 ? ' ...' : ''}</div>`;
+    } else if (f.type === 'boolean') {
+      inputMock = '<div style="padding:4px 8px"><input type="checkbox" disabled checked style="accent-color:var(--accent)"> Yes</div>';
+    } else if (f.type === 'range') {
+      inputMock = `<div style="padding:4px 8px;font-size:11px;color:var(--muted)">${f.validation ? f.validation.min + ' ━━━━━━━━ ' + f.validation.max : '0 ━━━━━━━━ 100'}</div>`;
+    } else if (f.type === 'textarea') {
+      inputMock = `<div style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--dim);background:var(--bg2);min-height:32px">${f.placeholder || ''}</div>`;
+    } else {
+      inputMock = `<div style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:11px;color:var(--dim);background:var(--bg2)">${f.default || f.placeholder || f.type}</div>`;
+    }
+    formPreviewHtml += `<div style="padding:6px 10px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border)">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:2px">${escHtml(f.label)} ${requiredMark}${sensitiveMark}${conditionalMark}</div>
+      ${inputMock}
+      ${f.hint ? '<div style="font-size:10px;color:var(--dim);margin-top:2px">' + escHtml(f.hint) + '</div>' : ''}
+    </div>`;
+  });
+  formPreviewHtml += '</div>';
+
+  // Multi-step tab bar
+  const wizardTabsHtml = isMulti && formObj.steps ? `
+    <div style="display:flex;gap:4px;margin-bottom:8px">
+      ${formObj.steps.map((s, i) => `<div style="flex:1;padding:6px 8px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;text-align:center;${i === 1 ? 'background:var(--accent-bg);color:var(--accent);border:1px solid rgba(249,115,22,0.2)' : i === 0 ? 'background:var(--green-bg);color:var(--green);border:1px solid rgba(5,150,105,0.2)' : 'background:var(--bg3);color:var(--dim);border:1px solid var(--border)'}">${i < 1 ? '&#10003; ' : ''}${escHtml(s.title)}</div>`).join('')}
+    </div>` : '';
+
+  // Build main output
+  document.getElementById('uc5-main').innerHTML = `
+    <div class="step-list" style="padding-left:24px">
+      <div class="step-card agent">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">1</span> Agent calls API</div>
+        <div class="step-body">Agent triggers an action that requires structured human input.</div>
+        <div class="json-block" id="uc5-req">${hl({ method: 'POST', url: '/v1/contractors/onboard', body: { name: 'Sarah Chen', email: 'sarah.chen@example.com' } })}</div>
+        <button class="copy-btn" onclick="copyJson('uc5-req')">Copy</button>
+      </div>
+
+      <div class="step-card service">
+        <div class="step-title"><span class="badge badge-orange" style="font-size:10px">2</span> Service returns HTTP 202 + <code>context.form</code></div>
+        <div class="step-body">
+          ${isMulti ? '<strong>' + (formObj.steps ? formObj.steps.length : 1) + '-step wizard</strong> with ' : '<strong>Single-step form</strong> with '}
+          ${fields.length} field${fields.length !== 1 ? 's' : ''}
+          ${showSensitive ? ' (includes <span style="color:var(--red);font-weight:700">sensitive</span> fields)' : ''}
+          ${showConditional ? ' (includes <span style="color:var(--purple);font-weight:700">conditional</span> fields)' : ''}
+        </div>
+        <div class="json-block" id="uc5-hitl">${hl({ status: 'human_input_required', message: isMulti ? 'Onboarding requires additional details across ' + (formObj.steps ? formObj.steps.length : 1) + ' steps.' : 'Additional information required from the human.', hitl: hitlObj })}</div>
+        <button class="copy-btn" onclick="copyJson('uc5-hitl')">Copy</button>
+        ${statesHtml}
+      </div>
+
+      <div class="step-card human">
+        <div class="step-title"><span class="badge badge-green" style="font-size:10px">3</span> Agent delivers URL <span class="badge badge-${delivery === 'telegram' ? 'green' : 'blue'}" style="font-size:10px">${delivery}</span></div>
+        ${deliveryHtml}
+      </div>
+
+      <div class="step-card review">
+        <div class="step-title"><span class="badge badge-purple" style="font-size:10px">4</span> Human fills ${isMulti ? 'wizard' : 'form'}</div>
+        <div class="step-body">Review page renders structured form fields${isMulti ? ' across ' + (formObj.steps ? formObj.steps.length : 1) + ' steps' : ''}. ${showSensitive ? 'Sensitive fields are masked.' : ''} ${showConditional ? 'Conditional fields appear based on selections.' : ''}</div>
+        ${wizardTabsHtml}
+        ${formPreviewHtml}
+      </div>
+
+      ${showProgress && isMulti ? `<div class="step-card agent">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">4b</span> Agent polls &mdash; <span class="badge badge-purple" style="font-size:10px">in_progress</span> with progress</div>
+        <div class="step-body">Agent sees step-level progress. Human is on step 2 of ${formObj.steps ? formObj.steps.length : 1}.</div>
+        <div class="json-block" id="uc5-progress">${hl(progressPollObj)}</div>
+        <button class="copy-btn" onclick="copyJson('uc5-progress')">Copy</button>
+      </div>` : ''}
+
+      <div class="step-card agent" style="position:relative">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">5</span> Agent gets result <span class="badge badge-green" style="font-size:10px">completed</span></div>
+        <div class="step-body">All ${isMulti ? 'steps' : 'fields'} submitted. Structured data returned.${showConditional ? ' Conditional field <code>hourly_rate</code> excluded (fulltime selected).' : ''}</div>
+        <div class="json-block" id="uc5-result">${hl(pollResult)}</div>
+        <button class="copy-btn" onclick="copyJson('uc5-result')">Copy</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;padding:18px">
+      <h3 style="margin-bottom:12px">Live <code>context.form</code> Output</h3>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">This is the <code>context.form</code> structure generated by your selections above. Copy it into your service's HTTP 202 response.</div>
+      <div style="position:relative">
+        <div class="json-block" id="uc5-form-output">${hl(formObj)}</div>
+        <button class="copy-btn" onclick="copyJson('uc5-form-output')">Copy</button>
+      </div>
+    </div>
+
+    ${showConditional ? `<div class="card" style="margin-top:14px;padding:18px;border-left:4px solid var(--purple)">
+      <h3 style="margin-bottom:8px;color:var(--purple)">Conditional Fields</h3>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">
+        <p>When <code>employment_type</code> = <strong>"fulltime"</strong>: show <code>salary_expectation</code> (range), hide <code>hourly_rate</code></p>
+        <p style="margin-top:4px">When <code>employment_type</code> &isin; <strong>["parttime", "contract"]</strong>: show <code>hourly_rate</code> (number), hide <code>salary_expectation</code></p>
+        <div style="margin-top:8px;font-size:12px;padding:8px 12px;background:var(--bg3);border-radius:var(--radius-sm);font-family:'JetBrains Mono',monospace">
+          "conditional": { "field": "employment_type", "operator": "eq" | "in", "value": ... }
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${showSensitive ? `<div class="card" style="margin-top:14px;padding:18px;border-left:4px solid var(--red)">
+      <h3 style="margin-bottom:8px;color:var(--red)">Sensitive Fields</h3>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">
+        <p>Fields marked <code>"sensitive": true</code> signal the review UI to mask input (e.g., password dots) and avoid logging values.</p>
+        <p style="margin-top:4px"><strong>Security:</strong> Services SHOULD NOT transmit pre-filled sensitive data in <code>default</code>. Use <code>default_ref</code> for secure server-side pre-fill.</p>
+      </div>
+    </div>` : ''}`;
+}
+
 // --- Initial renders ---
 renderUC1();
 renderUC2();
 renderUC3();
 renderUC4();
+renderUC5();
 </script>
 </body>
 </html>
