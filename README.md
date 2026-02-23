@@ -185,6 +185,17 @@ protocol/hitl/
         └── default.md                 ← PR template
 ```
 
+## Interactive Playground
+
+<p align="center">
+  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html">
+    <img src="assets/hitl-playground.png" alt="HITL Protocol Interactive Playground" width="800">
+  </a>
+</p>
+<p align="center">
+  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html"><strong>Try the Interactive Playground →</strong></a>
+</p>
+
 ## Versioning
 
 The specification follows [Semantic Versioning](https://semver.org/). Breaking changes increment the major version. The `spec_version` field in all HITL objects enables forward compatibility.
