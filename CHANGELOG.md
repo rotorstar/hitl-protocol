@@ -5,6 +5,21 @@ All notable changes to the HITL Protocol specification will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-02-23
+
+### Added
+- OpenAPI 3.1.0 specification (`schemas/openapi.yaml`) covering all endpoints, webhooks, and security schemes
+- Review page HTML templates for all 5 review types (`templates/`) with Pico CSS, dark mode, WCAG 2.2 AA
+- Reference implementations in 4 frameworks: Express 5, Hono, Next.js (App Router), FastAPI
+- Quick Start Guide (`docs/quick-start.md`) with 7 Mermaid diagrams and 5 framework walkthroughs
+- SDK Design Guide (`docs/sdk-guide.md`) for community SDK development
+- Compliance test suites: Node.js (Vitest, 57 tests) and Python (pytest, 46 tests)
+- Schema tests validating all examples against JSON Schema Draft 2020-12
+- State machine tests covering all 10 valid transitions, 15 invalid transitions, and 4 happy paths
+
+### Changed
+- Updated `hitl-object.schema.json` to support custom review types with `x-` prefix via `anyOf`
+
 ## [0.5] - 2026-02-22
 
 ### Added

@@ -16,7 +16,10 @@ Services that return HTTP 202 with HITL objects and host review pages.
 
 | Service | Language | Compliance | Review Types | Description |
 |---------|----------|:----------:|-------------|-------------|
-| — | — | — | — | *Be the first to add your service implementation!* |
+| [Reference (Express 5)](reference-service/express/) | JavaScript | Standard | All 5 | Reference implementation — polling + SSE |
+| [Reference (Hono)](reference-service/hono/) | JavaScript | Standard | All 5 | Edge-ready reference — Deno/Bun/CF Workers |
+| [Reference (Next.js)](reference-service/nextjs/) | TypeScript | Standard | All 5 | Full-stack App Router — server-rendered pages |
+| [Reference (FastAPI)](reference-service/python/) | Python | Standard | All 5 | Python reference — async + streaming |
 
 ## Agent Implementations
 

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{prompt}} — HITL Review</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    .hitl-banner { padding: 1rem 1.25rem; border-radius: var(--pico-border-radius); margin-bottom: 1.5rem; }
+    .hitl-banner--expired { background: color-mix(in srgb, #cf222e 15%, transparent); border-left: 4px solid #cf222e; }
+    .hitl-banner--done { background: color-mix(in srgb, #2ea043 15%, transparent); border-left: 4px solid #2ea043; }
+    @media (prefers-color-scheme: dark) {
+      [data-theme="auto"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+      [data-theme="auto"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    }
+    [data-theme="dark"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+    [data-theme="dark"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    .hitl-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .hitl-actions button { min-width: 120px; }
+    .hitl-actions .spacer { margin-left: auto; }
+    .hitl-steps { display: flex; gap: 0; margin-bottom: 2rem; counter-reset: step; }
+    .hitl-step { flex: 1; text-align: center; position: relative; font-size: 0.85rem; color: var(--pico-muted-color); }
+    .hitl-step::before { counter-increment: step; content: counter(step); display: block; width: 2rem; height: 2rem; line-height: 2rem; margin: 0 auto 0.5rem; border-radius: 50%; border: 2px solid var(--pico-muted-border-color); font-weight: 600; }
+    .hitl-step--active { color: var(--pico-primary); font-weight: 600; }
+    .hitl-step--active::before { border-color: var(--pico-primary); background: var(--pico-primary); color: var(--pico-primary-inverse); }
+    .hitl-step--done::before { border-color: var(--pico-primary); background: var(--pico-primary); color: var(--pico-primary-inverse); content: "\2713"; }
+    .hitl-step--done { color: var(--pico-color); }
+    .hitl-step + .hitl-step::after { content: ''; position: absolute; top: 1rem; right: 50%; width: 100%; height: 2px; background: var(--pico-muted-border-color); z-index: -1; }
+    .hitl-step--done + .hitl-step::after, .hitl-step--active + .hitl-step::after { background: var(--pico-primary); }
+    .hitl-field-error { color: #cf222e; font-size: 0.8rem; margin-top: 0.25rem; }
+    [data-theme="dark"] .hitl-field-error, [data-theme="auto"] .hitl-field-error { color: #f85149; }
+    .hitl-field-valid input, .hitl-field-valid select, .hitl-field-valid textarea { border-color: #2ea043; }
+    .hitl-sensitive { position: relative; }
+    .hitl-sensitive::after { content: ""; font-size: 0.7rem; position: absolute; top: 0; right: 0; color: var(--pico-muted-color); }
+    .hitl-hint { font-size: 0.8rem; color: var(--pico-muted-color); margin-top: -0.5rem; margin-bottom: 0.5rem; }
+    .hitl-multiselect { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .hitl-multiselect label { display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; border: 1px solid var(--pico-muted-border-color); border-radius: 2rem; cursor: pointer; font-size: 0.875rem; transition: border-color 0.15s, background 0.15s; }
+    .hitl-multiselect label:has(input:checked) { border-color: var(--pico-primary); background: color-mix(in srgb, var(--pico-primary) 10%, transparent); }
+    .hitl-multiselect input { margin: 0; width: auto; }
+    [hidden] { display: none !important; }
+    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.25rem; padding: 0.25rem; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hitl-step-content { view-transition-name: step-content; }
+    }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul><li><strong>Review</strong></li></ul>
+      <ul><li><button id="theme-toggle" aria-label="Toggle dark mode">&#9684;</button></li></ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="expired-banner" class="hitl-banner hitl-banner--expired" role="alert" hidden>
+      <strong>Expired</strong> — This review is no longer accepting responses.
+    </div>
+    <div id="completed-banner" class="hitl-banner hitl-banner--done" role="alert" hidden>
+      <strong>Already responded</strong> — This review has been completed.
+    </div>
+
+    <section id="review-content">
+      <h2 id="prompt-heading"></h2>
+
+      <nav id="step-nav" class="hitl-steps" aria-label="Form steps" hidden></nav>
+
+      <form id="hitl-form" novalidate>
+        <div id="step-content" class="hitl-step-content"></div>
+
+        <div class="hitl-actions">
+          <button id="btn-prev" class="secondary" type="button" hidden>Back</button>
+          <span class="spacer"></span>
+          <button id="btn-next" type="button" hidden>Next</button>
+          <button id="btn-submit" type="submit">Submit</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="container">
+    <small>Powered by <a href="https://github.com/rotorstar/hitl-protocol" target="_blank" rel="noopener">HITL Protocol</a> v0.5</small>
+  </footer>
+
+  <script type="application/json" id="hitl-data">{{hitl_data_json}}</script>
+  <script>
+    (function () {
+      /* Theme toggle */
+      var toggle = document.getElementById('theme-toggle');
+      var stored = localStorage.getItem('hitl-theme');
+      if (stored) document.documentElement.dataset.theme = stored;
+      toggle.addEventListener('click', function () {
+        var current = document.documentElement.dataset.theme;
+        var next = current === 'dark' ? 'light' : current === 'light' ? 'auto' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('hitl-theme', next);
+      });
+
+      /* Parse data */
+      var raw = document.getElementById('hitl-data').textContent;
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { return; }
+
+      var ctx = data.context || {};
+      var form = ctx.form || {};
+      var status = data.status || 'pending';
+
+      document.getElementById('prompt-heading').textContent = data.prompt || 'Complete form';
+
+      /* Handle status */
+      if (status === 'expired') {
+        document.getElementById('expired-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+      if (status === 'completed') {
+        document.getElementById('completed-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+
+      /* Determine steps — single-step if form.fields, multi-step if form.steps */
+      var steps = form.steps || [{ title: '', fields: form.fields || [] }];
+      var isMultiStep = steps.length > 1;
+      var currentStep = 0;
+      var formData = {};
+
+      /* Load defaults */
+      steps.forEach(function (step) {
+        (step.fields || []).forEach(function (f) {
+          if (f.default !== undefined) formData[f.key] = f.default;
+        });
+      });
+
+      /* Render step navigation */
+      if (isMultiStep) {
+        var stepNav = document.getElementById('step-nav');
+        stepNav.hidden = false;
+        steps.forEach(function (step, i) {
+          var div = document.createElement('div');
+          div.className = 'hitl-step' + (i === 0 ? ' hitl-step--active' : '');
+          div.textContent = step.title || 'Step ' + (i + 1);
+          div.dataset.step = i;
+          stepNav.appendChild(div);
+        });
+      }
+
+      /* Field rendering */
+      function renderField(field) {
+        var wrapper = document.createElement('div');
+        wrapper.dataset.fieldKey = field.key;
+
+        /* Conditional visibility */
+        if (field.conditional) wrapper.dataset.conditional = JSON.stringify(field.conditional);
+
+        var label = document.createElement('label');
+        label.setAttribute('for', 'field-' + field.key);
+        label.textContent = field.label || field.key;
+        if (field.required) {
+          var req = document.createElement('abbr');
+          req.textContent = '*';
+          req.title = 'Required';
+          label.appendChild(req);
+        }
+        wrapper.appendChild(label);
+
+        if (field.hint) {
+          var hint = document.createElement('small');
+          hint.className = 'hitl-hint';
+          hint.textContent = field.hint;
+          hint.id = 'hint-' + field.key;
+          wrapper.appendChild(hint);
+        }
+
+        var input;
+        var type = field.type || 'text';
+
+        if (type === 'select') {
+          input = document.createElement('select');
+          input.id = 'field-' + field.key;
+          input.name = field.key;
+          if (field.required) input.required = true;
+          var emptyOpt = document.createElement('option');
+          emptyOpt.value = '';
+          emptyOpt.textContent = field.placeholder || 'Select...';
+          input.appendChild(emptyOpt);
+          (field.options || []).forEach(function (opt) {
+            var o = document.createElement('option');
+            o.value = opt.value;
+            o.textContent = opt.label || opt.value;
+            if (formData[field.key] === opt.value) o.selected = true;
+            input.appendChild(o);
+          });
+        } else if (type === 'multiselect') {
+          input = document.createElement('div');
+          input.className = 'hitl-multiselect';
+          input.id = 'field-' + field.key;
+          input.setAttribute('role', 'group');
+          input.setAttribute('aria-label', field.label);
+          var currentVal = Array.isArray(formData[field.key]) ? formData[field.key] : [];
+          (field.options || []).forEach(function (opt) {
+            var lbl = document.createElement('label');
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.name = field.key;
+            cb.value = opt.value;
+            if (currentVal.indexOf(opt.value) !== -1) cb.checked = true;
+            lbl.appendChild(cb);
+            lbl.appendChild(document.createTextNode(opt.label || opt.value));
+            input.appendChild(lbl);
+          });
+        } else if (type === 'textarea') {
+          input = document.createElement('textarea');
+          input.id = 'field-' + field.key;
+          input.name = field.key;
+          input.rows = 4;
+          if (field.placeholder) input.placeholder = field.placeholder;
+          if (field.required) input.required = true;
+          if (formData[field.key]) input.value = formData[field.key];
+        } else if (type === 'boolean') {
+          input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = 'field-' + field.key;
+          input.name = field.key;
+          input.setAttribute('role', 'switch');
+          if (formData[field.key]) input.checked = true;
+        } else if (type === 'range') {
+          input = document.createElement('input');
+          input.type = 'range';
+          input.id = 'field-' + field.key;
+          input.name = field.key;
+          var v = field.validation || {};
+          if (v.min !== undefined) input.min = v.min;
+          if (v.max !== undefined) input.max = v.max;
+          input.value = formData[field.key] || v.min || 0;
+          var output = document.createElement('output');
+          output.id = 'output-' + field.key;
+          output.textContent = input.value;
+          input.addEventListener('input', function () { output.textContent = input.value; });
+          wrapper.appendChild(input);
+          wrapper.appendChild(output);
+          if (field.hint) input.setAttribute('aria-describedby', 'hint-' + field.key);
+          addError(wrapper, field);
+          return wrapper;
+        } else {
+          input = document.createElement('input');
+          input.id = 'field-' + field.key;
+          input.name = field.key;
+          input.type = type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'email' ? 'email' : type === 'url' ? 'url' : 'text';
+          if (field.placeholder) input.placeholder = field.placeholder;
+          if (field.required) input.required = true;
+          if (formData[field.key] !== undefined) input.value = formData[field.key];
+          var v = field.validation || {};
+          if (v.minLength) input.minLength = v.minLength;
+          if (v.maxLength) input.maxLength = v.maxLength;
+          if (v.pattern) input.pattern = v.pattern;
+          if (v.min !== undefined) input.min = v.min;
+          if (v.max !== undefined) input.max = v.max;
+        }
+
+        if (field.hint && input.setAttribute) input.setAttribute('aria-describedby', 'hint-' + field.key);
+        if (field.sensitive && input.classList) input.classList.add('hitl-sensitive');
+        wrapper.appendChild(input);
+        addError(wrapper, field);
+        return wrapper;
+      }
+
+      function addError(wrapper, field) {
+        var errDiv = document.createElement('div');
+        errDiv.className = 'hitl-field-error';
+        errDiv.id = 'error-' + field.key;
+        errDiv.setAttribute('role', 'alert');
+        errDiv.hidden = true;
+        wrapper.appendChild(errDiv);
+      }
+
+      /* Render current step */
+      function renderStep(index) {
+        var container = document.getElementById('step-content');
+        container.innerHTML = '';
+        var step = steps[index];
+
+        if (step.title && isMultiStep) {
+          var h3 = document.createElement('h3');
+          h3.textContent = step.title;
+          container.appendChild(h3);
+        }
+        if (step.description) {
+          var p = document.createElement('p');
+          p.textContent = step.description;
+          container.appendChild(p);
+        }
+
+        /* Review step (last step with no fields) */
+        if (step.fields.length === 0 && index === steps.length - 1) {
+          var review = document.createElement('article');
+          review.innerHTML = '<header><strong>Review your answers</strong></header>';
+          var dl = document.createElement('dl');
+          steps.forEach(function (s) {
+            (s.fields || []).forEach(function (f) {
+              if (formData[f.key] === undefined) return;
+              var dt = document.createElement('dt');
+              dt.textContent = f.label || f.key;
+              var dd = document.createElement('dd');
+              var val = formData[f.key];
+              dd.textContent = Array.isArray(val) ? val.join(', ') : String(val);
+              dl.appendChild(dt);
+              dl.appendChild(dd);
+            });
+          });
+          review.appendChild(dl);
+          container.appendChild(review);
+        } else {
+          (step.fields || []).forEach(function (f) {
+            container.appendChild(renderField(f));
+          });
+        }
+
+        applyConditionals();
+        addBlurValidation();
+
+        /* Update step navigation */
+        if (isMultiStep) {
+          var navItems = document.querySelectorAll('.hitl-step');
+          navItems.forEach(function (item, i) {
+            item.className = 'hitl-step';
+            if (i < index) item.className += ' hitl-step--done';
+            if (i === index) item.className += ' hitl-step--active';
+          });
+        }
+
+        /* Update buttons */
+        document.getElementById('btn-prev').hidden = !isMultiStep || index === 0;
+        document.getElementById('btn-next').hidden = !isMultiStep || index >= steps.length - 1;
+        document.getElementById('btn-submit').hidden = isMultiStep && index < steps.length - 1;
+      }
+
+      /* Conditional field visibility */
+      function applyConditionals() {
+        document.querySelectorAll('[data-conditional]').forEach(function (el) {
+          var cond = JSON.parse(el.dataset.conditional);
+          var fieldVal = formData[cond.field];
+          var visible = false;
+
+          if (cond.operator === 'eq') visible = fieldVal === cond.value;
+          else if (cond.operator === 'neq') visible = fieldVal !== cond.value;
+          else if (cond.operator === 'in') visible = Array.isArray(cond.value) && cond.value.indexOf(fieldVal) !== -1;
+          else if (cond.operator === 'gt') visible = Number(fieldVal) > Number(cond.value);
+          else if (cond.operator === 'lt') visible = Number(fieldVal) < Number(cond.value);
+
+          el.hidden = !visible;
+          /* Clear required on hidden fields */
+          var inp = el.querySelector('input, select, textarea');
+          if (inp && inp.required !== undefined) {
+            inp.required = visible && el.querySelector('[title="Required"]') !== null;
+          }
+        });
+      }
+
+      /* Collect form data from current step */
+      function collectStepData() {
+        var step = steps[currentStep];
+        (step.fields || []).forEach(function (f) {
+          var wrapper = document.querySelector('[data-field-key="' + f.key + '"]');
+          if (!wrapper || wrapper.hidden) return;
+
+          if (f.type === 'multiselect') {
+            var checked = wrapper.querySelectorAll('input:checked');
+            formData[f.key] = Array.from(checked).map(function (c) { return c.value; });
+          } else if (f.type === 'boolean') {
+            formData[f.key] = wrapper.querySelector('input').checked;
+          } else if (f.type === 'number' || f.type === 'range') {
+            var val = wrapper.querySelector('input').value;
+            formData[f.key] = val ? Number(val) : undefined;
+          } else {
+            var input = wrapper.querySelector('input, select, textarea');
+            if (input) formData[f.key] = input.value || undefined;
+          }
+        });
+        applyConditionals();
+      }
+
+      /* Validate current step */
+      function validateStep() {
+        var step = steps[currentStep];
+        var valid = true;
+        (step.fields || []).forEach(function (f) {
+          var wrapper = document.querySelector('[data-field-key="' + f.key + '"]');
+          if (!wrapper || wrapper.hidden) return;
+          var input = wrapper.querySelector('input, select, textarea');
+          if (!input) return;
+          var errDiv = document.getElementById('error-' + f.key);
+          if (!errDiv) return;
+
+          var msg = '';
+          if (input.validity && !input.validity.valid) {
+            msg = input.validationMessage;
+          }
+          if (f.required && f.type === 'multiselect') {
+            var checked = wrapper.querySelectorAll('input:checked');
+            if (checked.length === 0) msg = 'Please select at least one option.';
+          }
+
+          if (msg) {
+            errDiv.textContent = msg;
+            errDiv.hidden = false;
+            input.setAttribute('aria-invalid', 'true');
+            input.setAttribute('aria-describedby', errDiv.id);
+            valid = false;
+          } else {
+            errDiv.hidden = true;
+            input.removeAttribute('aria-invalid');
+          }
+        });
+        return valid;
+      }
+
+      /* Blur validation */
+      function addBlurValidation() {
+        document.querySelectorAll('#step-content input, #step-content select, #step-content textarea').forEach(function (input) {
+          input.addEventListener('blur', function () {
+            var key = input.name;
+            var errDiv = document.getElementById('error-' + key);
+            if (!errDiv) return;
+            if (input.validity && !input.validity.valid) {
+              errDiv.textContent = input.validationMessage;
+              errDiv.hidden = false;
+              input.setAttribute('aria-invalid', 'true');
+            } else {
+              errDiv.hidden = true;
+              input.removeAttribute('aria-invalid');
+              var wrapper = input.closest('[data-field-key]');
+              if (wrapper && input.value) wrapper.classList.add('hitl-field-valid');
+            }
+          });
+
+          /* Update formData on change for conditionals */
+          input.addEventListener('change', function () {
+            var key = input.name;
+            if (input.type === 'checkbox' && !input.closest('.hitl-multiselect')) {
+              formData[key] = input.checked;
+            } else {
+              formData[key] = input.value;
+            }
+            applyConditionals();
+          });
+        });
+      }
+
+      /* Navigation */
+      document.getElementById('btn-next').addEventListener('click', function () {
+        collectStepData();
+        if (!validateStep()) return;
+        if (currentStep < steps.length - 1) {
+          currentStep++;
+          if (document.startViewTransition) {
+            document.startViewTransition(function () { renderStep(currentStep); });
+          } else {
+            renderStep(currentStep);
+          }
+        }
+      });
+
+      document.getElementById('btn-prev').addEventListener('click', function () {
+        collectStepData();
+        if (currentStep > 0) {
+          currentStep--;
+          if (document.startViewTransition) {
+            document.startViewTransition(function () { renderStep(currentStep); });
+          } else {
+            renderStep(currentStep);
+          }
+        }
+      });
+
+      /* Submit */
+      document.getElementById('hitl-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        collectStepData();
+        if (!validateStep()) return;
+
+        var btns = document.querySelectorAll('.hitl-actions button');
+        btns.forEach(function (b) { b.disabled = true; b.ariaBusy = 'true'; });
+
+        /* Remove undefined values */
+        var cleanData = {};
+        Object.keys(formData).forEach(function (k) {
+          if (formData[k] !== undefined) cleanData[k] = formData[k];
+        });
+
+        fetch(data.respond_url + '?token=' + encodeURIComponent(data.token), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'submit', data: cleanData })
+        })
+        .then(function (res) {
+          if (res.status === 409) {
+            document.getElementById('completed-banner').hidden = false;
+            document.getElementById('review-content').hidden = true;
+            return;
+          }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          document.getElementById('review-content').innerHTML =
+            '<div class="hitl-banner hitl-banner--done" role="status"><strong>Done</strong> — Your response has been submitted.</div>';
+        })
+        .catch(function (err) {
+          btns.forEach(function (b) { b.disabled = false; b.ariaBusy = 'false'; });
+          alert('Submission failed: ' + err.message);
+        });
+      });
+
+      /* Initial render */
+      renderStep(0);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{prompt}} — HITL Review</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    .hitl-banner { padding: 1rem 1.25rem; border-radius: var(--pico-border-radius); margin-bottom: 1.5rem; }
+    .hitl-banner--expired { background: color-mix(in srgb, #cf222e 15%, transparent); border-left: 4px solid #cf222e; }
+    .hitl-banner--done { background: color-mix(in srgb, #2ea043 15%, transparent); border-left: 4px solid #2ea043; }
+    @media (prefers-color-scheme: dark) {
+      [data-theme="auto"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+      [data-theme="auto"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    }
+    [data-theme="dark"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+    [data-theme="dark"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    .hitl-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .hitl-actions button { flex: 1; min-width: 120px; }
+    .hitl-artifact { white-space: pre-wrap; font-family: var(--pico-font-family-monospace); font-size: 0.875rem; padding: 1.25rem; background: var(--pico-code-background-color); border-radius: var(--pico-border-radius); overflow-x: auto; }
+    .hitl-meta { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+    .hitl-meta dt { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--pico-muted-color); }
+    .hitl-meta dd { margin: 0; }
+    #feedback-section { margin-top: 1rem; }
+    [hidden] { display: none !important; }
+    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.25rem; padding: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul><li><strong>Review</strong></li></ul>
+      <ul><li><button id="theme-toggle" aria-label="Toggle dark mode">&#9684;</button></li></ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="expired-banner" class="hitl-banner hitl-banner--expired" role="alert" hidden>
+      <strong>Expired</strong> — This review is no longer accepting responses.
+    </div>
+    <div id="completed-banner" class="hitl-banner hitl-banner--done" role="alert" hidden>
+      <strong>Already responded</strong> — This review has been completed.
+    </div>
+
+    <section id="review-content">
+      <h2 id="prompt-heading"></h2>
+
+      <article>
+        <header><strong id="artifact-title">Artifact</strong></header>
+        <dl id="artifact-meta" class="hitl-meta"></dl>
+        <div id="artifact-preview" class="hitl-artifact"></div>
+      </article>
+
+      <div id="feedback-section" hidden>
+        <label for="feedback">Feedback <small>(optional)</small></label>
+        <textarea id="feedback" rows="3" placeholder="Add feedback or suggestions..."></textarea>
+      </div>
+
+      <div class="hitl-actions">
+        <button id="btn-reject" class="secondary outline" type="button">Reject</button>
+        <button id="btn-edit" class="secondary" type="button">Request Edit</button>
+        <button id="btn-approve" type="button">Approve</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container">
+    <small>Powered by <a href="https://github.com/rotorstar/hitl-protocol" target="_blank" rel="noopener">HITL Protocol</a> v0.5</small>
+  </footer>
+
+  <script type="application/json" id="hitl-data">{{hitl_data_json}}</script>
+  <script>
+    (function () {
+      /* Theme toggle */
+      var toggle = document.getElementById('theme-toggle');
+      var stored = localStorage.getItem('hitl-theme');
+      if (stored) document.documentElement.dataset.theme = stored;
+      toggle.addEventListener('click', function () {
+        var current = document.documentElement.dataset.theme;
+        var next = current === 'dark' ? 'light' : current === 'light' ? 'auto' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('hitl-theme', next);
+      });
+
+      /* Parse data */
+      var raw = document.getElementById('hitl-data').textContent;
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { return; }
+
+      var ctx = data.context || {};
+      var status = data.status || 'pending';
+
+      /* Render prompt */
+      document.getElementById('prompt-heading').textContent = data.prompt || 'Review artifact';
+
+      /* Render artifact */
+      var artifact = ctx.artifact || {};
+      if (artifact.title) document.getElementById('artifact-title').textContent = artifact.title;
+
+      var metaDl = document.getElementById('artifact-meta');
+      var meta = artifact.metadata || {};
+      Object.keys(meta).forEach(function (key) {
+        var dt = document.createElement('dt');
+        dt.textContent = key.replace(/_/g, ' ');
+        var dd = document.createElement('dd');
+        dd.textContent = meta[key];
+        metaDl.appendChild(dt);
+        metaDl.appendChild(dd);
+      });
+
+      var preview = document.getElementById('artifact-preview');
+      if (artifact.content) {
+        preview.textContent = artifact.content;
+      } else if (artifact.preview) {
+        preview.textContent = artifact.preview;
+      } else if (artifact.description) {
+        preview.textContent = artifact.description;
+      }
+
+      /* Handle status */
+      if (status === 'expired') {
+        document.getElementById('expired-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+      if (status === 'completed') {
+        document.getElementById('completed-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+
+      /* Submit handler */
+      var feedbackSection = document.getElementById('feedback-section');
+
+      function submit(action) {
+        var btns = document.querySelectorAll('.hitl-actions button');
+        btns.forEach(function (b) { b.disabled = true; b.ariaBusy = 'true'; });
+
+        var payload = { action: action, data: {} };
+        var fb = document.getElementById('feedback').value.trim();
+        if (fb) payload.data.feedback = fb;
+
+        fetch(data.respond_url + '?token=' + encodeURIComponent(data.token), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(function (res) {
+          if (res.status === 409) {
+            document.getElementById('completed-banner').hidden = false;
+            document.getElementById('review-content').hidden = true;
+            return;
+          }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          document.getElementById('review-content').innerHTML =
+            '<div class="hitl-banner hitl-banner--done" role="status"><strong>Done</strong> — Your response has been recorded.</div>';
+        })
+        .catch(function (err) {
+          btns.forEach(function (b) { b.disabled = false; b.ariaBusy = 'false'; });
+          alert('Submission failed: ' + err.message);
+        });
+      }
+
+      /* Two-click pattern: first click shows feedback, second submits */
+      var editClicks = 0;
+      var rejectClicks = 0;
+
+      document.getElementById('btn-approve').addEventListener('click', function () { submit('approve'); });
+
+      document.getElementById('btn-edit').addEventListener('click', function () {
+        editClicks++;
+        if (editClicks === 1) {
+          feedbackSection.hidden = false;
+          document.getElementById('feedback').focus();
+          document.getElementById('feedback').setAttribute('placeholder', 'Describe the changes needed...');
+        } else {
+          submit('edit');
+        }
+      });
+
+      document.getElementById('btn-reject').addEventListener('click', function () {
+        rejectClicks++;
+        if (rejectClicks === 1) {
+          feedbackSection.hidden = false;
+          document.getElementById('feedback').focus();
+          document.getElementById('feedback').setAttribute('placeholder', 'Reason for rejection...');
+        } else {
+          submit('reject');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

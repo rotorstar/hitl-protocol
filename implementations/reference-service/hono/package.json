@@ -1,0 +1,12 @@
+{
+  "name": "hitl-reference-hono",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "@hono/node-server": "^1.14.0"
+  }
+}

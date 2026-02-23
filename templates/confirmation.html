@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{prompt}} — HITL Review</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    .hitl-banner { padding: 1rem 1.25rem; border-radius: var(--pico-border-radius); margin-bottom: 1.5rem; }
+    .hitl-banner--warning { background: color-mix(in srgb, #9a6700 15%, transparent); border-left: 4px solid #9a6700; }
+    .hitl-banner--expired { background: color-mix(in srgb, #cf222e 15%, transparent); border-left: 4px solid #cf222e; }
+    .hitl-banner--done { background: color-mix(in srgb, #2ea043 15%, transparent); border-left: 4px solid #2ea043; }
+    @media (prefers-color-scheme: dark) {
+      [data-theme="auto"] .hitl-banner--warning { background: color-mix(in srgb, #d29922 15%, transparent); border-left-color: #d29922; }
+      [data-theme="auto"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+      [data-theme="auto"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    }
+    [data-theme="dark"] .hitl-banner--warning { background: color-mix(in srgb, #d29922 15%, transparent); border-left-color: #d29922; }
+    [data-theme="dark"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+    [data-theme="dark"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    .hitl-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .hitl-actions button { flex: 1; min-width: 120px; }
+    .hitl-item-list { list-style: none; padding: 0; margin: 1rem 0; }
+    .hitl-item-list li { padding: 0.75rem 1rem; border: 1px solid var(--pico-muted-border-color); border-radius: var(--pico-border-radius); margin-bottom: 0.5rem; }
+    .hitl-item-list li:last-child { margin-bottom: 0; }
+    [hidden] { display: none !important; }
+    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.25rem; padding: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul><li><strong>Review</strong></li></ul>
+      <ul><li><button id="theme-toggle" aria-label="Toggle dark mode">&#9684;</button></li></ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="expired-banner" class="hitl-banner hitl-banner--expired" role="alert" hidden>
+      <strong>Expired</strong> — This review is no longer accepting responses.
+    </div>
+    <div id="completed-banner" class="hitl-banner hitl-banner--done" role="alert" hidden>
+      <strong>Already responded</strong> — This review has been completed.
+    </div>
+
+    <section id="review-content">
+      <div class="hitl-banner hitl-banner--warning" role="alert">
+        <strong>Confirmation required</strong> — Please review the following action carefully before confirming.
+      </div>
+
+      <article>
+        <h2 id="prompt-heading"></h2>
+        <p id="description"></p>
+        <ul id="item-list" class="hitl-item-list" aria-label="Items to confirm"></ul>
+      </article>
+
+      <div class="hitl-actions">
+        <button id="btn-cancel" class="secondary" type="button">Cancel</button>
+        <button id="btn-confirm" class="contrast" type="button">Confirm</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container">
+    <small>Powered by <a href="https://github.com/rotorstar/hitl-protocol" target="_blank" rel="noopener">HITL Protocol</a> v0.5</small>
+  </footer>
+
+  <script type="application/json" id="hitl-data">{{hitl_data_json}}</script>
+  <script>
+    (function () {
+      /* Theme toggle */
+      const toggle = document.getElementById('theme-toggle');
+      const stored = localStorage.getItem('hitl-theme');
+      if (stored) document.documentElement.dataset.theme = stored;
+      toggle.addEventListener('click', function () {
+        const current = document.documentElement.dataset.theme;
+        const next = current === 'dark' ? 'light' : current === 'light' ? 'auto' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('hitl-theme', next);
+      });
+
+      /* Parse data */
+      var raw = document.getElementById('hitl-data').textContent;
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { return; }
+
+      var ctx = data.context || {};
+      var status = data.status || 'pending';
+
+      /* Render prompt */
+      document.getElementById('prompt-heading').textContent = data.prompt || 'Confirm action';
+      document.getElementById('description').textContent = ctx.description || '';
+
+      /* Render items */
+      var list = document.getElementById('item-list');
+      var items = ctx.items || [];
+      items.forEach(function (item) {
+        var li = document.createElement('li');
+        li.textContent = typeof item === 'string' ? item : (item.label || item.name || JSON.stringify(item));
+        list.appendChild(li);
+      });
+
+      /* Handle status */
+      if (status === 'expired') {
+        document.getElementById('expired-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+      if (status === 'completed') {
+        document.getElementById('completed-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+
+      /* Submit handler */
+      function submit(action) {
+        var btns = document.querySelectorAll('.hitl-actions button');
+        btns.forEach(function (b) { b.disabled = true; b.ariaBusy = 'true'; });
+
+        fetch(data.respond_url + '?token=' + encodeURIComponent(data.token), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: action, data: { confirmed_items: (ctx.items || []).map(function (i) { return i.id || i; }) } })
+        })
+        .then(function (res) {
+          if (res.status === 409) {
+            document.getElementById('completed-banner').hidden = false;
+            document.getElementById('review-content').hidden = true;
+            return;
+          }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          document.getElementById('review-content').innerHTML =
+            '<div class="hitl-banner hitl-banner--done" role="status"><strong>Done</strong> — Your response has been recorded.</div>';
+        })
+        .catch(function (err) {
+          btns.forEach(function (b) { b.disabled = false; b.ariaBusy = 'false'; });
+          alert('Submission failed: ' + err.message);
+        });
+      }
+
+      document.getElementById('btn-confirm').addEventListener('click', function () { submit('confirm'); });
+      document.getElementById('btn-cancel').addEventListener('click', function () { submit('cancel'); });
+    })();
+  </script>
+</body>
+</html>

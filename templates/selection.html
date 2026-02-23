@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{prompt}} — HITL Review</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    .hitl-banner { padding: 1rem 1.25rem; border-radius: var(--pico-border-radius); margin-bottom: 1.5rem; }
+    .hitl-banner--expired { background: color-mix(in srgb, #cf222e 15%, transparent); border-left: 4px solid #cf222e; }
+    .hitl-banner--done { background: color-mix(in srgb, #2ea043 15%, transparent); border-left: 4px solid #2ea043; }
+    @media (prefers-color-scheme: dark) {
+      [data-theme="auto"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+      [data-theme="auto"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    }
+    [data-theme="dark"] .hitl-banner--expired { background: color-mix(in srgb, #f85149 15%, transparent); border-left-color: #f85149; }
+    [data-theme="dark"] .hitl-banner--done { background: color-mix(in srgb, #3fb950 15%, transparent); border-left-color: #3fb950; }
+    .hitl-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; align-items: center; }
+    .hitl-counter { font-size: 0.9rem; color: var(--pico-muted-color); margin-right: auto; }
+    .hitl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+    .hitl-card { position: relative; cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+    .hitl-card:hover { border-color: var(--pico-primary); }
+    .hitl-card[aria-checked="true"] { border-color: var(--pico-primary); box-shadow: 0 0 0 2px var(--pico-primary); }
+    .hitl-card input[type="checkbox"] { position: absolute; top: 1rem; right: 1rem; }
+    .hitl-card header { padding-right: 2.5rem; }
+    .hitl-card-meta { font-size: 0.8rem; color: var(--pico-muted-color); display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .hitl-card-meta span { background: var(--pico-code-background-color); padding: 0.15rem 0.5rem; border-radius: 1rem; }
+    [hidden] { display: none !important; }
+    #theme-toggle { background: none; border: none; cursor: pointer; font-size: 1.25rem; padding: 0.25rem; }
+  </style>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul><li><strong>Review</strong></li></ul>
+      <ul><li><button id="theme-toggle" aria-label="Toggle dark mode">&#9684;</button></li></ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="expired-banner" class="hitl-banner hitl-banner--expired" role="alert" hidden>
+      <strong>Expired</strong> — This review is no longer accepting responses.
+    </div>
+    <div id="completed-banner" class="hitl-banner hitl-banner--done" role="alert" hidden>
+      <strong>Already responded</strong> — This review has been completed.
+    </div>
+
+    <section id="review-content">
+      <h2 id="prompt-heading"></h2>
+      <p id="description"></p>
+
+      <div id="selection-grid" class="hitl-grid" role="group" aria-label="Options"></div>
+
+      <div class="hitl-actions">
+        <span id="counter" class="hitl-counter" aria-live="polite">0 selected</span>
+        <button id="btn-submit" type="button" disabled>Submit Selection</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container">
+    <small>Powered by <a href="https://github.com/rotorstar/hitl-protocol" target="_blank" rel="noopener">HITL Protocol</a> v0.5</small>
+  </footer>
+
+  <script type="application/json" id="hitl-data">{{hitl_data_json}}</script>
+  <script>
+    (function () {
+      /* Theme toggle */
+      var toggle = document.getElementById('theme-toggle');
+      var stored = localStorage.getItem('hitl-theme');
+      if (stored) document.documentElement.dataset.theme = stored;
+      toggle.addEventListener('click', function () {
+        var current = document.documentElement.dataset.theme;
+        var next = current === 'dark' ? 'light' : current === 'light' ? 'auto' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('hitl-theme', next);
+      });
+
+      /* Parse data */
+      var raw = document.getElementById('hitl-data').textContent;
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { return; }
+
+      var ctx = data.context || {};
+      var status = data.status || 'pending';
+
+      /* Render prompt */
+      document.getElementById('prompt-heading').textContent = data.prompt || 'Select items';
+      if (ctx.description) document.getElementById('description').textContent = ctx.description;
+
+      /* Handle status */
+      if (status === 'expired') {
+        document.getElementById('expired-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+      if (status === 'completed') {
+        document.getElementById('completed-banner').hidden = false;
+        document.getElementById('review-content').hidden = true;
+        return;
+      }
+
+      /* Render selection cards */
+      var grid = document.getElementById('selection-grid');
+      var items = ctx.items || [];
+      var selected = new Set();
+
+      items.forEach(function (item, i) {
+        var card = document.createElement('article');
+        card.className = 'hitl-card';
+        card.setAttribute('role', 'checkbox');
+        card.setAttribute('aria-checked', 'false');
+        card.setAttribute('tabindex', '0');
+
+        var id = item.id || 'item_' + i;
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = 'cb-' + id;
+        cb.value = id;
+        cb.setAttribute('aria-label', item.title || item.label || item.name || id);
+
+        var header = document.createElement('header');
+        header.innerHTML = '<strong>' + escapeHtml(item.title || item.label || item.name || id) + '</strong>';
+
+        card.appendChild(cb);
+        card.appendChild(header);
+
+        if (item.description) {
+          var p = document.createElement('p');
+          p.textContent = item.description;
+          card.appendChild(p);
+        }
+
+        /* Render metadata tags */
+        var meta = item.metadata || item.tags || item.meta;
+        if (meta) {
+          var metaDiv = document.createElement('div');
+          metaDiv.className = 'hitl-card-meta';
+          var entries = Array.isArray(meta) ? meta : Object.entries(meta).map(function (e) { return e[0] + ': ' + e[1]; });
+          entries.forEach(function (tag) {
+            var span = document.createElement('span');
+            span.textContent = typeof tag === 'string' ? tag : tag.label || String(tag);
+            metaDiv.appendChild(span);
+          });
+          card.appendChild(metaDiv);
+        }
+
+        /* Toggle on click */
+        function toggleCard() {
+          var checked = cb.checked = !cb.checked;
+          card.setAttribute('aria-checked', String(checked));
+          if (checked) selected.add(id); else selected.delete(id);
+          updateCounter();
+        }
+
+        card.addEventListener('click', function (e) { if (e.target !== cb) toggleCard(); });
+        card.addEventListener('keydown', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleCard(); } });
+        cb.addEventListener('change', function () {
+          card.setAttribute('aria-checked', String(cb.checked));
+          if (cb.checked) selected.add(id); else selected.delete(id);
+          updateCounter();
+        });
+
+        grid.appendChild(card);
+      });
+
+      var counter = document.getElementById('counter');
+      var submitBtn = document.getElementById('btn-submit');
+
+      function updateCounter() {
+        var n = selected.size;
+        counter.textContent = n + ' of ' + items.length + ' selected';
+        submitBtn.disabled = n === 0;
+      }
+
+      function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      /* Submit handler */
+      submitBtn.addEventListener('click', function () {
+        if (selected.size === 0) return;
+        var btns = document.querySelectorAll('.hitl-actions button');
+        btns.forEach(function (b) { b.disabled = true; b.ariaBusy = 'true'; });
+
+        fetch(data.respond_url + '?token=' + encodeURIComponent(data.token), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'select', data: { selected: Array.from(selected) } })
+        })
+        .then(function (res) {
+          if (res.status === 409) {
+            document.getElementById('completed-banner').hidden = false;
+            document.getElementById('review-content').hidden = true;
+            return;
+          }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          document.getElementById('review-content').innerHTML =
+            '<div class="hitl-banner hitl-banner--done" role="status"><strong>Done</strong> — Your selection has been recorded.</div>';
+        })
+        .catch(function (err) {
+          btns.forEach(function (b) { b.disabled = false; b.ariaBusy = 'false'; });
+          submitBtn.disabled = selected.size === 0;
+          alert('Submission failed: ' + err.message);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

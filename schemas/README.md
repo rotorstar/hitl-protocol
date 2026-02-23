@@ -8,6 +8,7 @@ This directory contains JSON Schema definitions for validating HITL Protocol mes
 |--------|-------------|-----------|
 | [`hitl-object.schema.json`](hitl-object.schema.json) | The `hitl` object within an HTTP 202 response | Service → Agent |
 | [`poll-response.schema.json`](poll-response.schema.json) | Response from the poll endpoint | Service → Agent |
+| [`form-field.schema.json`](form-field.schema.json) | Form field definition for Input-type reviews | `context.form.fields[]` |
 
 ## Usage
 

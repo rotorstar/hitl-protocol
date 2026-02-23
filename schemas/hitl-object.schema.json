@@ -49,14 +49,21 @@
     },
     "type": {
       "type": "string",
-      "enum": [
-        "approval",
-        "selection",
-        "input",
-        "confirmation",
-        "escalation"
+      "anyOf": [
+        {
+          "enum": [
+            "approval",
+            "selection",
+            "input",
+            "confirmation",
+            "escalation"
+          ]
+        },
+        {
+          "pattern": "^x-"
+        }
       ],
-      "description": "Review type category. One of the five standard types."
+      "description": "Review type category. One of the five standard types, or a custom type prefixed with 'x-'."
     },
     "prompt": {
       "type": "string",

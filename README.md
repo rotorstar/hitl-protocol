@@ -4,7 +4,7 @@
 <p align="center">
   <h1 align="center">HITL Protocol</h1>
   <p align="center">
-    <strong>Human-in-the-Loop Protocol for Autonomous Agent Services</strong>
+    <strong>The Open Standard for Human Decisions in Agent Workflows</strong>
   </p>
   <p align="center">
     <a href="https://github.com/rotorstar/hitl-protocol/blob/main/LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
@@ -16,22 +16,29 @@
 
 ---
 
-**HITL Protocol** is to human decisions what OAuth is to authentication — a standardized three-party flow between **Agent**, **Service**, and **Human**.
+**HITL Protocol** is to human decisions what OAuth is to authentication — an open standard connecting **Services**, **Agents**, and **Humans**.
 
-When an autonomous agent (OpenClaw, Claude Code, Codex, Goose) calls a service API and the service needs a human decision — approval, selection, data entry, confirmation, or escalation — the service returns HTTP 202 with a `hitl` object containing a review URL. The agent forwards this URL to the human. The human opens it in a browser, interacts with a rich UI, and submits their decision. The agent retrieves the result by polling.
+Any website or API integrates HITL to become agent-ready: when human input is needed, return HTTP 202 with a review URL. Any autonomous agent (OpenClaw, Claude Code, Codex, Goose) handles the `hitl` response — forward the URL, poll for the result. The human opens the URL, gets a rich browser UI (not a chat wall of text), and makes an informed decision.
 
 **No SDK required. No UI framework mandated. Just HTTP + URL + polling.**
 
-## The Problem
+## Who Is This For?
 
-Autonomous agents communicate with humans via text channels (Telegram, Slack, CLI). When a human decision is needed:
+**For Services & Websites** — Add HITL endpoints to make your service accessible to any autonomous agent. You host the review page, you control the UI, you own the data. Sensitive information stays in the browser — never passes through the agent. This repository includes [reference implementations](implementations/reference-service/) in 4 frameworks (Express, Hono, Next.js, FastAPI), [HTML templates](templates/) for all review types, an [OpenAPI spec](schemas/openapi.yaml), and [compliance tests](tests/) — everything needed to integrate.
 
-1. The agent dumps a wall of text describing options
-2. The human types a freeform response ("option 2 please")
-3. The agent parses unreliably
-4. No forms, no buttons, no visual previews
+**For Agent Developers** — Handle HTTP 202 responses. Forward the review URL to your user via any channel (CLI, Telegram, Slack, WhatsApp). Poll for the structured result. No SDK, no UI rendering, no framework dependency. ~15 lines of code.
 
-This works for yes/no. It fails for selecting from 5+ options with rich details, providing structured input, reviewing complex artifacts, or multi-field forms.
+**For Humans** — Instead of typing "option 2" in a chat, you get a real web page: cards to browse, forms to fill, buttons to click, artifacts to review. Your decision is structured, validated, and auditable.
+
+## The Gap
+
+**For agents:** Text channels are terrible for complex decisions. Walls of text, freeform parsing, no structured input.
+
+**For services:** There's no standard way to request human input from an agent. Every agent framework has its own mechanism — or none at all. Your service either builds custom integrations or stays invisible to AI agents.
+
+**For humans:** You're either excluded from agent workflows entirely, or squeezed through text-only channels.
+
+**HITL Protocol closes this gap** with one standardized flow that works across all services, all agents, and all messaging channels.
 
 ## The Solution
 
@@ -107,6 +114,8 @@ if response.status_code == 202:
 
 No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
+**Ready to integrate?** This repository provides everything you need: [reference implementations](implementations/reference-service/) in 4 frameworks (Express 5, Hono, Next.js, FastAPI), [HTML review templates](templates/) for all 5 types, an [OpenAPI 3.1 spec](schemas/openapi.yaml), [JSON Schemas](schemas/) for validation, and [compliance test suites](tests/) in Node.js and Python.
+
 ## Five Review Types
 
 | Type | Actions | Multi-round | Form Fields | Use Case |
@@ -118,6 +127,8 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 | **Escalation** | retry, skip, abort | No | No | Error recovery (deployment failed) |
 
 **Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.5/hitl-protocol.md#103-input) for details.
+
+**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.5/hitl-protocol.md)).
 
 ## Three Transport Modes
 
@@ -144,49 +155,54 @@ HITL Protocol fills a gap no existing standard addresses:
 ## Repository Structure
 
 ```
-protocol/hitl/
+hitl-protocol/
 ├── README.md                          ← You are here
 ├── LICENSE                            ← Apache 2.0
 ├── CONTRIBUTING.md                    ← How to contribute
 ├── CHANGELOG.md                       ← Version history
 ├── SECURITY.md                        ← Security reporting
 │
-├── spec/
-│   └── v0.5/
-│       └── hitl-protocol.md           ← Full specification (normative)
+├── spec/v0.5/
+│   └── hitl-protocol.md              ← Full specification (normative)
 │
 ├── schemas/
-│   ├── hitl-object.schema.json        ← JSON Schema: HITL object
-│   ├── poll-response.schema.json      ← JSON Schema: Poll response
-│   └── form-field.schema.json         ← JSON Schema: Form field definitions
+│   ├── hitl-object.schema.json       ← JSON Schema: HITL object
+│   ├── poll-response.schema.json     ← JSON Schema: Poll response
+│   ├── form-field.schema.json        ← JSON Schema: Form field definitions
+│   └── openapi.yaml                  ← OpenAPI 3.1 spec (all endpoints)
 │
-├── examples/
-│   ├── 01-job-search-selection.json   ← Selection flow
-│   ├── 02-deployment-approval.json    ← Approval flow
-│   ├── 03-content-review-edit.json    ← Multi-round approval
-│   ├── 04-input-form.json            ← Input flow (single-step form)
-│   ├── 05-confirmation-gate.json      ← Confirmation flow
-│   ├── 06-escalation-error.json       ← Escalation flow
-│   ├── 07-well-known-hitl.json        ← Discovery endpoint example
-│   └── 08-multi-step-input.json       ← Multi-step wizard flow
+├── examples/                          ← 8 end-to-end example flows
 │
-├── agents/
-│   └── checklist.md                   ← Agent implementation checklist
-│
-├── playground/
-│   ├── index.html                     ← Interactive playground
-│   └── README.md                      ← How to use the playground
+├── templates/                         ← Review page HTML templates
+│   ├── approval.html                 ← Approval review page
+│   ├── selection.html                ← Selection review page
+│   ├── input.html                    ← Input form (multi-step wizard)
+│   ├── confirmation.html             ← Confirmation review page
+│   └── escalation.html              ← Escalation review page
 │
 ├── implementations/
-│   └── README.md                      ← Known implementations
+│   ├── README.md                     ← Known implementations
+│   └── reference-service/            ← Reference implementations
+│       ├── express/                  ← Express 5 (Node.js)
+│       ├── hono/                     ← Hono (Edge/Deno/Bun)
+│       ├── nextjs/                   ← Next.js App Router (TypeScript)
+│       └── python/                   ← FastAPI (Python)
 │
-└── .github/
-    ├── ISSUE_TEMPLATE/
-    │   ├── spec-change.md             ← Propose spec changes
-    │   ├── bug-report.md              ← Report spec ambiguity
-    │   └── implementation-report.md   ← Register an implementation
-    └── PULL_REQUEST_TEMPLATE/
-        └── default.md                 ← PR template
+├── docs/
+│   ├── quick-start.md                ← Quick Start Guide (5 frameworks)
+│   └── sdk-guide.md                  ← SDK Design Guide
+│
+├── tests/                             ← Compliance test suites
+│   ├── node/                         ← Vitest (schema + state machine)
+│   └── python/                       ← pytest (schema + state machine)
+│
+├── agents/
+│   └── checklist.md                  ← Agent implementation checklist
+│
+├── playground/
+│   └── index.html                    ← Interactive playground
+│
+└── .github/                           ← Issue + PR templates
 ```
 
 ## Interactive Playground
@@ -234,10 +250,16 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 ## Links
 
 - [Full Specification (v0.5)](spec/v0.5/hitl-protocol.md)
+- [Quick Start Guide](docs/quick-start.md) — Get started in 5 minutes
+- [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented
 - [JSON Schemas](schemas/) — HITL object, poll response, form field definitions
+- [Review Page Templates](templates/) — HTML templates for all 5 review types
+- [Reference Implementations](implementations/reference-service/) — Express, Hono, Next.js, FastAPI
 - [Examples](examples/) — 8 end-to-end flows including multi-step wizard
+- [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
 - [Interactive Playground](playground/)
 - [Agent Implementation Checklist](agents/checklist.md)
+- [SDK Design Guide](docs/sdk-guide.md) — Build a community SDK
 
 ---
 

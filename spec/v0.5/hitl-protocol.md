@@ -1,6 +1,6 @@
 # HITL Protocol Specification v0.5
 
-**Human-in-the-Loop Protocol for Autonomous Agent Services**
+**The Open Standard for Human Decisions in Agent Workflows**
 
 ---
 
