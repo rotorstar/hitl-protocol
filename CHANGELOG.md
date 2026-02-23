@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standalone JSON Schema files for HITL object and poll response validation
 - Agent implementation checklist as separate document
 - Interactive playground (HTML) for protocol exploration
-- Six complete end-to-end examples covering all review types
+- Eight complete end-to-end examples covering all review types and form field definitions
 - Discovery endpoint (`.well-known/hitl.json`) specification
 - SECURITY.md for vulnerability reporting
 - GitHub issue and PR templates

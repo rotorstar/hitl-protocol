@@ -237,6 +237,39 @@ Round 2: Service creates case_id="review_draft2", previous_case_id="review_draft
   → Workflow continues
 ```
 
+## Enhanced: Input Forms
+
+Handle structured form data in Input-type reviews.
+
+### Additional Checklist
+
+- [ ] **Parse `context.form`** — Detect single-step (`fields` array) vs multi-step (`steps` array)
+- [ ] **Forward form metadata** — Include field count or step titles in message to human (e.g., "Please fill 6 fields" or "3-step form: Personal Info → Preferences → Review")
+- [ ] **Handle `progress` in poll** — If `progress` object is present in `in_progress` response, relay to human (e.g., "Step 2 of 3, 4/8 fields completed")
+- [ ] **Handle `submit` action** — `result.data` contains key-value pairs matching `context.form` field keys
+- [ ] **Validate result keys** — Ensure expected required fields from `context.form` are present in `result.data`
+- [ ] **Handle `sensitive` fields** — Do NOT log or display values for fields marked `sensitive: true`
+
+### Flow
+
+```
+Input-type HITL response received
+│
+├── context.form.fields exists (single-step)
+│   └── Forward review_url: "Please fill {N} fields: [URL]"
+│
+├── context.form.steps exists (multi-step wizard)
+│   └── Forward review_url: "{N}-step form: [step titles]: [URL]"
+│
+├── Poll returns in_progress + progress
+│   └── (Optional) "Step {current}/{total}, {completed}/{total_fields} fields done"
+│
+└── Poll returns completed
+    ├── result.action = "submit"
+    ├── result.data = { field_key: value, ... }
+    └── Continue workflow with structured form data
+```
+
 ## Enhanced: Reminders
 
 Re-send URLs when humans haven't responded.
