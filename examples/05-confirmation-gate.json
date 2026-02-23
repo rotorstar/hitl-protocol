@@ -56,7 +56,7 @@
           "status": "human_input_required",
           "message": "3 application emails are ready to send. Please confirm before they are dispatched.",
           "hitl": {
-            "spec_version": "0.5",
+            "spec_version": "0.6",
             "case_id": "review_confirm_s5t6u7v8",
             "review_url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS",
             "poll_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",

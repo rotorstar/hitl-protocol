@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.5 — Schema Validation Tests
+ * HITL Protocol v0.6 — Schema Validation Tests
  *
  * Validates all examples against JSON Schema definitions.
  * Framework-agnostic: only tests schema compliance.
@@ -50,6 +50,10 @@ describe('hitl-object.schema.json', () => {
     { file: 'examples/05-confirmation-gate.json', name: 'Confirmation gate' },
     { file: 'examples/06-escalation-error.json', name: 'Escalation error' },
     { file: 'examples/08-multi-step-input.json', name: 'Multi-step input' },
+    { file: 'examples/09-inline-confirmation.json', name: 'Inline confirmation' },
+    { file: 'examples/10-inline-escalation.json', name: 'Inline escalation' },
+    { file: 'examples/11-hybrid-approval.json', name: 'Hybrid approval' },
+    { file: 'examples/12-embedded-selection.json', name: 'Embedded selection' },
   ];
 
   examples.forEach(({ file, name }) => {
@@ -73,7 +77,7 @@ describe('hitl-object.schema.json', () => {
 
   it('rejects missing required fields', () => {
     expect(validateHitl({})).toBe(false);
-    expect(validateHitl({ spec_version: '0.5' })).toBe(false);
+    expect(validateHitl({ spec_version: '0.6' })).toBe(false);
   });
 
   it('rejects invalid spec_version', () => {
@@ -92,7 +96,7 @@ describe('hitl-object.schema.json', () => {
 
   it('rejects invalid review type', () => {
     const invalid = {
-      spec_version: '0.5',
+      spec_version: '0.6',
       case_id: 'test',
       review_url: 'https://example.com/review',
       poll_url: 'https://example.com/poll',
@@ -106,7 +110,7 @@ describe('hitl-object.schema.json', () => {
 
   it('accepts custom review type with x- prefix', () => {
     const custom = {
-      spec_version: '0.5',
+      spec_version: '0.6',
       case_id: 'test',
       review_url: 'https://example.com/review',
       poll_url: 'https://example.com/poll',
@@ -120,7 +124,7 @@ describe('hitl-object.schema.json', () => {
 
   it('validates minimal hitl object', () => {
     const minimal = {
-      spec_version: '0.5',
+      spec_version: '0.6',
       case_id: 'review_123',
       review_url: 'https://example.com/review/123?token=abc',
       poll_url: 'https://example.com/reviews/123/status',
@@ -216,6 +220,10 @@ describe('poll-response.schema.json', () => {
       'examples/05-confirmation-gate.json',
       'examples/06-escalation-error.json',
       'examples/08-multi-step-input.json',
+      'examples/09-inline-confirmation.json',
+      'examples/10-inline-escalation.json',
+      'examples/11-hybrid-approval.json',
+      'examples/12-embedded-selection.json',
     ];
 
     examples.forEach((file) => {

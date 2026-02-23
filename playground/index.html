@@ -276,7 +276,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 <div class="header">
   <img src="../assets/logo.svg" alt="HITL Protocol Logo" style="height:64px;margin-bottom:12px">
   <h1>HITL Protocol <span>Interactive Playground</span></h1>
-  <p>The Open Standard for Human Decisions in Agent Workflows &mdash; v0.5</p>
+  <p>The Open Standard for Human Decisions in Agent Workflows &mdash; v0.6</p>
 </div>
 
 <nav class="nav">
@@ -288,6 +288,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
     <button onclick="switchTab(4)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Agent Deal</button>
     <button onclick="switchTab(5)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>Input Form</button>
     <button onclick="switchTab(6)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Compare</button>
+    <button onclick="switchTab(7)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/></svg>Inline</button>
   </div>
 </nav>
 
@@ -684,6 +685,34 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   </div>
 </div>
 
+<!-- TAB 7: Inline Confirmation (v0.6) -->
+<div class="section" id="tab-7">
+  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">v0.6 Inline Submit</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">Email service needs confirmation before sending. Agent renders native messaging buttons — human confirms with one tap, no browser needed.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Platform</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc7-platform" value="telegram" checked onchange="renderUC7()"> Telegram</label>
+          <label class="radio-option"><input type="radio" name="uc7-platform" value="slack" onchange="renderUC7()"> Slack</label>
+          <label class="radio-option"><input type="radio" name="uc7-platform" value="discord" onchange="renderUC7()"> Discord</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Human Action</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc7-action" value="confirm" checked onchange="renderUC7()"> Confirm (inline)</label>
+          <label class="radio-option"><input type="radio" name="uc7-action" value="cancel" onchange="renderUC7()"> Cancel (inline)</label>
+          <label class="radio-option"><input type="radio" name="uc7-action" value="details" onchange="renderUC7()"> View Details (URL)</label>
+        </div>
+      </div>
+    </div>
+    <div id="uc7-main"></div>
+  </div>
+</div>
+
 <script>
 // --- Tab switching ---
 function switchTab(n) {
@@ -694,6 +723,7 @@ function switchTab(n) {
   if (n === 3) renderUC3();
   if (n === 4) renderUC4();
   if (n === 5) renderUC5();
+  if (n === 7) renderUC7();
 }
 
 // --- JSON syntax highlighting ---
@@ -735,7 +765,7 @@ function getCheck(id) { const c = document.getElementById(id); return c ? c.chec
 
 // --- HITL Object Anatomy ---
 document.getElementById('hitl-anatomy').innerHTML = hl({
-  "spec_version": "0.5",
+  "spec_version": "0.6",
   "case_id": "review_abc123def456",
   "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
   "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -768,7 +798,7 @@ function renderUC1() {
   if (wdlControls) wdlControls.style.display = wdl ? 'block' : 'none';
 
   const hitlObj = {
-    spec_version: "0.5",
+    spec_version: "0.6",
     case_id: "review_job_sel_7f3a9b",
     review_url: "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
@@ -964,7 +994,7 @@ function renderUC2() {
   const audit = getCheck('uc2-audit');
 
   const hitlObj = {
-    spec_version: "0.5",
+    spec_version: "0.6",
     case_id: "review_deploy_v210",
     review_url: "https://ci.company.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://ci.company.com/api/reviews/deploy_v210/status",
@@ -1590,7 +1620,7 @@ function renderUC5() {
 
   // Build HITL object
   const hitlObj = {
-    spec_version: '0.5',
+    spec_version: '0.6',
     case_id: 'review_input_q1w2e3r4',
     review_url: 'https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q',
     poll_url: 'https://api.service.example.com/v1/reviews/input_q1w2e3r4/status',
@@ -1798,12 +1828,146 @@ function renderUC5() {
     </div>` : ''}`;
 }
 
+// ========== Helper: stepCard ==========
+function stepCard(actor, title, body, jsonObj) {
+  const badgeColor = actor === 'agent' ? 'blue' : actor === 'service' ? 'orange' : actor === 'human' ? 'green' : 'purple';
+  const badgeLabel = actor.charAt(0).toUpperCase() + actor.slice(1);
+  let html = `<div class="step-card ${actor}">
+    <div class="step-title"><span class="badge badge-${badgeColor}">${badgeLabel}</span> ${title}</div>
+    <div class="step-body">${body}</div>`;
+  if (jsonObj) {
+    const uid = 'uc7-json-' + Math.random().toString(36).slice(2, 8);
+    html += `<div class="json-block" id="${uid}">${hl(jsonObj)}</div>
+    <button class="copy-btn" onclick="copyJson('${uid}')">Copy</button>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+// ========== UC7: Inline Confirmation ==========
+function renderUC7() {
+  const platform = getRadio('uc7-platform');
+  const action = getRadio('uc7-action');
+  const el = document.getElementById('uc7-main');
+
+  const platformNames = { telegram: 'Telegram', slack: 'Slack', discord: 'Discord' };
+  const platformSubmittedVia = { telegram: 'telegram_inline_button', slack: 'slack_block_action', discord: 'discord_component' };
+
+  const hitl = {
+    spec_version: '0.6',
+    case_id: 'review_confirm_s5t6u7v8',
+    review_url: 'https://mailcraft.example/review/confirm_s5t6u7v8?token=X2yZ4aB6cD8eF0gH2i...',
+    poll_url: 'https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status',
+    submit_url: 'https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/submit',
+    submit_token: 'agt_X2yZ4aB6cD8eF0gH2iJ4kL6mN8oP0qR2sT4uV6wX',
+    type: 'confirmation',
+    prompt: 'Send 3 application emails to TechFlow, Klarna, and Zalando?',
+    inline_actions: ['confirm', 'cancel'],
+    timeout: '4h',
+    default_action: 'skip',
+    created_at: '2026-02-23T14:00:00Z',
+    expires_at: '2026-02-23T18:00:00Z',
+  };
+
+  let buttonMock = '';
+  if (platform === 'telegram') {
+    buttonMock = `<div style="display:flex;gap:6px;margin-top:8px">
+      <div style="background:var(--green);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</div>
+      <div style="background:var(--red);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</div>
+      <div style="background:var(--blue);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</div>
+    </div>`;
+  } else if (platform === 'slack') {
+    buttonMock = `<div style="display:flex;gap:6px;margin-top:8px">
+      <div style="background:#007a5a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</div>
+      <div style="background:#e01e5a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</div>
+      <div style="background:transparent;color:var(--blue);padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;border:1px solid var(--border);cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</div>
+    </div>`;
+  } else {
+    buttonMock = `<div style="display:flex;gap:6px;margin-top:8px">
+      <div style="background:#57f287;color:#000;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</div>
+      <div style="background:#ed4245;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</div>
+      <div style="background:#5865f2;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</div>
+    </div>`;
+  }
+
+  const steps = [];
+
+  // Step 1: Agent requests
+  steps.push(stepCard('agent', 'Agent &rarr; Service', `<code>POST /api/emails/send</code> &mdash; Agent requests to send 3 application emails`, { method: 'POST', url: 'https://api.mailcraft.example/v1/emails/send', body: { recipients: ['apply@techflow.de', 'jobs@klarna.com', 'careers@zalando.de'], template: 'job_application', applicant: 'Alex Mueller' } }));
+
+  // Step 2: Service returns 202 with submit_url
+  steps.push(stepCard('service', 'Service &rarr; Agent', `<code>HTTP 202</code> &mdash; HITL object with <strong>submit_url</strong> + <strong>inline_actions</strong>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+      <span class="badge badge-green">submit_url</span>
+      <span class="badge badge-orange">submit_token</span>
+      <span class="badge badge-blue">inline_actions: [confirm, cancel]</span>
+    </div>`, hitl));
+
+  // Step 3: Agent renders native buttons
+  steps.push(`<div class="step-card agent">
+    <div class="step-title"><span class="badge badge-blue">Agent</span> Agent detects submit_url &rarr; renders ${platformNames[platform]} buttons</div>
+    <div class="step-body">
+      Agent checks: <code>submit_url</code> present? Type is <code>confirmation</code>? &rarr; Render native inline buttons with URL fallback.
+      <div class="delivery-mock" style="margin-top:10px">
+        <div class="dm-prompt">${hitl.prompt}</div>
+        ${buttonMock}
+        <div class="dm-meta" style="margin-top:6px">Expires in 4h &bull; ${platformNames[platform]} inline keyboard</div>
+      </div>
+    </div>
+  </div>`);
+
+  if (action === 'details') {
+    // Fallback to browser
+    steps.push(stepCard('human', 'Human &rarr; Browser', `Human taps <strong>"Details &rarr;"</strong> URL button &rarr; opens <code>review_url</code> in browser. Full review page with context. Standard flow continues (poll for result).`));
+    steps.push(stepCard('agent', 'Agent &rarr; Service (polling)', `<code>GET poll_url</code> &mdash; Agent polls until human submits via browser`, { status: 'completed', case_id: hitl.case_id, result: { action: 'confirm', data: {} }, responded_by: { name: 'Alex Mueller' } }));
+  } else {
+    // Inline submit
+    const submitBody = {
+      action: action,
+      data: {},
+      submitted_via: platformSubmittedVia[platform],
+      submitted_by: {
+        platform: platform,
+        platform_user_id: platform === 'telegram' ? '123456789' : platform === 'slack' ? 'U0123ABCDEF' : '987654321098765432',
+        display_name: 'Alex Mueller'
+      }
+    };
+
+    steps.push(stepCard('human', `Human taps [${action === 'confirm' ? 'Confirm' : 'Cancel'}]`, `Human taps the <strong>${action}</strong> button directly in ${platformNames[platform]}. No browser opened. ${platformNames[platform]} sends callback to the agent bot.`));
+
+    steps.push(stepCard('agent', 'Agent &rarr; Service (submit_url)', `<code>POST submit_url</code> &mdash; Agent forwards the inline action with platform identity
+      <div style="margin-top:4px;font-size:11px;color:var(--dim)">Authorization: Bearer {submit_token} &mdash; separate from review_url token</div>`, submitBody));
+
+    const serviceResponse = action === 'confirm'
+      ? { status: 'completed', case_id: hitl.case_id, result: { action: 'confirm', data: { emails_sent: 3 } }, responded_by: { name: 'Alex Mueller' } }
+      : { status: 'completed', case_id: hitl.case_id, result: { action: 'cancel', data: {} }, responded_by: { name: 'Alex Mueller' } };
+
+    steps.push(stepCard('service', 'Service &rarr; Agent', `<code>200 OK</code> &mdash; ${action === 'confirm' ? 'Emails sent! No polling needed.' : 'Cancelled. No emails sent.'}`, serviceResponse));
+
+    const resultText = action === 'confirm' ? '3 application emails sent to TechFlow, Klarna, and Zalando.' : 'Email sending cancelled.';
+    const resultIcon = action === 'confirm' ? '&#10003;' : '&#10005;';
+    steps.push(`<div class="step-card agent">
+      <div class="step-title"><span class="badge badge-blue">Agent</span> Agent updates ${platformNames[platform]} message</div>
+      <div class="step-body">
+        Removes inline buttons. Shows result:
+        <div class="delivery-mock" style="margin-top:10px">
+          <div class="dm-prompt">${hitl.prompt}</div>
+          <div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:${action === 'confirm' ? 'rgba(5,150,105,0.15)' : 'rgba(220,38,38,0.15)'};font-weight:700;color:${action === 'confirm' ? 'var(--green)' : 'var(--red)'}">${resultIcon} ${resultText}</div>
+        </div>
+      </div>
+    </div>`);
+  }
+
+  el.innerHTML = '<div class="step-list">' + steps.join('') + '</div>';
+}
+
 // --- Initial renders ---
 renderUC1();
 renderUC2();
 renderUC3();
 renderUC4();
 renderUC5();
+renderUC7();
 </script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.5/hitl-object.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.6/hitl-object.json",
   "title": "HITL Object",
-  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.5",
+  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.6",
   "type": "object",
   "required": [
     "spec_version",
@@ -17,8 +17,8 @@
   "properties": {
     "spec_version": {
       "type": "string",
-      "const": "0.5",
-      "description": "Protocol version. MUST be '0.5' for this spec."
+      "const": "0.6",
+      "description": "Protocol version. MUST be '0.6' for this spec."
     },
     "case_id": {
       "type": "string",
@@ -179,7 +179,28 @@
         }
       },
       "description": "Optional declaration of the review page UI format."
+    },
+    "submit_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "API endpoint where the agent MAY submit simple responses on behalf of the human via native messaging buttons. MUST be HTTPS. See Section 7.5."
+    },
+    "submit_token": {
+      "type": "string",
+      "minLength": 32,
+      "description": "Opaque bearer token for authenticating agent submissions via submit_url. Service stores only SHA-256 hash. MUST be different from the review URL token."
+    },
+    "inline_actions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Actions permitted via submit_url without visiting review_url. When omitted and submit_url is present, ALL actions for the review type are permitted. When present, only listed actions are accepted via submit_url."
     }
+  },
+  "dependentRequired": {
+    "submit_url": ["submit_token"],
+    "submit_token": ["submit_url"]
   },
   "additionalProperties": false
 }

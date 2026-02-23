@@ -1,0 +1,166 @@
+{
+  "_comment": "HITL Protocol v0.6 — Example: Inline Confirmation via Messaging Buttons",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "An email sending service returns a confirmation-type HITL with inline submit support. The agent renders native inline buttons on the messaging platform (Telegram, Slack, Discord, WhatsApp, or Teams). The human taps 'Confirm' directly in the chat — no browser needed. The agent submits via submit_url on behalf of the human.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Agent requests the email service to send 3 application emails",
+      "request": {
+        "method": "POST",
+        "url": "https://api.mailcraft.example/v1/batch-send",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_mail_s5t6u7v8w9x0"
+        },
+        "body": {
+          "template": "job_application",
+          "from": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          },
+          "emails": [
+            {
+              "id": "email_001",
+              "to": "recruiting@klarna.com",
+              "subject": "Application: Staff Frontend Developer — Alex Mueller"
+            },
+            {
+              "id": "email_002",
+              "to": "careers@zalando.com",
+              "subject": "Application: Senior React Engineer — Alex Mueller"
+            },
+            {
+              "id": "email_003",
+              "to": "jobs@techflow.de",
+              "subject": "Application: Senior Frontend Engineer — Alex Mueller"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Service returns HTTP 202 with confirmation-type hitl object INCLUDING submit_url and inline_actions (v0.6 inline submit)",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "15"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "3 application emails are ready to send. Please confirm before they are dispatched.",
+          "hitl": {
+            "spec_version": "0.6",
+            "case_id": "review_confirm_s5t6u7v8",
+            "review_url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS",
+            "poll_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",
+            "submit_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/submit",
+            "submit_token": "agt_X2yZ4aB6cD8eF0gH2iJ4kL6mN8oP0qR2sT4uV6wX",
+            "inline_actions": ["confirm", "cancel"],
+            "callback_url": null,
+            "type": "confirmation",
+            "prompt": "Confirm sending 3 job application emails (Klarna, Zalando, TechFlow)",
+            "timeout": "12h",
+            "default_action": "abort",
+            "created_at": "2026-02-22T12:00:00Z",
+            "expires_at": "2026-02-23T00:00:00Z",
+            "context": {
+              "action_type": "send_emails",
+              "irreversible": true,
+              "total_emails": 3,
+              "recipients": [
+                "recruiting@klarna.com",
+                "careers@zalando.com",
+                "jobs@techflow.de"
+              ],
+              "warning": "Emails will be sent from alex.mueller@example.com. This action cannot be undone."
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Agent detects submit_url + type=confirmation → renders native inline buttons on the messaging platform. Each platform uses its own button format, but the pattern is the same: action buttons + a 'View Details' URL button.",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Ready to send 3 application emails:\n1. Klarna — Staff Frontend Developer\n2. Zalando — Senior React Engineer\n3. TechFlow — Senior Frontend Engineer\n\nEmails will be sent from alex.mueller@example.com. This cannot be undone.",
+        "inline_buttons": {
+          "_comment": "Platform-native interactive elements. Below shows the logical structure; actual format varies by platform.",
+          "row_1": [
+            {
+              "label": "Confirm",
+              "action": "confirm",
+              "_telegram": "callback_data: hitl:a1b2c3:confirm",
+              "_slack": "action_id: hitl_confirm, value: {case_id, action}",
+              "_discord": "custom_id: hitl:review_confirm_s5t6u7v8:confirm",
+              "_whatsapp": "reply.id: hitl_confirm",
+              "_teams": "Action.Submit data: {hitl_action: confirm}"
+            },
+            {
+              "label": "Cancel",
+              "action": "cancel",
+              "_telegram": "callback_data: hitl:a1b2c3:cancel",
+              "_slack": "action_id: hitl_cancel, value: {case_id, action}",
+              "_discord": "custom_id: hitl:review_confirm_s5t6u7v8:cancel",
+              "_whatsapp": "reply.id: hitl_cancel",
+              "_teams": "Action.Submit data: {hitl_action: cancel}"
+            }
+          ],
+          "row_2": [
+            {
+              "label": "View Details",
+              "type": "url",
+              "url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": 4,
+      "description": "Human taps 'Confirm' button directly in the chat. The messaging platform sends a callback to the agent. The agent looks up the case mapping and POSTs to submit_url.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/submit",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agt_X2yZ4aB6cD8eF0gH2iJ4kL6mN8oP0qR2sT4uV6wX"
+        },
+        "body": {
+          "action": "confirm",
+          "data": {},
+          "submitted_via": "telegram_inline_button",
+          "submitted_by": {
+            "platform": "telegram",
+            "platform_user_id": "123456789",
+            "display_name": "Alex Mueller"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_confirm_s5t6u7v8",
+          "completed_at": "2026-02-22T12:01:15Z"
+        }
+      }
+    },
+    {
+      "step": 5,
+      "description": "Agent updates the original message to show the result and removes the inline buttons",
+      "agent_action": {
+        "channel": "telegram",
+        "action": "edit_message",
+        "updated_message": "Ready to send 3 application emails:\n1. Klarna — Staff Frontend Developer\n2. Zalando — Senior React Engineer\n3. TechFlow — Senior Frontend Engineer\n\n--- Confirmed ---\nEmails are being sent.",
+        "remove_buttons": true
+      }
+    }
+  ]
+}

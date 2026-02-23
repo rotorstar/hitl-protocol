@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.5/form-field.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.6/form-field.json",
   "title": "HITL Form Field",
-  "description": "A form field definition used in context.form for Input-type reviews, as defined by HITL Protocol v0.5",
+  "description": "A form field definition used in context.form for Input-type reviews, as defined by HITL Protocol v0.6",
   "type": "object",
   "required": ["key", "label", "type"],
   "properties": {

@@ -1,0 +1,126 @@
+{
+  "_comment": "HITL Protocol v0.6 — Example: Selection via Embedded WebView (Telegram Mini App)",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A job search returns 5 positions that need human selection. Since selection requires seeing option details, inline buttons are not sufficient. On Telegram, the agent uses a Mini App (web_app) button to open the review_url inside Telegram's embedded browser. On other platforms without embedded WebView support, the agent falls back to a standard URL button. No submit_url is needed — the human interacts with the full review page, and the agent polls for the result.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Service returns selection-type HITL. Note: submit_url is absent because selection requires the full review page with job details, comparison features, and multi-select UI.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "5 matching jobs found for 'Senior Frontend Engineer, Berlin'. Please select which ones to apply for.",
+          "hitl": {
+            "spec_version": "0.6",
+            "case_id": "review_select_q7r8s9t0",
+            "review_url": "https://jobboard.example/review/select_q7r8s9t0?token=B2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6a",
+            "poll_url": "https://api.jobboard.example/v1/reviews/select_q7r8s9t0/status",
+            "type": "selection",
+            "prompt": "Select which jobs to apply for (5 matches in Berlin)",
+            "timeout": "48h",
+            "default_action": "skip",
+            "created_at": "2026-02-23T10:00:00Z",
+            "expires_at": "2026-02-25T10:00:00Z",
+            "context": {
+              "query": "Senior Frontend Engineer, Berlin",
+              "total_options": 5,
+              "options_preview": [
+                {"id": "job_001", "title": "Staff Frontend Developer", "company": "Klarna", "salary_range": "90k-120k EUR"},
+                {"id": "job_002", "title": "Senior React Engineer", "company": "Zalando", "salary_range": "85k-110k EUR"},
+                {"id": "job_003", "title": "Senior Frontend Engineer", "company": "TechFlow", "salary_range": "80k-105k EUR"},
+                {"id": "job_004", "title": "Lead Frontend Developer", "company": "N26", "salary_range": "95k-125k EUR"},
+                {"id": "job_005", "title": "Frontend Architect", "company": "DeliveryHero", "salary_range": "100k-130k EUR"}
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Agent rendering differs by platform. On Telegram: Mini App button (embedded WebView). On Slack: URL button. On Discord: Link button. On WhatsApp: URL in message text. The review_url is the same in all cases.",
+      "agent_action_telegram": {
+        "channel": "telegram",
+        "message": "Found 5 matching positions in Berlin for Senior Frontend Engineer:\n\n1. Klarna — Staff Frontend Developer (90-120k)\n2. Zalando — Senior React Engineer (85-110k)\n3. TechFlow — Senior Frontend Engineer (80-105k)\n4. N26 — Lead Frontend Developer (95-125k)\n5. DeliveryHero — Frontend Architect (100-130k)\n\nTap below to review details and select:",
+        "inline_buttons": {
+          "_comment": "Telegram web_app button opens review_url in embedded Mini App browser — user stays in Telegram",
+          "row_1": [
+            {
+              "label": "Select Jobs",
+              "type": "web_app",
+              "url": "https://jobboard.example/review/select_q7r8s9t0?token=B2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6a"
+            }
+          ]
+        }
+      },
+      "agent_action_slack": {
+        "channel": "slack",
+        "message": "Found 5 matching positions in Berlin. Review and select which ones to apply for.",
+        "inline_buttons": {
+          "row_1": [
+            {
+              "label": "Select Jobs",
+              "type": "url",
+              "url": "https://jobboard.example/review/select_q7r8s9t0?token=B2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6a"
+            }
+          ]
+        }
+      },
+      "agent_action_whatsapp": {
+        "channel": "whatsapp",
+        "_comment": "WhatsApp has no URL button in reply button messages. The review URL is included in the message body text.",
+        "message": "Found 5 matching positions in Berlin for Senior Frontend Engineer:\n\n1. Klarna — Staff Frontend Developer (90-120k)\n2. Zalando — Senior React Engineer (85-110k)\n3. TechFlow — Senior Frontend Engineer (80-105k)\n4. N26 — Lead Frontend Developer (95-125k)\n5. DeliveryHero — Frontend Architect (100-130k)\n\nReview and select: https://jobboard.example/review/select_q7r8s9t0?token=B2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6a"
+      }
+    },
+    {
+      "step": 3,
+      "description": "Human opens the review page (via Mini App on Telegram, via URL on other platforms), reviews job details, and selects 2 positions. The agent polls for the result.",
+      "request": {
+        "method": "GET",
+        "url": "https://api.jobboard.example/v1/reviews/select_q7r8s9t0/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_jobs_q7r8s9t0u1v2"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_select_q7r8s9t0",
+          "created_at": "2026-02-23T10:00:00Z",
+          "opened_at": "2026-02-23T10:03:22Z",
+          "completed_at": "2026-02-23T10:07:51Z",
+          "expires_at": "2026-02-25T10:00:00Z",
+          "result": {
+            "action": "select",
+            "data": {
+              "selected": ["job_001", "job_004"],
+              "note": "Prioritize Klarna and N26 — both offer higher salary ranges and interesting tech challenges."
+            }
+          },
+          "responded_by": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          }
+        }
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent updates the message with the selection result",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Found 5 matching positions in Berlin.\n\nSelected 2 positions:\n1. Klarna — Staff Frontend Developer\n2. N26 — Lead Frontend Developer\n\nProceeding with applications.",
+        "remove_buttons": true
+      }
+    }
+  ]
+}

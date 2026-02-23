@@ -267,14 +267,181 @@ if reminder_at:
 
 Do NOT send reminders for terminal states (`completed`, `expired`, `cancelled`).
 
+## Channel-Native Inline Actions (v0.6)
+
+When a service includes `submit_url` and `submit_token` in the HITL object, the agent MAY render native messaging buttons for simple decisions instead of (or in addition to) a URL link.
+
+### Detection
+
+```python
+def has_inline_submit(hitl: dict) -> bool:
+    return "submit_url" in hitl and "submit_token" in hitl
+```
+
+### Rendering Decision
+
+```python
+def render_hitl_message(hitl: dict, platform: str):
+    review_type = hitl["type"]
+    inline_actions = hitl.get("inline_actions")
+
+    if not has_inline_submit(hitl):
+        # No inline submit → URL-only (v0.5 behavior)
+        return render_url_button(hitl["review_url"], "Review")
+
+    if review_type == "confirmation":
+        # 2 buttons: Confirm + Cancel — works on ALL platforms (incl. WhatsApp max 3)
+        return render_inline_plus_url(
+            actions=inline_actions or ["confirm", "cancel"],
+            url=hitl["review_url"],
+            url_label="View Details"
+        )
+
+    if review_type == "escalation":
+        # 3 buttons: Retry + Skip + Abort — fits WhatsApp max 3
+        # But if 'retry' is NOT in inline_actions, show only skip/abort inline
+        return render_inline_plus_url(
+            actions=inline_actions or ["retry", "skip", "abort"],
+            url=hitl["review_url"],
+            url_label="View Error Details"
+        )
+
+    if review_type == "approval":
+        if inline_actions and "edit" not in inline_actions:
+            # Simple approve/reject inline
+            return render_inline_plus_url(
+                actions=inline_actions,
+                url=hitl["review_url"],
+                url_label="Review & Edit"
+            )
+        else:
+            # Edit needs browser → URL only
+            return render_url_button(hitl["review_url"], "Review & Approve")
+
+    if review_type in ("selection", "input"):
+        # Always needs full review page
+        if platform == "telegram":
+            return render_webapp_button(hitl["review_url"], "Open")
+        else:
+            return render_url_button(hitl["review_url"], "Open")
+```
+
+### Inline Submit Handler
+
+```python
+import httpx
+
+async def handle_inline_action(case_mapping: dict, action: str, user_info: dict):
+    """Called when a human taps a native messaging button."""
+
+    response = await httpx.AsyncClient().post(
+        case_mapping["submit_url"],
+        headers={
+            "Authorization": f"Bearer {case_mapping['submit_token']}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "action": action,
+            "data": {},
+            "submitted_via": user_info["submitted_via"],
+            "submitted_by": {
+                "platform": user_info["platform"],
+                "platform_user_id": user_info["platform_user_id"],
+                "display_name": user_info.get("display_name")
+            }
+        }
+    )
+
+    if response.status_code == 200:
+        return {"success": True, "result": response.json()}
+    elif response.status_code == 403:
+        # Action not permitted inline → direct to review_url
+        error = response.json()
+        return {"success": False, "redirect_url": error.get("review_url")}
+    elif response.status_code == 409:
+        return {"success": False, "reason": "already_responded"}
+    elif response.status_code == 410:
+        return {"success": False, "reason": "expired"}
+    else:
+        return {"success": False, "reason": f"http_{response.status_code}"}
+```
+
+### Platform-Specific Callback Data Encoding
+
+Each messaging platform has different limits for action callback data. The agent must encode enough information to identify the case and action when a button is tapped.
+
+| Platform | Field | Limit | Strategy |
+|----------|-------|-------|----------|
+| **Telegram** | `callback_data` | 64 bytes | `hitl:{sha256(case_id)[:6]}:{action}` + agent-side mapping table |
+| **Slack** | `value` | 2000 chars | Full JSON: `{"case_id":"...","action":"..."}` — no mapping needed |
+| **Discord** | `custom_id` | 100 chars | `hitl:{case_id}:{action}` — usually fits directly |
+| **WhatsApp** | `reply.id` | 256 chars | `hitl_{case_id}_{action}` — usually fits directly |
+| **MS Teams** | `Action.Submit data` | Unbounded JSON | Full metadata in card action data |
+
+**Telegram mapping table example:**
+
+```python
+import hashlib
+
+# Agent-side in-memory mapping (or Redis/SQLite for persistence)
+case_store: dict[str, dict] = {}
+
+def register_case(hitl: dict) -> str:
+    """Generate a 6-char short ID and store the case mapping."""
+    short_id = hashlib.sha256(hitl["case_id"].encode()).hexdigest()[:6]
+    case_store[short_id] = {
+        "case_id": hitl["case_id"],
+        "submit_url": hitl["submit_url"],
+        "submit_token": hitl["submit_token"],
+        "review_url": hitl["review_url"]
+    }
+    return short_id
+
+def callback_data(short_id: str, action: str) -> str:
+    """Generate Telegram callback_data (max 64 bytes)."""
+    return f"hitl:{short_id}:{action}"  # e.g., "hitl:a1b2c3:confirm" = 20 bytes
+
+def resolve_callback(data: str) -> tuple[dict, str] | None:
+    """Parse callback_data and return (case_mapping, action)."""
+    if not data.startswith("hitl:"):
+        return None
+    parts = data.split(":")
+    short_id, action = parts[1], parts[2]
+    case = case_store.get(short_id)
+    return (case, action) if case else None
+```
+
+### Security: Never Leak submit_token
+
+The `submit_token` MUST NOT appear in:
+- Telegram `callback_data` (transits Telegram servers)
+- Discord `custom_id` (transits Discord servers)
+- Slack `action_id` or `value` (transits Slack servers)
+- WhatsApp `reply.id` (transits WhatsApp servers)
+- Any client-side or third-party visible field
+
+Store `submit_token` only in the agent's own memory/database. Look it up using the case mapping when a button callback arrives.
+
+### Enhanced Checklist (v0.6)
+
+- [ ] **Detect `submit_url`** — check if `submit_url` and `submit_token` are present in the HITL object
+- [ ] **Render native buttons** — for confirmation, escalation, simple approval when inline submit is available
+- [ ] **Always include URL fallback** — render a URL button to `review_url` alongside inline buttons
+- [ ] **Handle inline submit response** — `200` OK, `403` action not inline, `409` duplicate, `410` expired
+- [ ] **Update message after action** — edit original message, remove buttons, show result
+- [ ] **Never leak submit_token** — store only agent-side, never in callback data
+- [ ] **Respect inline_actions** — only render buttons for actions listed in `inline_actions`
+- [ ] **Fallback to URL** — if platform doesn't support buttons or submit_url is absent, use URL-only delivery
+
 ## What NOT to Do
 
 - **Do NOT render the review UI** — the service hosts the review page. The agent is a messenger.
-- **Do NOT submit responses on behalf of the human** — unless explicitly delegated.
+- **Do NOT submit responses on behalf of the human** — unless the human explicitly triggered a native messaging button and `submit_url` is available.
 - **Do NOT ignore HTTP 202 + HITL** — proceeding without human input violates the protocol.
 - **Do NOT poll too frequently** — respect rate limits (max 60/min). Check `Retry-After` header.
 - **Do NOT store review URLs long-term** — they contain time-limited tokens that expire.
 - **Do NOT log sensitive field values** — fields marked `sensitive: true` are for human eyes only.
+- **Do NOT put `submit_token` in callback data** — it must never transit through third-party messaging servers.
 
 ## Decision Tree
 

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.6/submit-request.json",
+  "title": "Inline Submit Request",
+  "description": "Request body for agent-submitted responses via submit_url, as defined by HITL Protocol v0.6",
+  "type": "object",
+  "required": [
+    "action",
+    "submitted_via",
+    "submitted_by"
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "description": "The action taken by the human via a native messaging button. MUST be a valid action for the review type AND listed in inline_actions (if specified).",
+      "examples": ["confirm", "cancel", "approve", "reject", "retry", "skip", "abort"]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Structured data accompanying the action. For simple inline actions, this is typically empty {}.",
+      "default": {}
+    },
+    "submitted_via": {
+      "type": "string",
+      "description": "Identifies the submission channel for audit purposes.",
+      "anyOf": [
+        {
+          "enum": [
+            "telegram_inline_button",
+            "slack_block_action",
+            "discord_component",
+            "whatsapp_reply_button",
+            "teams_adaptive_card"
+          ]
+        },
+        {
+          "pattern": "^x-"
+        }
+      ]
+    },
+    "submitted_by": {
+      "type": "object",
+      "required": ["platform", "platform_user_id"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "description": "Platform identifier.",
+          "anyOf": [
+            {
+              "enum": ["telegram", "slack", "discord", "whatsapp", "teams"]
+            },
+            {
+              "pattern": "^x-"
+            }
+          ]
+        },
+        "platform_user_id": {
+          "type": "string",
+          "description": "Platform-specific user identifier (e.g., Telegram user ID, Slack member ID, Discord user ID)."
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable display name of the user who triggered the action."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

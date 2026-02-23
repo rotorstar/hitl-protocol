@@ -1,6 +1,6 @@
 ---
 name: hitl-protocol
-description: "HITL Protocol — the open standard for human decisions in autonomous agent workflows. When a website or API needs human input, it returns HTTP 202 with a review URL. Autonomous agents like OpenClaw, Claude, Codex, or Goose forward the URL, poll for the structured result, and continue. Use this skill to make any website agent-ready, or to handle human-in-the-loop responses in your agent. Covers approval, selection, input forms, confirmation, and escalation review types. Supports polling, SSE, and webhook transports, opaque token security, multi-step form wizards, and multi-round edit cycles."
+description: "HITL Protocol — the open standard for human decisions in autonomous agent workflows. When a website or API needs human input, it returns HTTP 202 with a review URL. Autonomous agents like OpenClaw, Claude, Codex, or Goose forward the URL, poll for the structured result, and continue. Use this skill to make any website agent-ready, or to handle human-in-the-loop responses in your agent. Covers approval, selection, input forms, confirmation, and escalation review types. Supports polling, SSE, webhook transports, channel-native inline buttons (Telegram, Slack, Discord, WhatsApp, Teams), opaque token security, multi-step form wizards, and multi-round edit cycles."
 license: Apache-2.0
 compatibility:
   - claude
@@ -10,8 +10,8 @@ compatibility:
   - goose
   - copilot
 metadata:
-  version: "0.5"
-  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.5/hitl-protocol.md"
+  version: "0.6"
+  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.6/hitl-protocol.md"
   hitl:
     supported: true
     types: [approval, selection, input, confirmation, escalation]
@@ -22,7 +22,11 @@ metadata:
 
 HITL Protocol is to human decisions what OAuth is to authentication — an open standard connecting **Services**, **Agents**, and **Humans**. When a service needs human input, it returns HTTP 202 with a review URL. The agent forwards the URL to the human. The human opens it in a browser, gets a rich UI, and makes an informed decision. The agent polls for the structured result and continues.
 
+For simple decisions (confirm/cancel, approve/reject), agents can render **native messaging buttons** directly in Telegram, Slack, Discord, WhatsApp, or Teams — no browser needed. The service opts in via `submit_url`.
+
 **No SDK required. No UI framework mandated. Just HTTP + URL + polling.**
+
+**[Interactive Playground](https://rotorstar.github.io/hitl-protocol/playground/index.html)** — try all review types, transports, and inline actions live in your browser.
 
 ## Who Are You?
 
@@ -35,6 +39,7 @@ HITL Protocol is to human decisions what OAuth is to authentication — an open 
 ## The Flow
 
 ```
+Standard flow (all review types):
 1. Human → Agent:    "Find me jobs in Berlin"
 2. Agent → Service:  POST /api/search {query: "Senior Dev Berlin"}
 3. Service → Agent:  HTTP 202 + hitl object (review_url, poll_url, type, prompt)
@@ -43,9 +48,19 @@ HITL Protocol is to human decisions what OAuth is to authentication — an open 
 6. Human → Service:  Makes selection, clicks Submit
 7. Agent → Service:  GET {poll_url} → {status: "completed", result: {action, data}}
 8. Agent → Human:    "Applied to 2 selected jobs."
+
+Inline flow (v0.6 — simple decisions only, when submit_url present):
+1. Human → Agent:    "Send my application emails"
+2. Agent → Service:  POST /api/send {emails: [...]}
+3. Service → Agent:  HTTP 202 + hitl object (incl. submit_url, submit_token, inline_actions)
+4. Agent → Human:    Native buttons in chat: [Confirm] [Cancel] [Details →]
+5. Human → Agent:    Taps [Confirm] in chat
+6. Agent → Service:  POST {submit_url} {action: "confirm", submitted_via: "telegram"}
+7. Service → Agent:  200 OK {status: "completed"}
+8. Agent → Human:    Updates message: "Confirmed — 3 emails sent."
 ```
 
-The agent never renders UI. The service hosts the review page. Sensitive data stays in the browser — never passes through the agent.
+The agent never renders UI. The service hosts the review page. Sensitive data stays in the browser — never passes through the agent. The inline flow is an optional shortcut for simple decisions.
 
 ## Feature Matrix
 
@@ -54,6 +69,7 @@ The agent never renders UI. The service hosts the review page. Sensitive data st
 | **Review types** | `approval`, `selection`, `input`, `confirmation`, `escalation` |
 | **Form field types** | `text`, `textarea`, `number`, `date`, `email`, `url`, `boolean`, `select`, `multiselect`, `range`, custom `x-*` |
 | **Transport** | Polling (required), SSE (optional), Callback/Webhook (optional) |
+| **Inline submit** | `submit_url` + native messaging buttons (Telegram, Slack, Discord, WhatsApp, Teams) — service opt-in |
 | **States** | `pending` → `opened` → `in_progress` → `completed` / `expired` / `cancelled` |
 | **Security** | Opaque tokens (43 chars, base64url, 256-bit entropy), SHA-256 hash storage, timing-safe comparison, HTTPS only |
 | **Multi-round** | `previous_case_id` / `next_case_id` for iterative edit cycles (Approval type) |
@@ -82,7 +98,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.5",
+    "spec_version": "0.6",
     "case_id": "review_abc123",
     "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ...",
     "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -104,7 +120,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `spec_version` | `"0.5"` | Protocol version |
+| `spec_version` | `"0.6"` | Protocol version |
 | `case_id` | string | Unique, URL-safe identifier (pattern: `review_{random}`) |
 | `review_url` | URL | HTTPS URL to review page with opaque bearer token |
 | `poll_url` | URL | Status polling endpoint |
@@ -125,6 +141,9 @@ When a service needs human input, it returns HTTP 202 with this structure:
 | `reminder_at` | datetime / datetime[] | When to re-send the review URL |
 | `previous_case_id` | string | Links to prior case in multi-round chain |
 | `surface` | object | UI format declaration (`format`, `version`) |
+| `submit_url` | URL | Agent-submit endpoint for channel-native inline buttons (v0.6) |
+| `submit_token` | string | Bearer token for `submit_url` authentication (required if `submit_url` set) |
+| `inline_actions` | string[] | Actions permitted via `submit_url` (e.g. `["confirm", "cancel"]`). If absent, all actions for the type are allowed. |
 
 ## Poll Response (Completed)
 
@@ -159,18 +178,18 @@ The `result` object is present only when `status` is `"completed"`. It always co
 ## State Machine
 
 ```
-            ┌─────────────────────────────────────────┐
-            │                                         ▼
-[created] → pending → opened → in_progress → completed [terminal]
-               │         │          │
-               │         │          └──────→ cancelled  [terminal]
-               │         │
-               │         └──→ completed     [terminal]
-               │         └──→ expired       [terminal]
-               │         └──→ cancelled     [terminal]
-               │
-               └─────────→ expired          [terminal]
-               └─────────→ cancelled        [terminal]
+            +---------------------------------------------+
+            |                                             v
+[created] -> pending -> opened -> in_progress -> completed [terminal]
+               |         |          |
+               |         |          +---------> cancelled  [terminal]
+               |         |
+               |         +--> completed     [terminal]
+               |         +--> expired       [terminal]
+               |         +--> cancelled     [terminal]
+               |
+               +----------> expired          [terminal]
+               +----------> cancelled        [terminal]
 ```
 
 Terminal states (`completed`, `expired`, `cancelled`) are immutable — no further transitions.
@@ -201,7 +220,7 @@ app.post('/api/search', async (req, res) => {
     status: 'human_input_required',
     message: `${results.length} jobs found. Please select which ones to apply for.`,
     hitl: {
-      spec_version: '0.5',
+      spec_version: '0.6',
       case_id: caseId,
       review_url: `https://yourservice.com/review/${caseId}?token=${token}`,
       poll_url: `https://api.yourservice.com/v1/reviews/${caseId}/status`,
@@ -230,10 +249,16 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # 1. Forward URL to human
-    send_to_user(f"{hitl['prompt']}\n{hitl['review_url']}")
+    # v0.6: Check for inline submit support
+    if "submit_url" in hitl and "submit_token" in hitl:
+        # Render native buttons in messaging platform (e.g. Telegram, Slack)
+        send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
+        # When human taps button → POST to submit_url (see Agent Integration Guide)
+    else:
+        # Standard flow: forward URL to human
+        send_to_user(f"{hitl['prompt']}\n{hitl['review_url']}")
 
-    # 2. Poll for result
+    # Poll for result (standard flow or fallback)
     while True:
         time.sleep(30)
         poll = httpx.get(hitl["poll_url"], headers=auth).json()
@@ -245,7 +270,7 @@ if response.status_code == 202:
             break
 ```
 
-No SDK. No UI rendering. Just HTTP + URL forwarding + polling. See [Agent Integration Guide](skills/references/agent-integration.md) for SSE, callbacks, multi-round, and edge cases.
+No SDK. No UI rendering. Just HTTP + URL forwarding + polling. See [Agent Integration Guide](skills/references/agent-integration.md) for inline submit, SSE, callbacks, multi-round, and edge cases.
 
 ## Three Transport Modes
 
@@ -257,12 +282,33 @@ No SDK. No UI rendering. Just HTTP + URL forwarding + polling. See [Agent Integr
 
 Polling is the baseline — every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
 
+## Channel-Native Inline Actions (v0.6)
+
+For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
+
+**How it works:** The service includes `submit_url` + `submit_token` in the HITL object. The agent detects these fields and renders platform-native buttons. When the human taps a button, the agent POSTs the action to `submit_url`. The messaging platform is passive — it renders whatever the agent sends. No messenger auto-detects HITL support.
+
+**When to use inline buttons:**
+
+| Review type | Inline possible? | Reason |
+|-------------|:----------------:|--------|
+| **Confirmation** | Yes | 2 buttons: Confirm / Cancel |
+| **Escalation** | Yes | 3 buttons: Retry / Skip / Abort |
+| **Approval** (simple) | Yes | 2 buttons: Approve / Reject (without edit) |
+| **Approval** (with edit) | URL only | Edit requires rich UI |
+| **Selection** | URL only | Needs list/cards UI |
+| **Input** | URL only | Needs form fields |
+
+**Always include a URL fallback button** (e.g. "Details &#8594;") linking to `review_url` — the human can always switch to the full review page.
+
+**Platform requirements:** The agent must be a platform bot (Telegram Bot via BotFather, Slack App, Discord Bot, WhatsApp Business API, Teams Bot) to send native buttons. See [Agent Integration Guide](skills/references/agent-integration.md) for platform-specific rendering patterns.
+
 ## Non-Goals
 
 - **Does NOT render review UI** — the service hosts and renders the review page. The agent is a messenger.
 - **Does NOT define the review page framework** — any web technology works (React, plain HTML, etc.).
 - **Does NOT replace OAuth** — HITL is for decisions, not authentication.
-- **Does NOT submit on behalf of the human** — unless explicitly delegated.
+- **Does NOT submit on behalf of the human** — unless the human explicitly triggers an inline action button in a messaging platform (v0.6 `submit_url`).
 
 ## SKILL.md Extension for Services
 
@@ -273,21 +319,22 @@ metadata:
   hitl:
     supported: true
     types: [selection, confirmation]
+    supports_inline_submit: true
     review_base_url: "https://yourservice.com/review"
     timeout_default: "24h"
     info: "May ask user to select preferred jobs or confirm applications."
 ```
 
-See [spec Section 12](spec/v0.5/hitl-protocol.md) for the full field reference.
+See [spec Section 12](spec/v0.6/hitl-protocol.md) for the full field reference.
 
 ## Resources
 
-- [Full Specification (v0.5)](spec/v0.5/hitl-protocol.md)
+- [Full Specification (v0.6)](spec/v0.6/hitl-protocol.md)
 - [OpenAPI 3.1 Spec](schemas/openapi.yaml) — all endpoints documented
-- [JSON Schemas](schemas/) — HITL object, poll response, form field definitions
+- [JSON Schemas](schemas/) — HITL object, poll response, form field, submit request definitions
 - [Reference Implementations](implementations/reference-service/) — Express 5, Hono, Next.js, FastAPI
 - [Review Page Templates](templates/) — HTML templates for all 5 review types
-- [Examples](examples/) — 8 end-to-end flows
+- [Examples](examples/) — 12 end-to-end flows (incl. inline confirmation, escalation, hybrid approval)
 - [Agent Implementation Checklist](agents/checklist.md) — detailed agent guide with pseudocode
 - [Interactive Playground](playground/)
 - [SDK Design Guide](docs/sdk-guide.md) — build a community SDK

@@ -39,7 +39,7 @@
           "status": "human_input_required",
           "message": "Cover letter draft ready for review.",
           "hitl": {
-            "spec_version": "0.5",
+            "spec_version": "0.6",
             "case_id": "review_content_r1_x8y9z0",
             "review_url": "https://contentreview.example/review/content_r1_x8y9z0?token=P3qR5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7o",
             "poll_url": "https://api.contentreview.example/v1/reviews/content_r1_x8y9z0/status",
@@ -155,7 +155,7 @@
           "status": "human_input_required",
           "message": "Revised cover letter ready for review (round 2).",
           "hitl": {
-            "spec_version": "0.5",
+            "spec_version": "0.6",
             "case_id": "review_content_r2_a1b2c3",
             "review_url": "https://contentreview.example/review/content_r2_a1b2c3?token=Q4rS6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ",
             "poll_url": "https://api.contentreview.example/v1/reviews/content_r2_a1b2c3/status",

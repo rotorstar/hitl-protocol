@@ -1,0 +1,109 @@
+{
+  "_comment": "HITL Protocol v0.6 — Example: Hybrid Approval (Inline Approve/Reject + URL for Edit)",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A deployment approval where approve/reject can be done inline via messaging buttons, but 'edit' (requesting changes with feedback) requires the full review page. The service uses inline_actions to restrict which actions are available inline. The human approves directly via a Discord component button.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "CI/CD service returns approval-type HITL with inline submit. Only 'approve' and 'reject' are inline-permitted. 'edit' requires the review page for feedback text.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Production deployment requires approval: acme-web v2.4.0",
+          "hitl": {
+            "spec_version": "0.6",
+            "case_id": "review_deploy_m3n4o5p6",
+            "review_url": "https://deploypipe.example/review/deploy_m3n4o5p6?token=A1bC3dE5fG7hI9jK1lM3nO5pQ7rS9tU1vW3xY5z",
+            "poll_url": "https://api.deploypipe.example/v1/reviews/deploy_m3n4o5p6/status",
+            "submit_url": "https://api.deploypipe.example/v1/reviews/deploy_m3n4o5p6/submit",
+            "submit_token": "agt_K1lM3nO5pQ7rS9tU1vW3xY5zA7bC9dE1fG3hI5j",
+            "inline_actions": ["approve", "reject"],
+            "type": "approval",
+            "prompt": "Approve production deployment of acme-web v2.4.0",
+            "timeout": "4h",
+            "default_action": "reject",
+            "created_at": "2026-02-23T09:00:00Z",
+            "expires_at": "2026-02-23T13:00:00Z",
+            "context": {
+              "application": "acme-web",
+              "version": "2.4.0",
+              "environment": "production",
+              "changes_summary": "14 commits, 3 features, 2 bug fixes",
+              "test_results": {
+                "unit": 847,
+                "integration": 156,
+                "e2e": 89,
+                "all_passing": true
+              },
+              "staging_health": "healthy for 2.5 hours",
+              "risk_assessment": "medium"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Agent renders on Discord: Success-style 'Approve' button, Danger-style 'Reject' button, and Link-style 'Review & Edit' URL button",
+      "agent_action": {
+        "channel": "discord",
+        "message": "**Deployment Approval: acme-web v2.4.0 → production**\n\n14 commits: 3 features, 2 bug fixes\nAll tests passing (847 unit, 156 integration, 89 e2e)\nStaging healthy for 2.5h | Risk: medium\n\nExpires in 4 hours.",
+        "inline_buttons": {
+          "row_1": [
+            {"label": "Approve", "action": "approve", "_discord_style": 3},
+            {"label": "Reject", "action": "reject", "_discord_style": 4},
+            {"label": "Review & Edit", "type": "url", "_discord_style": 5, "url": "https://deploypipe.example/review/deploy_m3n4o5p6?token=A1bC3dE5fG7hI9jK1lM3nO5pQ7rS9tU1vW3xY5z"}
+          ]
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Human clicks 'Approve' on Discord. Agent submits via submit_url with Discord identity.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.deploypipe.example/v1/reviews/deploy_m3n4o5p6/submit",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agt_K1lM3nO5pQ7rS9tU1vW3xY5zA7bC9dE1fG3hI5j"
+        },
+        "body": {
+          "action": "approve",
+          "data": {},
+          "submitted_via": "discord_component",
+          "submitted_by": {
+            "platform": "discord",
+            "platform_user_id": "987654321098765432",
+            "display_name": "Torsten#1234"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_deploy_m3n4o5p6",
+          "completed_at": "2026-02-23T09:02:44Z"
+        }
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent updates the Discord message to show the approval result",
+      "agent_action": {
+        "channel": "discord",
+        "action": "edit_message",
+        "updated_message": "**Deployment Approval: acme-web v2.4.0 → production**\n\n14 commits: 3 features, 2 bug fixes\nAll tests passing | Staging healthy for 2.5h\n\n**APPROVED** by Torsten#1234 at 09:02 UTC\nDeployment proceeding.",
+        "remove_buttons": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "_comment": "HITL Protocol v0.6 — Example: Inline Escalation via Messaging Buttons",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A deployment failed and the CI/CD service escalates with inline submit support. The agent renders 3 native buttons (Retry, Skip, Abort) plus a 'View Error Details' URL button. The human taps 'Abort' directly in the chat. For retry with modified parameters, the human would use the URL button instead.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Service detects deployment failure and creates an escalation case with inline submit support",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Deployment of acme-web v2.1.0 to production failed. Human decision required.",
+          "hitl": {
+            "spec_version": "0.6",
+            "case_id": "review_escalate_h2i3j4k5",
+            "review_url": "https://deploypipe.example/review/escalate_h2i3j4k5?token=T7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9qR1s",
+            "poll_url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/status",
+            "submit_url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/submit",
+            "submit_token": "agt_R1sT3uV5wX7yZ9aB1cD3eF5gH7iJ9kL1mN3oP5qR",
+            "inline_actions": ["skip", "abort"],
+            "callback_url": null,
+            "type": "escalation",
+            "prompt": "Deployment failed: acme-web v2.1.0 rolling update stalled at 60%. Choose: retry (requires details page), skip, or abort.",
+            "timeout": "1h",
+            "default_action": "abort",
+            "created_at": "2026-02-22T15:30:00Z",
+            "expires_at": "2026-02-22T16:30:00Z",
+            "context": {
+              "deployment_id": "deploy_2026022215001",
+              "application": "acme-web",
+              "version": "2.1.0",
+              "environment": "production",
+              "error_summary": "Rolling update stalled at 60% — 8 new pods failed readiness probes",
+              "rollback_status": "automatic_rollback_completed",
+              "current_production_version": "2.0.3"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Agent renders inline buttons. Note: 'retry' is NOT in inline_actions because it requires modified_params (strategy, timeout). Retry requires the full review page.",
+      "agent_action": {
+        "channel": "slack",
+        "priority": "urgent",
+        "message": "DEPLOYMENT FAILED: acme-web v2.1.0\n\nRolling update stalled at 60% — 8 new pods failed readiness probes.\nAutomatic rollback to v2.0.3 completed. Production is stable.\n\nExpires in 1 hour. Default: abort.",
+        "inline_buttons": {
+          "row_1": [
+            {"label": "Skip", "action": "skip"},
+            {"label": "Abort", "action": "abort"}
+          ],
+          "row_2": [
+            {"label": "Retry (with options)", "type": "url", "url": "https://deploypipe.example/review/escalate_h2i3j4k5?token=T7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9qR1s"}
+          ]
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Human taps 'Abort' inline button. Agent submits via submit_url.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/submit",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agt_R1sT3uV5wX7yZ9aB1cD3eF5gH7iJ9kL1mN3oP5qR"
+        },
+        "body": {
+          "action": "abort",
+          "data": {},
+          "submitted_via": "slack_block_action",
+          "submitted_by": {
+            "platform": "slack",
+            "platform_user_id": "U0ABC123DEF",
+            "display_name": "Torsten H."
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_escalate_h2i3j4k5",
+          "completed_at": "2026-02-22T15:33:08Z"
+        }
+      }
+    },
+    {
+      "step": "3b",
+      "description": "Alternative: Human taps 'Retry (with options)' URL button → retry is NOT in inline_actions, so if the agent tried to submit 'retry' via submit_url, it would get 403.",
+      "alternative_request": {
+        "method": "POST",
+        "url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/submit",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agt_R1sT3uV5wX7yZ9aB1cD3eF5gH7iJ9kL1mN3oP5qR"
+        },
+        "body": {
+          "action": "retry",
+          "data": {},
+          "submitted_via": "slack_block_action",
+          "submitted_by": {
+            "platform": "slack",
+            "platform_user_id": "U0ABC123DEF",
+            "display_name": "Torsten H."
+          }
+        }
+      },
+      "alternative_response": {
+        "status": 403,
+        "body": {
+          "error": "action_not_inline",
+          "message": "Action 'retry' requires the review page to specify modified parameters.",
+          "review_url": "https://deploypipe.example/review/escalate_h2i3j4k5?token=T7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9qR1s"
+        }
+      }
+    }
+  ]
+}
