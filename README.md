@@ -8,7 +8,7 @@
   </p>
   <p align="center">
     <a href="https://github.com/rotorstar/hitl-protocol/blob/main/LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
-    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.5" src="https://img.shields.io/badge/spec-v0.5_(Draft)-orange.svg"></a>
+    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.6" src="https://img.shields.io/badge/spec-v0.6_(Draft)-orange.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/rotorstar/hitl-protocol.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
   </p>
@@ -26,7 +26,7 @@ Any website or API integrates HITL to become agent-ready: when human input is ne
 
 **For Services & Websites** — Add HITL endpoints to make your service accessible to any autonomous agent. You host the review page, you control the UI, you own the data. Sensitive information stays in the browser — never passes through the agent. This repository includes [reference implementations](implementations/reference-service/) in 4 frameworks (Express, Hono, Next.js, FastAPI), [HTML templates](templates/) for all review types, an [OpenAPI spec](schemas/openapi.yaml), and [compliance tests](tests/) — everything needed to integrate.
 
-**For Agent Developers** — Handle HTTP 202 responses. Forward the review URL to your user via any channel (CLI, Telegram, Slack, WhatsApp). Poll for the structured result. No SDK, no UI rendering, no framework dependency. ~15 lines of code.
+**For Agent Developers** — Handle HTTP 202 responses. Forward the review URL to your user via any channel (CLI, Telegram, Slack, WhatsApp) — or render native messaging buttons for simple decisions (Telegram, Slack, Discord, WhatsApp, Teams). Poll for the structured result. No SDK, no UI rendering, no framework dependency. ~15 lines of code.
 
 **For Humans** — Instead of typing "option 2" in a chat, you get a real web page: cards to browse, forms to fill, buttons to click, artifacts to review. Your decision is structured, validated, and auditable.
 
@@ -63,6 +63,24 @@ sequenceDiagram
     A->>H: "Applied to 2 selected jobs ✓"
 ```
 
+For simple decisions (confirm/cancel, approve/reject), agents can render **native messaging buttons** directly in the chat — no browser switch needed:
+
+```mermaid
+sequenceDiagram
+    actor H as Human
+    participant A as Agent (Telegram Bot)
+    participant S as Service
+
+    H->>A: "Send my application emails"
+    A->>S: POST /api/send
+    S-->>A: HTTP 202 + hitl (incl. submit_url)
+    A->>H: Native buttons: [Confirm] [Cancel] [Details →]
+    H->>A: Taps [Confirm]
+    A->>S: POST {submit_url} {action: "confirm"}
+    S-->>A: 200 OK {status: "completed"}
+    A->>H: "Confirmed — 3 emails sent ✓"
+```
+
 ## Quick Start
 
 ### For Service Implementors
@@ -74,7 +92,7 @@ Return HTTP 202 with a `hitl` object when human input is needed:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.5",
+    "spec_version": "0.6",
     "case_id": "review_abc123",
     "review_url": "https://yourservice.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.yourservice.com/v1/reviews/abc123/status",
@@ -98,10 +116,16 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # 1. Forward URL to human
-    send_to_user(f"{hitl['prompt']}\n{hitl['review_url']}")
+    # v0.6: Check for inline submit support
+    if "submit_url" in hitl and "submit_token" in hitl:
+        # Render native buttons in messaging platform (Telegram, Slack, Discord)
+        send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
+        # When human taps button → POST to submit_url (see Agent Integration Guide)
+    else:
+        # Standard flow: forward URL to human
+        send_to_user(f"{hitl['prompt']}\n{hitl['review_url']}")
 
-    # 2. Poll for result
+    # Poll for result (standard flow or fallback)
     while True:
         poll = httpx.get(hitl["poll_url"], headers=auth).json()
         if poll["status"] == "completed":
@@ -126,9 +150,9 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 | **Confirmation** | confirm, cancel | No | No | Irreversible action gate (send emails) |
 | **Escalation** | retry, skip, abort | No | No | Error recovery (deployment failed) |
 
-**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.5/hitl-protocol.md#103-input) for details.
+**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.6/hitl-protocol.md#103-input) for details.
 
-**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.5/hitl-protocol.md)).
+**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.6/hitl-protocol.md)).
 
 ## Three Transport Modes
 
@@ -139,6 +163,22 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 | **Callback** (optional) | Yes | Yes | Medium |
 
 Polling is the baseline. Every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
+
+## Channel-Native Inline Actions (v0.6)
+
+For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
+
+**How it works:** The service includes `submit_url` + `submit_token` in the HITL object. The agent detects these fields and renders platform-native buttons. When the human taps a button, the agent POSTs the action to `submit_url`.
+
+| Review type | Inline possible? | Reason |
+|-------------|:----------------:|--------|
+| **Confirmation** | Yes | 2 buttons: Confirm / Cancel |
+| **Escalation** | Yes | 3 buttons: Retry / Skip / Abort |
+| **Approval** (simple) | Yes | 2 buttons: Approve / Reject |
+| **Selection** | URL only | Needs list/cards UI |
+| **Input** | URL only | Needs form fields |
+
+Always include a URL fallback button (e.g. "Details →") linking to `review_url` — the human can always switch to the full review page. See [Agent Integration Guide](skills/references/agent-integration.md) for platform-specific rendering patterns (Telegram, Slack, Discord, WhatsApp, Teams).
 
 ## Protocol Standards Landscape
 
@@ -163,7 +203,7 @@ hitl-protocol/
 ├── CHANGELOG.md                       ← Version history
 ├── SECURITY.md                        ← Security reporting
 │
-├── spec/v0.5/
+├── spec/v0.6/
 │   └── hitl-protocol.md              ← Full specification (normative)
 │
 ├── schemas/
@@ -172,7 +212,7 @@ hitl-protocol/
 │   ├── form-field.schema.json        ← JSON Schema: Form field definitions
 │   └── openapi.yaml                  ← OpenAPI 3.1 spec (all endpoints)
 │
-├── examples/                          ← 8 end-to-end example flows
+├── examples/                          ← 12 end-to-end example flows
 │
 ├── templates/                         ← Review page HTML templates
 │   ├── approval.html                 ← Approval review page
@@ -229,6 +269,7 @@ The specification follows [Semantic Versioning](https://semver.org/). Breaking c
 
 | Version | Status | Date |
 |---------|--------|------|
+| 0.6 | Draft | 2026-02-23 |
 | 0.5 | Draft | 2026-02-22 |
 
 ## Contributing
@@ -256,13 +297,13 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Full Specification (v0.5)](spec/v0.5/hitl-protocol.md)
+- [Full Specification (v0.6)](spec/v0.6/hitl-protocol.md)
 - [Quick Start Guide](docs/quick-start.md) — Get started in 5 minutes
 - [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented
 - [JSON Schemas](schemas/) — HITL object, poll response, form field definitions
 - [Review Page Templates](templates/) — HTML templates for all 5 review types
 - [Reference Implementations](implementations/reference-service/) — Express, Hono, Next.js, FastAPI
-- [Examples](examples/) — 8 end-to-end flows including multi-step wizard
+- [Examples](examples/) — 12 end-to-end flows (incl. inline confirmation, escalation, hybrid approval)
 - [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
 - [Interactive Playground](playground/)
 - [Agent Implementation Checklist](agents/checklist.md)
