@@ -1,0 +1,62 @@
+{
+  "name": "@hitl-protocol/schemas",
+  "version": "0.6.0",
+  "description": "JSON Schemas, TypeScript types, and validators for the HITL Protocol",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./hitl-object.schema.json": "./schemas/hitl-object.schema.json",
+    "./poll-response.schema.json": "./schemas/poll-response.schema.json",
+    "./form-field.schema.json": "./schemas/form-field.schema.json",
+    "./submit-request.schema.json": "./schemas/submit-request.schema.json"
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "prebuild": "node scripts/copy-schemas.js",
+    "build": "tsup",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "hitl",
+    "hitl-protocol",
+    "human-in-the-loop",
+    "json-schema",
+    "agent",
+    "review",
+    "approval",
+    "workflow"
+  ],
+  "homepage": "https://github.com/rotorstar/hitl-protocol",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rotorstar/hitl-protocol.git",
+    "directory": "packages/schemas"
+  },
+  "bugs": {
+    "url": "https://github.com/rotorstar/hitl-protocol/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Torsten Heissler",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "ajv": "^8.17.0",
+    "ajv-formats": "^3.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

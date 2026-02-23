@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 dist/
 .DS_Store
+
+# Package build artifacts (schemas are copied from root schemas/ at build time)
+packages/schemas/schemas/
