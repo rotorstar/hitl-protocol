@@ -1,6 +1,6 @@
 ---
 name: hitl-protocol
-description: "HITL Protocol v0.5 — the open standard for human decisions in agent workflows. Learn how services return HTTP 202 with a review URL when human input is needed, how agents detect and handle HITL responses (forward URL, poll for result), and how humans make structured decisions via rich browser UI. Covers: approval, selection, input, confirmation, escalation review types. Three transport modes: polling, SSE, callbacks. Use when building HITL-compliant services or HITL-aware agents."
+description: "HITL Protocol — the open standard for human decisions in agent workflows. Learn how services return HTTP 202 with a review URL when human input is needed, how agents detect and handle HITL responses (forward URL, poll for result), and how humans make structured decisions via rich browser UI. Covers: approval, selection, input, confirmation, escalation review types. Three transport modes: polling, SSE, callbacks. Use when building HITL-compliant services or HITL-aware agents."
 license: Apache-2.0
 compatibility:
   - claude
