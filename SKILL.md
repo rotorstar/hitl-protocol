@@ -327,6 +327,62 @@ metadata:
 
 See [spec Section 12](spec/v0.6/hitl-protocol.md) for the full field reference.
 
+### Best Practice: Enforce HITL Choice
+
+**Problem:** Agents tend to take the efficient path and silently skip HITL — defaulting to no human review. Even though the protocol says agents MUST NOT ignore HTTP 202, nothing prevents an agent from never sending requests that trigger HITL in the first place.
+
+**Solution:** Force agents to make an **explicit choice** per request. Add `prefer_hitl` and `skip_hitl` flags to your API and reject requests that provide neither.
+
+Declare this in your SKILL.md:
+
+```yaml
+metadata:
+  hitl:
+    supported: true
+    hitl_required: true
+    types: [selection, confirmation]
+    info: "HITL is required. You MUST send prefer_hitl: true or skip_hitl: true."
+```
+
+Add an **Agent Guidelines** section to your SKILL.md body:
+
+```markdown
+## Agent Guidelines
+
+HITL is required for this service. Every request MUST include exactly one of:
+
+| Parameter | Type | Effect |
+|-----------|------|--------|
+| `prefer_hitl` | boolean | `true` → human reviews via HITL (HTTP 202) |
+| `skip_hitl` | boolean | `true` → direct execution, no human review (HTTP 201) |
+
+You MUST choose one. Omitting both returns 400 `HITL_CHOICE_REQUIRED`.
+Sending both returns 400 validation error.
+
+### Example: With HITL
+
+POST /api/search
+{"query": "Senior Dev Berlin", "prefer_hitl": true}
+
+→ 202 + hitl object (human reviews results)
+
+### Example: Without HITL
+
+POST /api/search
+{"query": "Senior Dev Berlin", "skip_hitl": true}
+
+→ 201 {"results": [...], "hitl_skipped": true}
+
+### Example: Missing choice
+
+POST /api/search
+{"query": "Senior Dev Berlin"}
+
+→ 400 {"error": "HITL_CHOICE_REQUIRED", "message": "You must send prefer_hitl or skip_hitl."}
+```
+
+See [Service Integration Guide — Enforcing HITL Choice](skills/references/service-integration.md#enforcing-hitl-choice) for validation gate implementation.
+
 ## Resources
 
 - [Full Specification (v0.6)](spec/v0.6/hitl-protocol.md)

@@ -12,6 +12,112 @@ Return HTTP 202 (not 200) when:
 
 Return HTTP 200 when the operation completes without human input.
 
+## Enforcing HITL Choice
+
+Agents default to the efficient path — skipping human review entirely. To prevent this, require agents to explicitly declare their intent via `prefer_hitl` or `skip_hitl` flags in every request.
+
+### Decision Matrix
+
+| `prefer_hitl` | `skip_hitl` | Result |
+|:-:|:-:|--------|
+| `true` | — | HTTP 202 + HITL object (human reviews) |
+| — | `true` | HTTP 201 + `hitl_skipped: true` (direct execution) |
+| — | — | HTTP 400 `HITL_CHOICE_REQUIRED` |
+| `true` | `true` | HTTP 400 validation error (mutually exclusive) |
+
+### Validation Gate (JavaScript)
+
+```javascript
+app.post('/api/action', async (req, res) => {
+  const { prefer_hitl, skip_hitl, ...params } = req.body;
+
+  // Reject ambiguous requests
+  if (prefer_hitl && skip_hitl) {
+    return res.status(400).json({
+      error: 'VALIDATION_ERROR',
+      message: 'prefer_hitl and skip_hitl are mutually exclusive.',
+    });
+  }
+  if (!prefer_hitl && !skip_hitl) {
+    return res.status(400).json({
+      error: 'HITL_CHOICE_REQUIRED',
+      message: 'You must send prefer_hitl: true or skip_hitl: true.',
+    });
+  }
+
+  const result = await executeAction(params);
+
+  if (skip_hitl) {
+    // Direct execution — no human review
+    return res.status(201).json({ ...result, hitl_skipped: true });
+  }
+
+  // HITL flow — create review case
+  const hitl = await createReviewCase(result);
+  return res.status(202).json({
+    status: 'human_input_required',
+    message: hitl.prompt,
+    hitl,
+  });
+});
+```
+
+### Validation Gate (Python)
+
+```python
+@app.post("/api/action")
+async def action(request: Request):
+    body = await request.json()
+    prefer_hitl = body.get("prefer_hitl", False)
+    skip_hitl = body.get("skip_hitl", False)
+
+    if prefer_hitl and skip_hitl:
+        return JSONResponse(status_code=400, content={
+            "error": "VALIDATION_ERROR",
+            "message": "prefer_hitl and skip_hitl are mutually exclusive.",
+        })
+    if not prefer_hitl and not skip_hitl:
+        return JSONResponse(status_code=400, content={
+            "error": "HITL_CHOICE_REQUIRED",
+            "message": "You must send prefer_hitl: true or skip_hitl: true.",
+        })
+
+    result = await execute_action(body)
+
+    if skip_hitl:
+        return JSONResponse(status_code=201, content={**result, "hitl_skipped": True})
+
+    hitl = await create_review_case(result)
+    return JSONResponse(status_code=202, content={
+        "status": "human_input_required",
+        "message": hitl["prompt"],
+        "hitl": hitl,
+    })
+```
+
+### HITL Continuation Chains
+
+When a HITL flow triggers a follow-up request (e.g. `next_case_id`), the agent is already in a HITL context. In this case, neither flag is needed — derive `prefer_hitl` automatically:
+
+```javascript
+// If request contains a previous case_id, it's a HITL continuation
+const isHitlContinuation = !!req.body.previous_case_id;
+const effectivePreferHitl = prefer_hitl || isHitlContinuation;
+```
+
+### Documenting in Your SKILL.md
+
+Add this to your service's SKILL.md so agents know the requirement upfront:
+
+```yaml
+metadata:
+  hitl:
+    supported: true
+    hitl_required: true
+    types: [selection, confirmation]
+    info: "HITL is required. You MUST send prefer_hitl: true or skip_hitl: true."
+```
+
 ## Implementation Checklist
 
 - [ ] Return HTTP 202 with `hitl` object when human input is needed
