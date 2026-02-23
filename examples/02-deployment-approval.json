@@ -1,0 +1,150 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: Deployment Approval with Signed Response",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A CI/CD pipeline service needs human approval to deploy application v2.1.0 to production. The service includes test results and deployment context. The human approves with feedback, and the response includes a CHEQ-style cryptographic signature for audit trail integrity.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Agent requests deployment of v2.1.0 to production via the CI/CD service API",
+      "request": {
+        "method": "POST",
+        "url": "https://api.deploypipe.example/v1/deployments",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_deploy_f7e8d9c0b1a2",
+          "X-Agent-Id": "openclaw-agent-9e2b"
+        },
+        "body": {
+          "application": "acme-web",
+          "version": "2.1.0",
+          "environment": "production",
+          "strategy": "rolling",
+          "source": {
+            "repository": "acme-corp/acme-web",
+            "branch": "main",
+            "commit_sha": "a3f8c2d1e5b7094f6a8c3d2e1b5a7094f6a8c3d2"
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Service returns HTTP 202 requiring human approval. Includes test results, staging metrics, and deployment risk assessment in context.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "60"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Deployment of acme-web v2.1.0 to production requires approval.",
+          "data": {
+            "deployment_id": "deploy_2026022215001",
+            "application": "acme-web",
+            "version": "2.1.0",
+            "environment": "production",
+            "current_version": "2.0.3"
+          },
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_deploy_f7e8d9c0b1",
+            "review_url": "https://deploypipe.example/review/deploy_f7e8d9c0b1?token=M9nP2qR4sT6uV8wX0yZ1aB3cD5eF7gH9iJ1kL3m",
+            "poll_url": "https://api.deploypipe.example/v1/reviews/deploy_f7e8d9c0b1/status",
+            "callback_url": null,
+            "type": "approval",
+            "prompt": "Approve deployment of acme-web v2.1.0 to production",
+            "timeout": "4h",
+            "default_action": "reject",
+            "created_at": "2026-02-22T15:00:00Z",
+            "expires_at": "2026-02-22T19:00:00Z",
+            "reminder_at": "2026-02-22T17:00:00Z",
+            "context": {
+              "application": "acme-web",
+              "version": "2.1.0",
+              "current_production_version": "2.0.3",
+              "environment": "production",
+              "deploy_strategy": "rolling",
+              "commit_sha": "a3f8c2d",
+              "changelog_summary": "New workflow composition engine, 3 bug fixes, 2 performance improvements",
+              "test_results": {
+                "unit_tests": {"passed": 847, "failed": 0, "skipped": 3, "duration_seconds": 42},
+                "integration_tests": {"passed": 156, "failed": 0, "skipped": 1, "duration_seconds": 218},
+                "e2e_tests": {"passed": 89, "failed": 0, "skipped": 0, "duration_seconds": 384}
+              },
+              "staging_metrics": {
+                "deployed_at": "2026-02-22T12:30:00Z",
+                "uptime": "2h 30m",
+                "p50_latency_ms": 42,
+                "p99_latency_ms": 187,
+                "error_rate_percent": 0.02,
+                "memory_usage_mb": 412
+              },
+              "risk_assessment": {
+                "level": "medium",
+                "reasons": [
+                  "Database migration included (non-breaking, additive only)",
+                  "New external dependency: Stripe SDK v14"
+                ],
+                "rollback_time_estimate": "< 3 minutes"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Agent forwards the approval URL to the human via Slack",
+      "agent_action": {
+        "channel": "slack",
+        "message": "Deployment approval required: acme-web v2.1.0 -> production\n\nAll tests passing (847 unit, 156 integration, 89 e2e). Staging healthy for 2.5h. Risk: medium (DB migration + new Stripe SDK).\n\nReview and approve: https://deploypipe.example/review/deploy_f7e8d9c0b1?token=M9nP2qR4sT6uV8wX0yZ1aB3cD5eF7gH9iJ1kL3m"
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent polls and receives 'completed' — human approved with feedback. Response includes a CHEQ-style cryptographic signature.",
+      "request": {
+        "method": "GET",
+        "url": "https://api.deploypipe.example/v1/reviews/deploy_f7e8d9c0b1/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_deploy_f7e8d9c0b1a2"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_deploy_f7e8d9c0b1",
+          "created_at": "2026-02-22T15:00:00Z",
+          "opened_at": "2026-02-22T15:12:33Z",
+          "expires_at": "2026-02-22T19:00:00Z",
+          "completed_at": "2026-02-22T15:18:47Z",
+          "result": {
+            "action": "approve",
+            "data": {
+              "feedback": "Looks good. All tests green and staging metrics are healthy. Please monitor error rate closely for the first 15 minutes after deploy.",
+              "conditions": [
+                "Monitor error rate for 15 minutes post-deploy",
+                "Auto-rollback if error rate exceeds 1%"
+              ]
+            },
+            "signature": {
+              "algorithm": "RS256",
+              "value": "dGhpcyBpcyBhIHNpbXVsYXRlZCBSUzI1NiBzaWduYXR1cmUgb2YgdGhlIGFwcHJvdmFsIHJlc3BvbnNlIGZvciBkZXBsb3ltZW50IGRlcGxveV9mN2U4ZDljMGIxIGFwcHJvdmVkIGJ5IHRvcnN0ZW4uaGVpc3NsZXJAc2tpbGxmb3JnZS5haQ",
+              "signed_at": "2026-02-22T15:18:47Z",
+              "signer": "https://deploypipe.example/.well-known/jwks.json"
+            }
+          },
+          "responded_by": {
+            "name": "Torsten Heissler",
+            "email": "ops-lead@company.example"
+          }
+        }
+      }
+    }
+  ]
+}

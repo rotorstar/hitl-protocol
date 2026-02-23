@@ -1,0 +1,143 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: Escalation After Deployment Failure",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A deployment to production failed after the rolling update timed out at 60% of pods. The CI/CD service escalates to a human for a decision: retry with modified parameters, skip this deployment, or abort the release entirely. The human decides to retry with a canary strategy instead of rolling, and increases the timeout.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "The deployment was previously approved (case review_deploy_f7e8d9c0b1 from example 02). During execution, the rolling update stalled. The service creates an escalation case automatically.",
+      "trigger": {
+        "event": "deployment_failure",
+        "deployment_id": "deploy_2026022215001",
+        "original_approval_case_id": "review_deploy_f7e8d9c0b1",
+        "failure_details": {
+          "phase": "rolling_update",
+          "progress": "12/20 pods updated (60%)",
+          "error": "Health check timeout: 8 of 12 new pods failed readiness probe within 120s",
+          "duration_seconds": 347,
+          "logs_url": "https://deploypipe.example/logs/deploy_2026022215001"
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Service sends the agent an escalation notification with the hitl object",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Deployment of acme-web v2.1.0 to production failed. Human decision required.",
+          "data": {
+            "deployment_id": "deploy_2026022215001",
+            "application": "acme-web",
+            "version": "2.1.0",
+            "environment": "production",
+            "failure_summary": "Rolling update stalled at 60% — readiness probe failures on new pods"
+          },
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_escalate_h2i3j4k5",
+            "review_url": "https://deploypipe.example/review/escalate_h2i3j4k5?token=T7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9qR1s",
+            "poll_url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/status",
+            "callback_url": null,
+            "type": "escalation",
+            "prompt": "Deployment failed: acme-web v2.1.0 rolling update stalled at 60%. Choose: retry, skip, or abort.",
+            "timeout": "1h",
+            "default_action": "abort",
+            "created_at": "2026-02-22T15:30:00Z",
+            "expires_at": "2026-02-22T16:30:00Z",
+            "previous_case_id": "review_deploy_f7e8d9c0b1",
+            "context": {
+              "deployment_id": "deploy_2026022215001",
+              "application": "acme-web",
+              "version": "2.1.0",
+              "environment": "production",
+              "current_state": {
+                "old_pods": 8,
+                "new_pods_healthy": 4,
+                "new_pods_failing": 8,
+                "total_desired": 20
+              },
+              "error": {
+                "type": "readiness_probe_timeout",
+                "message": "8 of 12 new pods failed readiness probe within 120s",
+                "probable_cause": "Database migration running slower than expected on production data volume",
+                "suggested_actions": [
+                  "Retry with canary strategy (1 pod first, then gradual rollout)",
+                  "Increase readiness probe timeout from 120s to 300s",
+                  "Abort and rollback to v2.0.3"
+                ]
+              },
+              "rollback_status": "automatic_rollback_completed",
+              "current_production_version": "2.0.3",
+              "logs_url": "https://deploypipe.example/logs/deploy_2026022215001",
+              "metrics_url": "https://deploypipe.example/metrics/deploy_2026022215001",
+              "retry_options": {
+                "strategies": ["rolling", "canary", "blue_green"],
+                "timeout_range": {"min": 120, "max": 600, "unit": "seconds"},
+                "max_retries_remaining": 2
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Agent sends urgent escalation to the human via Slack with error context",
+      "agent_action": {
+        "channel": "slack",
+        "priority": "urgent",
+        "message": "DEPLOYMENT FAILED: acme-web v2.1.0\n\nRolling update stalled at 60% — 8 new pods failed readiness probes (likely slow DB migration).\nAutomatic rollback to v2.0.3 completed. Production is stable.\n\nPlease decide: retry with different strategy, or abort release.\nReview: https://deploypipe.example/review/escalate_h2i3j4k5?token=T7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9qR1s\n\nExpires in 1 hour. Default action if no response: abort."
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent polls and receives 'completed' — human chose to retry with modified deployment parameters",
+      "request": {
+        "method": "GET",
+        "url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_deploy_h2i3j4k5l6m7"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_escalate_h2i3j4k5",
+          "created_at": "2026-02-22T15:30:00Z",
+          "opened_at": "2026-02-22T15:32:04Z",
+          "expires_at": "2026-02-22T16:30:00Z",
+          "completed_at": "2026-02-22T15:38:22Z",
+          "result": {
+            "action": "retry",
+            "data": {
+              "decision": "retry_with_modifications",
+              "modified_params": {
+                "strategy": "canary",
+                "canary_percentage": 5,
+                "canary_duration_minutes": 10,
+                "readiness_probe_timeout_seconds": 300,
+                "rollback_on_error": true
+              },
+              "reason": "DB migration likely needs more time on prod data volume. Canary with 1 pod first (5% of 20) will confirm if the extended timeout resolves the readiness probe issue before full rollout.",
+              "notify_on_completion": true
+            }
+          },
+          "responded_by": {
+            "name": "Torsten Heissler",
+            "email": "ops-lead@company.example"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: .well-known/hitl.json Discovery Endpoint",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "Example response from GET https://api.jobboard.example/.well-known/hitl.json — the discovery endpoint that agents and services use to determine HITL Protocol capabilities of a service.",
+  "endpoint": {
+    "method": "GET",
+    "url": "https://api.jobboard.example/.well-known/hitl.json"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=86400"
+    },
+    "body": {
+      "hitl_protocol": {
+        "spec_version": "0.5",
+        "service": {
+          "name": "JobBoard Pro",
+          "description": "AI-powered job search and application platform with HITL-enabled review flows for job selection, application review, and offer negotiation.",
+          "url": "https://jobboard.example",
+          "logo_url": "https://jobboard.example/assets/logo-256.png",
+          "contact": "hitl-support@jobboard.example"
+        },
+        "capabilities": {
+          "review_types": ["selection", "approval", "input", "confirmation"],
+          "transports": ["polling", "sse"],
+          "max_timeout": "P7D",
+          "default_timeout": "PT24H",
+          "supports_reminders": true,
+          "supports_multi_round": true,
+          "supports_signatures": false,
+          "supports_surface": true,
+          "surface_formats": ["json-render"]
+        },
+        "endpoints": {
+          "reviews_base": "https://api.jobboard.example/v1/reviews",
+          "review_page_base": "https://jobboard.example/review",
+          "events_base": "https://api.jobboard.example/v1/reviews/events",
+          "well_known": "https://api.jobboard.example/.well-known/hitl.json"
+        },
+        "authentication": {
+          "type": "bearer",
+          "token_url": "https://api.jobboard.example/v1/auth/token",
+          "scopes": ["reviews:read", "reviews:create"],
+          "documentation": "https://docs.jobboard.example/auth"
+        },
+        "rate_limits": {
+          "poll_min_interval_seconds": 10,
+          "poll_recommended_interval_seconds": 30,
+          "max_active_cases_per_agent": 50,
+          "max_requests_per_minute": 120
+        },
+        "policies": {
+          "data_retention_days": 90,
+          "expired_case_retention_days": 30,
+          "privacy_policy": "https://jobboard.example/privacy",
+          "terms_of_service": "https://jobboard.example/terms"
+        },
+        "examples": {
+          "documentation": "https://docs.jobboard.example/hitl",
+          "openapi": "https://api.jobboard.example/.well-known/openapi.json"
+        }
+      }
+    }
+  }
+}

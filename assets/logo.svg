@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="100%" height="100%">
+  <style>
+    .bracket { fill: none; stroke: #0B1121; stroke-width: 16; stroke-linecap: round; stroke-linejoin: round; }
+    .node { fill: #FF5C00; }
+    .text-bold { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-weight: 800; font-size: 64px; fill: #0B1121; letter-spacing: -0.03em; }
+    .text-light { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-weight: 300; font-size: 64px; fill: #64748B; letter-spacing: -0.01em; }
+    @media (prefers-color-scheme: dark) {
+      .bracket { stroke: #F8FAFC; }
+      .text-bold { fill: #F8FAFC; }
+      .text-light { fill: #94A3B8; }
+    }
+  </style>
+
+  <!-- Left Bracket (Agent) -->
+  <path class="bracket" d="M 54 40 L 30 40 L 30 160 L 54 160" />
+  
+  <!-- Right Bracket (Service) -->
+  <path class="bracket" d="M 146 40 L 170 40 L 170 160 L 146 160" />
+  
+  <!-- Center Node (Human) -->
+  <circle class="node" cx="100" cy="100" r="24" />
+
+  <!-- Typography -->
+  <text x="220" y="122">
+    <tspan class="text-bold">HITL</tspan>
+    <tspan class="text-light"> Protocol</tspan>
+  </text>
+</svg>

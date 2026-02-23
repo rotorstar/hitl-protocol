@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.5/poll-response.json",
+  "title": "HITL Poll Response",
+  "description": "Response from the poll endpoint, as defined by HITL Protocol v0.5",
+  "type": "object",
+  "required": [
+    "status",
+    "case_id"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "opened",
+        "in_progress",
+        "completed",
+        "expired",
+        "cancelled"
+      ],
+      "description": "Current status of the review case."
+    },
+    "case_id": {
+      "type": "string",
+      "description": "The review case identifier."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the case was created."
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the human first opened the review URL."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the case will expire."
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the human submitted their response."
+    },
+    "expired_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the case expired."
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the human cancelled."
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "action"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "description": "The action taken by the human (e.g., approve, reject, select, submit, confirm, cancel, retry, skip, abort)."
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Structured data from the review. Content depends on the review type."
+        },
+        "signature": {
+          "type": "object",
+          "properties": {
+            "algorithm": {
+              "type": "string",
+              "description": "Signing algorithm (e.g., RS256)."
+            },
+            "value": {
+              "type": "string",
+              "description": "Base64url-encoded signature."
+            },
+            "signed_at": {
+              "type": "string",
+              "format": "date-time",
+              "description": "When the signature was created."
+            },
+            "signer": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to the signer's JWKS endpoint."
+            }
+          },
+          "description": "Optional cryptographic signature for response integrity (CHEQ-inspired)."
+        }
+      },
+      "description": "The human's response. Present only when status is 'completed'."
+    },
+    "responded_by": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name of the respondent."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified email of the respondent."
+        }
+      },
+      "description": "Optional identity of the person who submitted the response."
+    },
+    "reminder_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last reminder was sent."
+    },
+    "next_case_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "If a follow-up case was created, links to the next case in the chain."
+    },
+    "default_action": {
+      "type": "string",
+      "description": "The default action declared when the case was created. Present when status is 'expired'."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable reason for cancellation. Present when status is 'cancelled'."
+    }
+  }
+}

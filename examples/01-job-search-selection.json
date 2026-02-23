@@ -1,0 +1,207 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: Job Search Selection",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A job board API returns 5 matching positions for a search query. The agent forwards the review URL to the human, who opens it in a browser and selects 2 positions to apply for. The agent polls until the result is available.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Agent sends a job search request to the job board service",
+      "request": {
+        "method": "POST",
+        "url": "https://api.jobboard.example/v1/search",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_jobboard_a1b2c3d4e5f6",
+          "X-Agent-Id": "openclaw-agent-7f3a"
+        },
+        "body": {
+          "query": "Senior Frontend Engineer",
+          "location": "Berlin, Germany",
+          "remote": true,
+          "salary_min": 85000,
+          "currency": "EUR",
+          "experience_years": 5
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Service returns HTTP 202 with 5 matching jobs and a hitl object for human selection",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "5 matching positions found. Please select which ones to apply for.",
+          "data": {
+            "total_matches": 5,
+            "jobs": [
+              {
+                "id": "job_9f1a2b3c",
+                "title": "Senior Frontend Engineer",
+                "company": "TechFlow GmbH",
+                "location": "Berlin, Germany (Hybrid)",
+                "salary_range": "85,000 - 105,000 EUR",
+                "posted_at": "2026-02-18T09:00:00Z",
+                "match_score": 0.94
+              },
+              {
+                "id": "job_4d5e6f7g",
+                "title": "Staff Frontend Developer",
+                "company": "Klarna",
+                "location": "Berlin, Germany (Remote)",
+                "salary_range": "95,000 - 120,000 EUR",
+                "posted_at": "2026-02-15T14:30:00Z",
+                "match_score": 0.91
+              },
+              {
+                "id": "job_8h9i0j1k",
+                "title": "Senior React Engineer",
+                "company": "Zalando SE",
+                "location": "Berlin, Germany (Hybrid)",
+                "salary_range": "90,000 - 110,000 EUR",
+                "posted_at": "2026-02-20T08:15:00Z",
+                "match_score": 0.89
+              },
+              {
+                "id": "job_2l3m4n5o",
+                "title": "Frontend Tech Lead",
+                "company": "N26",
+                "location": "Berlin, Germany (On-site)",
+                "salary_range": "100,000 - 130,000 EUR",
+                "posted_at": "2026-02-19T11:45:00Z",
+                "match_score": 0.85
+              },
+              {
+                "id": "job_6p7q8r9s",
+                "title": "Senior UI Engineer",
+                "company": "SoundCloud",
+                "location": "Berlin, Germany (Remote)",
+                "salary_range": "80,000 - 100,000 EUR",
+                "posted_at": "2026-02-21T16:00:00Z",
+                "match_score": 0.82
+              }
+            ]
+          },
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_jbs_a1b2c3d4e5",
+            "review_url": "https://jobboard.example/review/jbs_a1b2c3d4e5?token=K7xR2mN4pQ8sT1vW3xY5zA9bC2dE4fG6hI8jK0l",
+            "poll_url": "https://api.jobboard.example/v1/reviews/jbs_a1b2c3d4e5/status",
+            "callback_url": null,
+            "type": "selection",
+            "prompt": "Select which jobs to apply for (5 matches found in Berlin)",
+            "timeout": "24h",
+            "default_action": "skip",
+            "created_at": "2026-02-22T10:00:00Z",
+            "expires_at": "2026-02-23T10:00:00Z",
+            "context": {
+              "search_query": "Senior Frontend Engineer",
+              "location": "Berlin, Germany",
+              "total_matches": 5,
+              "min_salary": 85000,
+              "currency": "EUR"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Agent forwards the review URL to the human via their communication channel",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Found 5 matching positions in Berlin for Senior Frontend Engineer. Please review and select which ones to apply for:\n\nhttps://jobboard.example/review/jbs_a1b2c3d4e5?token=K7xR2mN4pQ8sT1vW3xY5zA9bC2dE4fG6hI8jK0l"
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent polls the status endpoint. First poll returns 'pending' (human has not opened the link yet)",
+      "request": {
+        "method": "GET",
+        "url": "https://api.jobboard.example/v1/reviews/jbs_a1b2c3d4e5/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_jobboard_a1b2c3d4e5f6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "pending",
+          "case_id": "review_jbs_a1b2c3d4e5",
+          "created_at": "2026-02-22T10:00:00Z",
+          "expires_at": "2026-02-23T10:00:00Z"
+        }
+      }
+    },
+    {
+      "step": 5,
+      "description": "Second poll returns 'opened' (human has opened the review page but not yet submitted)",
+      "request": {
+        "method": "GET",
+        "url": "https://api.jobboard.example/v1/reviews/jbs_a1b2c3d4e5/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_jobboard_a1b2c3d4e5f6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "15"
+        },
+        "body": {
+          "status": "opened",
+          "case_id": "review_jbs_a1b2c3d4e5",
+          "created_at": "2026-02-22T10:00:00Z",
+          "opened_at": "2026-02-22T10:03:42Z",
+          "expires_at": "2026-02-23T10:00:00Z"
+        }
+      }
+    },
+    {
+      "step": 6,
+      "description": "Third poll returns 'completed' — human selected 2 of the 5 jobs",
+      "request": {
+        "method": "GET",
+        "url": "https://api.jobboard.example/v1/reviews/jbs_a1b2c3d4e5/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_jobboard_a1b2c3d4e5f6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_jbs_a1b2c3d4e5",
+          "created_at": "2026-02-22T10:00:00Z",
+          "opened_at": "2026-02-22T10:03:42Z",
+          "expires_at": "2026-02-23T10:00:00Z",
+          "completed_at": "2026-02-22T10:05:18Z",
+          "result": {
+            "action": "select",
+            "data": {
+              "selected_ids": ["job_4d5e6f7g", "job_8h9i0j1k"],
+              "selected_count": 2,
+              "total_options": 5
+            }
+          },
+          "responded_by": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          }
+        }
+      }
+    }
+  ]
+}

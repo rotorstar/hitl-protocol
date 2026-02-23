@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.5/hitl-object.json",
+  "title": "HITL Object",
+  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.5",
+  "type": "object",
+  "required": [
+    "spec_version",
+    "case_id",
+    "review_url",
+    "poll_url",
+    "type",
+    "prompt",
+    "created_at",
+    "expires_at"
+  ],
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "const": "0.5",
+      "description": "Protocol version. MUST be '0.5' for this spec."
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "Unique, URL-safe identifier for this review case. RECOMMENDED format: review_{random}"
+    },
+    "review_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Fully qualified HTTPS URL to the review page. MUST include an opaque bearer token for authentication."
+    },
+    "poll_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Fully qualified URL to the status polling endpoint."
+    },
+    "callback_url": {
+      "oneOf": [
+        { "type": "string", "format": "uri" },
+        { "type": "null" }
+      ],
+      "description": "If the agent provided a callback URL in the original request, it is echoed here. Otherwise null."
+    },
+    "events_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Optional SSE endpoint for real-time status events."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "approval",
+        "selection",
+        "input",
+        "confirmation",
+        "escalation"
+      ],
+      "description": "Review type category. One of the five standard types."
+    },
+    "prompt": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Short description of what the human needs to decide."
+    },
+    "timeout": {
+      "type": "string",
+      "description": "Duration the review stays open. ISO 8601 duration (PT24H, P7D) or shorthand (24h, 7d). Default: 24h."
+    },
+    "default_action": {
+      "type": "string",
+      "enum": [
+        "skip",
+        "approve",
+        "reject",
+        "abort"
+      ],
+      "description": "Action taken if the review expires without a response."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the review case was created."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the review case expires."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Arbitrary key-value pairs providing additional context about the review. Not processed by the agent — for human consumption on the review page."
+    },
+    "reminder_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      ],
+      "description": "When reminder(s) should be sent. Single timestamp or array of timestamps."
+    },
+    "previous_case_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "description": "Links to a prior case in a multi-round review chain."
+    },
+    "surface": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "string",
+          "description": "UI format identifier (e.g., json-render, a2ui, adaptive-cards)"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the UI format"
+        }
+      },
+      "description": "Optional declaration of the review page UI format."
+    }
+  },
+  "additionalProperties": false
+}

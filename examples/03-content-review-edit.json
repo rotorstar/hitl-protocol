@@ -1,0 +1,228 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: Multi-Round Content Review with Edits",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "An agent drafts a cover letter for a job application. The content review service presents the draft to the human. In round 1, the human requests edits (tone too formal, add specific project mention). The agent revises and resubmits. In round 2, the human approves the revised version. The two rounds are linked via previous_case_id.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Round 1: Agent submits the initial cover letter draft for human review",
+      "request": {
+        "method": "POST",
+        "url": "https://api.contentreview.example/v1/reviews",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_content_x8y9z0a1b2c3",
+          "X-Agent-Id": "openclaw-agent-4c1d"
+        },
+        "body": {
+          "content_type": "cover_letter",
+          "format": "markdown",
+          "content": "# Cover Letter\n\nDear Hiring Manager,\n\nI am writing to express my interest in the Senior Frontend Engineer position at Klarna. With over six years of experience in frontend development, I have honed my skills in building scalable, performant web applications using React, TypeScript, and modern tooling.\n\nIn my current role, I have led the development of several key features that improved user engagement by 35%. I am particularly drawn to Klarna's mission of making payments smoother and more accessible.\n\nI would welcome the opportunity to discuss how my experience can contribute to your team's success.\n\nSincerely,\nAlex Mueller",
+          "metadata": {
+            "target_company": "Klarna",
+            "target_role": "Senior Frontend Engineer",
+            "applicant_name": "Alex Mueller"
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Round 1: Service returns HTTP 202 with hitl object for content approval",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Cover letter draft ready for review.",
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_content_r1_x8y9z0",
+            "review_url": "https://contentreview.example/review/content_r1_x8y9z0?token=P3qR5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7o",
+            "poll_url": "https://api.contentreview.example/v1/reviews/content_r1_x8y9z0/status",
+            "callback_url": null,
+            "type": "approval",
+            "prompt": "Review cover letter draft for Klarna Senior Frontend Engineer application",
+            "timeout": "48h",
+            "default_action": "skip",
+            "created_at": "2026-02-22T09:00:00Z",
+            "expires_at": "2026-02-24T09:00:00Z",
+            "context": {
+              "content_type": "cover_letter",
+              "target_company": "Klarna",
+              "target_role": "Senior Frontend Engineer",
+              "word_count": 112,
+              "review_round": 1
+            },
+            "surface": {
+              "format": "json-render",
+              "version": "1.0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Round 1: Agent polls and receives 'completed' — human requested edits with specific feedback",
+      "request": {
+        "method": "GET",
+        "url": "https://api.contentreview.example/v1/reviews/content_r1_x8y9z0/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_content_x8y9z0a1b2c3"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_content_r1_x8y9z0",
+          "created_at": "2026-02-22T09:00:00Z",
+          "opened_at": "2026-02-22T09:15:22Z",
+          "expires_at": "2026-02-24T09:00:00Z",
+          "completed_at": "2026-02-22T09:22:08Z",
+          "result": {
+            "action": "edit",
+            "data": {
+              "decision": "needs_revision",
+              "edit_instructions": [
+                "Tone is too formal and generic — make it more conversational and authentic",
+                "Mention the workflow orchestration platform project specifically as relevant experience",
+                "Add a concrete metric about performance optimization work",
+                "Remove the generic closing — replace with something specific about Klarna's tech stack"
+              ],
+              "inline_annotations": [
+                {
+                  "line": "I am writing to express my interest",
+                  "comment": "This opening is overused. Start with something that shows you researched Klarna."
+                },
+                {
+                  "line": "improved user engagement by 35%",
+                  "comment": "Good metric, but tie it to a specific project name."
+                }
+              ]
+            }
+          },
+          "responded_by": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          },
+          "next_case_id": "review_content_r2_a1b2c3"
+        }
+      }
+    },
+    {
+      "step": 4,
+      "description": "Round 2: Agent revises the cover letter based on feedback and resubmits for review",
+      "request": {
+        "method": "POST",
+        "url": "https://api.contentreview.example/v1/reviews",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_content_x8y9z0a1b2c3",
+          "X-Agent-Id": "openclaw-agent-4c1d"
+        },
+        "body": {
+          "content_type": "cover_letter",
+          "format": "markdown",
+          "previous_case_id": "review_content_r1_x8y9z0",
+          "content": "# Cover Letter\n\nHi Klarna Engineering team,\n\nKlarna's recent move to a micro-frontend architecture caught my attention — it mirrors the approach I took building a workflow orchestration platform, where I designed a segment-based execution system handling 15 node types with deterministic and agentic segments.\n\nOver the past six years, I've focused on building React/TypeScript applications that perform at scale. At my current role, I led the frontend optimization of our real-time dashboard, reducing initial load time by 62% and cutting bundle size from 2.4MB to 890KB — which drove a 35% increase in daily active usage.\n\nI'm particularly excited about Klarna's frontend platform team and the challenges of building payment UIs that work seamlessly across 45 markets. My experience with internationalization, accessibility, and performance optimization in high-traffic applications aligns well with that mission.\n\nI'd love to chat about how I can contribute to your frontend platform.\n\nBest,\nAlex Mueller",
+          "metadata": {
+            "target_company": "Klarna",
+            "target_role": "Senior Frontend Engineer",
+            "applicant_name": "Alex Mueller",
+            "revision_notes": "Addressed all 4 edit requests: conversational tone, platform mention, concrete metrics, Klarna-specific closing"
+          }
+        }
+      }
+    },
+    {
+      "step": 5,
+      "description": "Round 2: Service returns HTTP 202 with hitl object linking to the previous round via previous_case_id",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Revised cover letter ready for review (round 2).",
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_content_r2_a1b2c3",
+            "review_url": "https://contentreview.example/review/content_r2_a1b2c3?token=Q4rS6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ",
+            "poll_url": "https://api.contentreview.example/v1/reviews/content_r2_a1b2c3/status",
+            "callback_url": null,
+            "type": "approval",
+            "prompt": "Review revised cover letter (round 2) for Klarna application",
+            "timeout": "48h",
+            "default_action": "skip",
+            "created_at": "2026-02-22T09:35:00Z",
+            "expires_at": "2026-02-24T09:35:00Z",
+            "previous_case_id": "review_content_r1_x8y9z0",
+            "context": {
+              "content_type": "cover_letter",
+              "target_company": "Klarna",
+              "target_role": "Senior Frontend Engineer",
+              "word_count": 178,
+              "review_round": 2,
+              "changes_from_round_1": [
+                "Conversational tone replacing formal language",
+                "Added workflow orchestration platform as concrete experience",
+                "Added specific performance metrics (62% load time, bundle size reduction)",
+                "Klarna-specific closing referencing frontend platform team and 45 markets"
+              ]
+            },
+            "surface": {
+              "format": "json-render",
+              "version": "1.0"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 6,
+      "description": "Round 2: Agent polls and receives 'completed' — human approves the revised cover letter",
+      "request": {
+        "method": "GET",
+        "url": "https://api.contentreview.example/v1/reviews/content_r2_a1b2c3/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_content_x8y9z0a1b2c3"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_content_r2_a1b2c3",
+          "created_at": "2026-02-22T09:35:00Z",
+          "opened_at": "2026-02-22T09:36:15Z",
+          "expires_at": "2026-02-24T09:35:00Z",
+          "completed_at": "2026-02-22T09:38:42Z",
+          "result": {
+            "action": "approve",
+            "data": {
+              "decision": "approved",
+              "feedback": "Much better. The tone is authentic and the platform reference is strong. One minor tweak already applied: capitalized 'Hi' to 'Dear' — Klarna is German, slightly more formal is fine. Ready to send."
+            }
+          },
+          "responded_by": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          }
+        }
+      }
+    }
+  ]
+}

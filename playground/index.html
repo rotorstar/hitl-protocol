@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HITL Protocol — Interactive Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f8fafc;--bg3:#f1f5f9;
+  --surface:#f8fafc;--surface-elevated:#ffffff;--surface-glass:rgba(255,255,255,0.7);
+  --accent:#f97316;--accent2:#ea580c;--accent-bg:rgba(249,115,22,0.08);--accent-glow:rgba(249,115,22,0.25);
+  --text:#0f172a;--text2:#1e293b;--muted:#64748b;--dim:#94a3b8;
+  --green:#059669;--green-bg:rgba(5,150,105,0.08);--green-glow:rgba(5,150,105,0.2);
+  --red:#dc2626;--red-bg:rgba(220,38,38,0.08);--red-glow:rgba(220,38,38,0.15);
+  --blue:#2563eb;--blue-bg:rgba(37,99,235,0.08);--blue-glow:rgba(37,99,235,0.15);
+  --yellow:#ca8a04;--yellow-bg:rgba(202,138,4,0.08);--yellow-glow:rgba(202,138,4,0.15);
+  --purple:#7c3aed;--purple-bg:rgba(124,58,237,0.08);--purple-glow:rgba(124,58,237,0.15);
+  --card:rgba(255,255,255,0.7);
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.04);
+  --shadow-lg:0 4px 12px rgba(0,0,0,0.1),0 8px 32px rgba(0,0,0,0.06);
+  --shadow-accent:0 8px 32px rgba(249,115,22,0.12);
+  --shadow-glow:0 0 40px rgba(249,115,22,0.08);
+  --radius-sm:8px;--radius:16px;--radius-lg:24px;
+  --glass:blur(20px);
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.7;overflow-x:hidden;font-size:15px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:'JetBrains Mono',monospace;font-size:13px;background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px}
+
+/* Subtle bg texture */
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(249,115,22,0.04),transparent);pointer-events:none;z-index:0}
+
+/* Animations */
+@keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(249,115,22,0.1)}50%{box-shadow:0 0 40px rgba(249,115,22,0.18)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+
+/* Header */
+.header{text-align:center;padding:48px 24px 16px;position:relative;z-index:1;animation:fadeIn 0.6s ease}
+.header h1{font-size:clamp(32px,6vw,56px);font-weight:800;letter-spacing:-0.04em;line-height:1.1}
+.header h1 span{background:linear-gradient(135deg,var(--accent),#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header p{color:var(--muted);font-size:14px;margin-top:8px;max-width:600px;margin-inline:auto;letter-spacing:0.01em}
+
+/* Nav — pill style with glow */
+.nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;gap:6px;padding:10px 0}
+.nav button{background:none;border:1px solid transparent;color:var(--muted);padding:8px 18px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;transition:all .25s;white-space:nowrap;letter-spacing:0.01em}
+.nav button:hover{color:var(--text2);background:rgba(0,0,0,0.04)}
+.nav button.active{color:#fff;background:var(--accent);box-shadow:0 0 20px var(--accent-glow);border-color:transparent}
+.nav button svg{width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke-width:2}
+
+/* Sections */
+.section{display:none;max-width:1200px;margin:0 auto;padding:28px 16px 80px;position:relative;z-index:1}
+.section.active{display:block;animation:fadeIn 0.4s ease}
+h2{font-size:clamp(20px,3vw,32px);font-weight:700;margin-bottom:16px;letter-spacing:-0.02em;color:var(--text)}
+h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
+.subtitle{color:var(--muted);font-size:14px;margin-top:4px}
+
+/* Glass cards */
+.card{background:var(--card);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .3s ease;box-shadow:var(--shadow)}
+.card:hover{box-shadow:var(--shadow-lg);border-color:var(--border2);transform:translateY(-2px)}
+
+/* Animated cards */
+.anim-card{animation:slideIn 0.5s ease both}
+.anim-card:nth-child(1){animation-delay:0s}
+.anim-card:nth-child(2){animation-delay:0.1s}
+.anim-card:nth-child(3){animation-delay:0.2s}
+.anim-card:nth-child(4){animation-delay:0.3s}
+.anim-card:nth-child(5){animation-delay:0.4s}
+
+/* Grids */
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+@media(max-width:1024px){.grid-5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:768px){.grid-2,.grid-3,.grid-5{grid-template-columns:1fr}}
+
+/* Badges */
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase}
+.badge-orange{background:var(--accent-bg);color:var(--accent)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
+
+/* Playground grid */
+.pg-grid{display:grid;grid-template-columns:260px 1fr;gap:20px}
+@media(max-width:900px){.pg-grid{grid-template-columns:1fr}}
+
+/* Controls sidebar */
+.controls{background:var(--card);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);align-self:start;position:sticky;top:68px}
+.control-group{margin-bottom:16px}
+.control-group:last-child{margin-bottom:0}
+.control-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.control-label svg{width:14px;height:14px;opacity:0.5}
+.radio-group{display:flex;flex-direction:column;gap:2px}
+.radio-option{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;transition:all .15s;color:var(--text2)}
+.radio-option:hover{background:rgba(0,0,0,0.03)}
+.radio-option input{accent-color:var(--accent);margin:0;width:14px;height:14px}
+.check-option{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:13px;cursor:pointer;border-radius:var(--radius-sm);color:var(--text2)}
+.check-option:hover{background:rgba(0,0,0,0.03)}
+.check-option input{accent-color:var(--accent);margin:0;width:14px;height:14px}
+
+/* Step cards */
+.step-list{display:flex;flex-direction:column;gap:14px}
+.step-card{padding:16px 18px;border-radius:12px;border-left:4px solid var(--blue);background:var(--surface);font-size:14px;position:relative;transition:all .3s;border:1px solid var(--border);border-left-width:4px}
+.step-card.agent{border-left-color:var(--blue)}
+.step-card.service{border-left-color:var(--accent)}
+.step-card.human{border-left-color:var(--green)}
+.step-card.review{border-left-color:var(--purple)}
+.step-card.active{box-shadow:0 0 20px var(--accent-glow);background:var(--surface-elevated)}
+.step-title{font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:14px}
+.step-body{color:var(--muted);font-size:13px;line-height:1.6}
+
+/* JSON viewer — dark on darker */
+.json-block{position:relative;background:#1e293b;border:1px solid rgba(0,0,0,0.1);color:#e2e8f0;border-radius:12px;padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;overflow-x:auto;margin-top:8px;white-space:pre}
+.json-block .jk{color:#93c5fd}
+.json-block .js{color:#86efac}
+.json-block .jn{color:#fdba74}
+.json-block .jb{color:#c4b5fd}
+.json-block .jc{color:#64748b;font-style:italic}
+.json-block .jnull{color:#94a3b8}
+.copy-btn{position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;transition:all .25s;opacity:0.85;letter-spacing:0.02em;text-transform:uppercase}
+.copy-btn:hover{opacity:1;box-shadow:0 0 16px var(--accent-glow)}
+.copy-btn.copied{background:var(--green);box-shadow:0 0 16px var(--green-glow)}
+
+/* Lucide-style SVG icons (inline) */
+.icon{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.icon-sm{width:18px;height:18px}
+.icon-xs{width:14px;height:14px}
+
+/* State machine */
+.state-machine{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:20px 0;align-items:center}
+.sm-state{padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:2px solid;text-align:center;min-width:110px;cursor:default;transition:all .3s;letter-spacing:0.01em;font-family:'JetBrains Mono',monospace;font-size:12px}
+.sm-state.pending{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+.sm-state.opened{background:var(--yellow-bg);color:var(--yellow);border-color:var(--yellow)}
+.sm-state.in_progress{background:var(--purple-bg);color:var(--purple);border-color:var(--purple)}
+.sm-state.completed{background:var(--green-bg);color:var(--green);border-color:var(--green);border-width:3px;box-shadow:0 0 16px var(--green-glow)}
+.sm-state.expired{background:var(--red-bg);color:var(--red);border-color:var(--red);border-width:3px;box-shadow:0 0 16px var(--red-glow)}
+.sm-state.cancelled{background:var(--bg3);color:var(--dim);border-color:var(--dim);border-width:3px}
+.sm-arrow{color:var(--dim);font-size:20px;padding:0 2px}
+
+/* Transport cards */
+.transport-card{text-align:center;padding:20px}
+.transport-card .t-icon{margin-bottom:10px;display:flex;justify-content:center}
+.transport-card .t-icon svg{width:32px;height:32px}
+.transport-card .t-name{font-weight:800;font-size:16px;margin-bottom:8px;letter-spacing:-0.01em}
+.transport-card .t-desc{font-size:12px;color:var(--muted);line-height:1.6}
+.transport-card:hover{border-color:var(--border2)}
+
+/* Review type cards */
+.rt-card{padding:16px;cursor:default;text-align:center}
+.rt-icon{margin-bottom:8px;display:flex;justify-content:center}
+.rt-icon svg{width:28px;height:28px}
+.rt-name{font-weight:800;font-size:14px;margin-bottom:6px;letter-spacing:-0.01em}
+.rt-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* Heatmap */
+.heatmap{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin:16px 0}
+.heatmap th,.heatmap td{padding:10px 12px;text-align:center;border:1px solid var(--border)}
+.heatmap th{background:var(--bg3);color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.04em}
+.heatmap thead th:first-child{border-radius:var(--radius-sm) 0 0 0}
+.heatmap thead th:last-child{border-radius:0 var(--radius-sm) 0 0}
+.heatmap td.yes{background:var(--green-bg);color:var(--green);font-weight:700}
+.heatmap td.partial{background:var(--yellow-bg);color:var(--yellow);font-weight:600}
+.heatmap td.no{background:var(--bg3);color:var(--dim)}
+.heatmap td:first-child{text-align:left;font-weight:700;background:var(--card);color:var(--text2)}
+
+/* Case chain */
+.chain{display:flex;align-items:center;gap:0;overflow-x:auto;padding:16px 0}
+.chain-case{flex-shrink:0;width:190px;padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--surface);text-align:center;font-size:12px;position:relative;transition:all .3s}
+.chain-case.edit{border-color:var(--yellow);box-shadow:0 2px 12px var(--yellow-glow)}
+.chain-case.approve{border-color:var(--green);box-shadow:0 2px 12px var(--green-glow)}
+.chain-case .cc-id{font-weight:600;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+.chain-case .cc-action{font-weight:800;font-size:14px}
+.chain-case .cc-action.edit{color:var(--yellow)}
+.chain-case .cc-action.approve{color:var(--green)}
+.chain-arrow{flex-shrink:0;display:flex;flex-direction:column;align-items:center;width:90px;font-size:9px;color:var(--dim);line-height:1.3;font-family:'JetBrains Mono',monospace}
+.chain-arrow .arr{font-size:18px;color:var(--muted)}
+
+/* SSE events */
+.sse-timeline{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.sse-event{display:flex;align-items:center;gap:10px;font-size:12px;font-family:'JetBrains Mono',monospace;padding:6px 10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border)}
+.sse-event .se-type{font-weight:700;min-width:140px}
+.sse-event .se-time{color:var(--dim);min-width:70px;font-size:11px}
+.sse-event.opened .se-type{color:var(--yellow)}
+.sse-event.in_progress .se-type{color:var(--purple)}
+.sse-event.reminder .se-type{color:var(--accent)}
+.sse-event.completed .se-type{color:var(--green)}
+
+/* Delivery mockup */
+.delivery-mock{background:#1e293b;border:1px solid rgba(0,0,0,0.1);border-radius:12px;padding:16px 18px;color:#e2e8f0;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.7;margin-top:8px}
+.delivery-mock .dm-prompt{color:#86efac}
+.delivery-mock .dm-url{color:#93c5fd;text-decoration:underline}
+.delivery-mock .dm-meta{color:#64748b}
+
+/* Hero card */
+.hero-card{text-align:center;padding:36px 28px;margin-bottom:28px;background:linear-gradient(135deg,rgba(249,115,22,0.06),rgba(37,99,235,0.04));border:1px solid rgba(249,115,22,0.15);border-radius:var(--radius-lg);animation:glow 4s ease-in-out infinite;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 40%,rgba(249,115,22,0.04),transparent 60%);pointer-events:none}
+
+/* Callout cards */
+.callout{padding:16px 18px;border-radius:12px;border-left:4px solid;position:relative}
+.callout-green{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.callout-blue{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.callout-accent{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+.callout-purple{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+
+/* Reminder timeline bar */
+.reminder-bar{display:flex;align-items:center;gap:0;margin:12px 0;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;height:32px;border:1px solid var(--border)}
+.reminder-bar .rb-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:0.02em}
+
+/* Spacers */
+.sp-sm{height:12px}.sp-md{height:20px}.sp-lg{height:32px}
+
+/* Details styling */
+details{margin-bottom:14px}
+details summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);transition:all .2s;color:var(--text2);list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:'';display:inline-block;width:0;height:0;border-left:6px solid var(--muted);border-top:4px solid transparent;border-bottom:4px solid transparent;margin-right:10px;transition:transform .2s}
+details[open] summary::before{transform:rotate(90deg)}
+details[open] summary{background:var(--bg2);border-color:var(--border2)}
+
+/* Audit callout */
+.audit-card{background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(37,99,235,0.04));border:1px solid rgba(124,58,237,0.2);border-radius:var(--radius);padding:20px;margin-top:16px}
+.audit-card .audit-title{font-weight:800;font-size:15px;color:var(--purple);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.audit-card .audit-body{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* Verify signature button */
+.verify-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--purple),#8b5cf6);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;transition:all .25s;box-shadow:0 4px 16px var(--purple-glow);font-family:'Inter',sans-serif;letter-spacing:0.01em}
+.verify-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--purple-glow)}
+.verify-btn svg{width:16px;height:16px}
+
+/* Responsive */
+@media(max-width:768px){
+  .pg-grid{grid-template-columns:1fr}
+  .controls{position:static}
+  .state-machine{flex-direction:column;align-items:center}
+  .chain{flex-direction:column;align-items:stretch}
+  .chain-arrow{width:auto;flex-direction:row;gap:8px;padding:4px 0}
+  .header{padding:32px 16px 12px}
+}
+
+/* Decision Table (ADL tab) */
+.dtable{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;margin:8px 0}
+.dtable th,.dtable td{padding:6px 10px;border:1px solid var(--border);text-align:left}
+.dtable th{background:var(--bg3);color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.04em}
+.dtable tr.fired{background:var(--accent-bg);border-left:3px solid var(--accent)}
+.dtable tr.fired td{color:var(--accent);font-weight:600}
+.dtable tr.skipped{opacity:0.5}
+
+/* Audit log (ADL tab) */
+.audit-log{display:flex;flex-direction:column;gap:4px;font-family:'JetBrains Mono',monospace;font-size:11px}
+.audit-entry{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:4px;background:var(--bg3);border:1px solid var(--border)}
+.audit-entry .ae-time{color:var(--dim);min-width:60px;font-size:10px}
+.audit-entry .ae-code{font-weight:700;min-width:70px;color:var(--purple)}
+.audit-entry .ae-msg{color:var(--text2)}
+
+/* State mapping table (WDL/ADL tabs) */
+.state-map{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
+.state-map td{padding:8px 12px;border:1px solid var(--border)}
+.state-map tr:first-child td{background:var(--bg3);font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.04em}
+.state-map .hitl-state{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue)}
+.state-map .adl-state{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>HITL Protocol <span>Interactive Playground</span></h1>
+  <p>Human-in-the-Loop Protocol for Autonomous Agent Services &mdash; v0.5</p>
+</div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="active" onclick="switchTab(0)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/></svg>Protocol</button>
+    <button onclick="switchTab(1)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Job Search</button>
+    <button onclick="switchTab(2)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>Deploy</button>
+    <button onclick="switchTab(3)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg>Content</button>
+    <button onclick="switchTab(4)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Agent Deal</button>
+    <button onclick="switchTab(5)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Compare</button>
+  </div>
+</nav>
+
+<!-- TAB 0: Protocol Overview -->
+<div class="section active" id="tab-0">
+  <div class="hero-card">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700">The Core Idea</div>
+    <div style="font-size:clamp(18px,3vw,26px);font-weight:800;letter-spacing:-0.02em;color:var(--text)">"HITL Protocol is to human decisions what OAuth is to authentication"</div>
+    <div class="sp-md"></div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-sm);background:var(--blue-bg);border:1px solid rgba(37,99,235,0.2)">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+        <span style="font-weight:700;color:var(--blue);font-size:14px">Agent</span>
+      </div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-sm);background:var(--accent-bg);border:1px solid rgba(249,115,22,0.2)">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        <span style="font-weight:700;color:var(--accent);font-size:14px">Service</span>
+      </div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--dim)" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-sm);background:var(--green-bg);border:1px solid rgba(5,150,105,0.2)">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span style="font-weight:700;color:var(--green);font-size:14px">Human</span>
+      </div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-top:14px">Service returns HTTP 202 &rarr; Agent forwards URL &rarr; Human decides in browser &rarr; Agent polls result</div>
+  </div>
+
+  <h2>Case Lifecycle</h2>
+  <div class="card" style="margin-bottom:28px">
+    <div class="state-machine">
+      <div class="sm-state pending">pending</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state opened">opened</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state in_progress">in_progress</div>
+      <div class="sm-arrow">&rarr;</div>
+      <div class="sm-state completed">completed</div>
+    </div>
+    <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:10px">
+      <div style="font-size:12px;color:var(--dim)">Also: pending/opened &rarr; <span class="badge badge-red" style="font-size:10px">expired</span></div>
+      <div style="font-size:12px;color:var(--dim)">Also: any non-terminal &rarr; <span style="color:var(--dim);font-weight:600;background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:10px">cancelled</span></div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">
+      <strong style="color:var(--text2)">opened</strong> and <strong style="color:var(--text2)">in_progress</strong> are optional intermediate states. Terminal states have glow borders.
+    </div>
+  </div>
+
+  <h2>HITL Object Anatomy</h2>
+  <div style="position:relative;margin-bottom:28px">
+    <div class="json-block" id="hitl-anatomy"></div>
+    <button class="copy-btn" onclick="copyJson('hitl-anatomy')">Copy</button>
+  </div>
+
+  <h2>Transport Options</h2>
+  <div class="grid-3" style="margin-bottom:28px">
+    <div class="card transport-card anim-card">
+      <div class="t-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
+      <div class="t-name">Polling</div>
+      <div class="badge badge-green" style="margin-bottom:10px">Default</div>
+      <div class="t-desc">Agent calls <code>GET poll_url</code> every 30s-5min. Stateless. No server needed on agent side. Works everywhere.</div>
+    </div>
+    <div class="card transport-card anim-card">
+      <div class="t-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+      <div class="t-name">SSE</div>
+      <div class="badge badge-blue" style="margin-bottom:10px">Real-time</div>
+      <div class="t-desc">Agent opens persistent connection to <code>events_url</code>. Server pushes status updates instantly. No public endpoint needed.</div>
+    </div>
+    <div class="card transport-card anim-card">
+      <div class="t-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+      <div class="t-name">Callback</div>
+      <div class="badge badge-purple" style="margin-bottom:10px">Webhook</div>
+      <div class="t-desc">Service POSTs result to <code>callback_url</code>. Requires agent to expose a public endpoint. Signed via <code>X-HITL-Signature: sha256=&lt;hmac&gt;</code> header.</div>
+    </div>
+  </div>
+
+  <h2>5 Review Types</h2>
+  <div class="grid-5" style="margin-bottom:28px">
+    <div class="card rt-card anim-card">
+      <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+      <div class="rt-name">Approval</div>
+      <div class="rt-desc">Go/no-go on an artifact. CV draft, deployment plan, email.</div>
+      <div style="margin-top:8px"><span class="badge badge-green">approve ✓</span> <span class="badge badge-yellow">edit ↩</span> <span class="badge badge-red">reject ✗</span></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">edit creates new round (<code style="font-size:10px">previous_case_id</code> chain)</div>
+    </div>
+    <div class="card rt-card anim-card">
+      <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div class="rt-name">Selection</div>
+      <div class="rt-desc">Choose one or more from options. Job listings, configs, templates.</div>
+      <div style="margin-top:8px"><span class="badge badge-blue">select</span></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Returns selected option IDs. Often followed by confirmation.</div>
+    </div>
+    <div class="card rt-card anim-card">
+      <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></div>
+      <div class="rt-name">Input</div>
+      <div class="rt-desc">Structured data entry. Salary, dates, addresses, preferences.</div>
+      <div style="margin-top:8px"><span class="badge badge-blue">submit</span></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Returns typed form data (text, number, date, boolean)</div>
+    </div>
+    <div class="card rt-card anim-card">
+      <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="rt-name">Confirmation</div>
+      <div class="rt-desc">Irreversible action check. Send emails, deploy, delete data.</div>
+      <div style="margin-top:8px"><span class="badge badge-green">confirm ✓</span> <span class="badge badge-red">cancel ✗</span></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">One-shot. No edit loop. Irreversible action gate.</div>
+    </div>
+    <div class="card rt-card anim-card">
+      <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>
+      <div class="rt-name">Escalation</div>
+      <div class="rt-desc">Something failed. Retry, skip, abort, or provide new params.</div>
+      <div style="margin-top:8px"><span class="badge badge-blue">retry</span> <span class="badge badge-blue">skip</span> <span class="badge badge-red">abort ✗</span> <span class="badge badge-yellow">edit ↩</span></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">Error recovery. Human provides fix strategy.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 1: Job Search -->
+<div class="section" id="tab-1">
+  <h2>Use Case 1: Job Search <span class="badge badge-orange">Selection + Confirmation</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">OpenClaw agent finds jobs for a user. Two HITL rounds: select jobs, then confirm applications.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Delivery Mode</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc1-delivery" value="telegram" checked onchange="renderUC1()"> Telegram</label>
+          <label class="radio-option"><input type="radio" name="uc1-delivery" value="desktop" onchange="renderUC1()"> Desktop Direct</label>
+          <label class="radio-option"><input type="radio" name="uc1-delivery" value="qr" onchange="renderUC1()"> Terminal QR</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Transport</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc1-transport" value="poll" checked onchange="renderUC1()"> Polling</label>
+          <label class="radio-option"><input type="radio" name="uc1-transport" value="sse" onchange="renderUC1()"> SSE</label>
+          <label class="radio-option"><input type="radio" name="uc1-transport" value="callback" onchange="renderUC1()"> Callback</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Options</div>
+        <label class="check-option"><input type="checkbox" id="uc1-reminders" onchange="renderUC1()"> Show reminders</label>
+        <label class="check-option"><input type="checkbox" id="uc1-wdl" onchange="renderUC1()"> WDL Integration</label>
+      </div>
+      <div class="control-group" id="uc1-wdl-controls" style="display:none">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/></svg>WDL Negotiation</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc1-wdl-type" value="salary" checked onchange="renderUC1()"> Salary</label>
+          <label class="radio-option"><input type="radio" name="uc1-wdl-type" value="visa" onchange="renderUC1()"> Visa Info</label>
+          <label class="radio-option"><input type="radio" name="uc1-wdl-type" value="assessment" onchange="renderUC1()"> Assessment</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Scenario</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc1-scenario" value="happy" checked onchange="renderUC1()"> Happy path</label>
+          <label class="radio-option"><input type="radio" name="uc1-scenario" value="expired" onchange="renderUC1()"> Timeout</label>
+          <label class="radio-option"><input type="radio" name="uc1-scenario" value="cancel" onchange="renderUC1()"> Cancel</label>
+        </div>
+      </div>
+    </div>
+    <div id="uc1-main"></div>
+  </div>
+</div>
+
+<!-- TAB 2: Deploy -->
+<div class="section" id="tab-2">
+  <h2>Use Case 2: Deployment Approval <span class="badge badge-purple">Approval</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">Claude Code (CLI agent) builds v2.1.0. CI/CD service needs human sign-off before production deploy.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Reviewer Decision</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc2-decision" value="approve" checked onchange="renderUC2()"> Approve</label>
+          <label class="radio-option"><input type="radio" name="uc2-decision" value="reject" onchange="renderUC2()"> Reject</label>
+          <label class="radio-option"><input type="radio" name="uc2-decision" value="changes" onchange="renderUC2()"> Request Changes</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Options</div>
+        <label class="check-option"><input type="checkbox" id="uc2-signed" checked onchange="renderUC2()"> Signed response</label>
+        <label class="check-option"><input type="checkbox" id="uc2-timeout" onchange="renderUC2()"> Timeout scenario</label>
+        <label class="check-option"><input type="checkbox" id="uc2-audit" checked onchange="renderUC2()"> Audit trail</label>
+      </div>
+    </div>
+    <div id="uc2-main"></div>
+  </div>
+</div>
+
+<!-- TAB 3: Content -->
+<div class="section" id="tab-3">
+  <h2>Use Case 3: Content Review <span class="badge badge-yellow">Multi-Round Edit Cycle</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">CMS agent drafts a blog post. Editor reviews, requests changes, agent revises. Chain of linked review cases.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Review Rounds</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc3-rounds" value="1" onchange="renderUC3()"> 1 (approve)</label>
+          <label class="radio-option"><input type="radio" name="uc3-rounds" value="2" checked onchange="renderUC3()"> 2 (edit + approve)</label>
+          <label class="radio-option"><input type="radio" name="uc3-rounds" value="3" onchange="renderUC3()"> 3 (edit + edit + approve)</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Channel</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc3-channel" value="slack" checked onchange="renderUC3()"> Slack</label>
+          <label class="radio-option"><input type="radio" name="uc3-channel" value="email" onchange="renderUC3()"> Email</label>
+          <label class="radio-option"><input type="radio" name="uc3-channel" value="whatsapp" onchange="renderUC3()"> WhatsApp</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Options</div>
+        <label class="check-option"><input type="checkbox" id="uc3-sse" onchange="renderUC3()"> Show SSE events</label>
+        <label class="check-option"><input type="checkbox" id="uc3-reminders" checked onchange="renderUC3()"> Show reminders</label>
+      </div>
+    </div>
+    <div id="uc3-main"></div>
+  </div>
+</div>
+
+<!-- TAB 4: Agent Deal (ADL + HITL) -->
+<div class="section" id="tab-4">
+  <h2>Use Case 4: Agent Deal <span class="badge badge-blue">ADL + HITL</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">DevOps agent negotiates infrastructure budget via ADL. Platform policy triggers human approval via HITL bridge.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>ADL Category</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc4-category" value="comp" checked onchange="renderUC4()"> Compensation (cost)</label>
+          <label class="radio-option"><input type="radio" name="uc4-category" value="data" onchange="renderUC4()"> Data Access</label>
+          <label class="radio-option"><input type="radio" name="uc4-category" value="sla" onchange="renderUC4()"> SLA</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Human Decision</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc4-decision" value="approve" checked onchange="renderUC4()"> Approve</label>
+          <label class="radio-option"><input type="radio" name="uc4-decision" value="counter" onchange="renderUC4()"> Counter-offer</label>
+          <label class="radio-option"><input type="radio" name="uc4-decision" value="reject" onchange="renderUC4()"> Reject</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Transport</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc4-transport" value="poll" checked onchange="renderUC4()"> Polling</label>
+          <label class="radio-option"><input type="radio" name="uc4-transport" value="sse" onchange="renderUC4()"> SSE</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Options</div>
+        <label class="check-option"><input type="checkbox" id="uc4-dtable" onchange="renderUC4()"> Show Decision Table</label>
+        <label class="check-option"><input type="checkbox" id="uc4-audit" checked onchange="renderUC4()"> Show Audit Trail</label>
+        <label class="check-option"><input type="checkbox" id="uc4-signed" onchange="renderUC4()"> Signed Response</label>
+      </div>
+    </div>
+    <div id="uc4-main"></div>
+  </div>
+</div>
+
+<!-- TAB 5: Compare -->
+<div class="section" id="tab-5">
+  <h2>Comparison Matrix</h2>
+  <p class="subtitle" style="margin-bottom:16px">How HITL Protocol compares to existing standards for human interaction in agent workflows.</p>
+
+  <div class="card" style="overflow-x:auto;margin-bottom:28px;padding:0;border-radius:var(--radius)">
+    <table class="heatmap">
+      <thead>
+        <tr>
+          <th style="text-align:left;min-width:160px">Feature</th>
+          <th style="min-width:60px">HITL</th>
+          <th style="min-width:60px">AG-UI</th>
+          <th style="min-width:60px">A2UI</th>
+          <th style="min-width:80px">Adaptive Cards</th>
+          <th style="min-width:70px">MCP Elicit</th>
+          <th style="min-width:80px">Slack Blocks</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>URL-based delivery</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td></tr>
+        <tr><td>Async (hours/days)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+        <tr><td>Rich forms</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="no">No</td><td class="partial">Partial</td></tr>
+        <tr><td>No platform lock-in</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="no">No</td></tr>
+        <tr><td>Open standard</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td></tr>
+        <tr><td>CLI agent support</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="yes">Yes</td><td class="no">No</td></tr>
+        <tr><td>Mobile support</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="partial">Partial</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="yes">Yes</td></tr>
+        <tr><td>Crypto signing</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+        <tr><td>Real-time updates</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Multi-round chains</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+        <tr><td>Delegation + audit</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What HITL Borrows</h2>
+  <div class="grid-2" style="margin-bottom:28px">
+    <div class="card anim-card" style="border-left:4px solid var(--green)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        <span style="font-weight:800;font-size:15px;color:var(--text)">json-render</span>
+      </div>
+      <div class="badge badge-green" style="margin-bottom:10px">Recommended UI</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">39 shadcn components, catalog-constrained (no XSS), state binding + actions, AI-generatable JSON specs. The default review surface format.</div>
+    </div>
+    <div class="card anim-card" style="border-left:4px solid var(--blue)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span style="font-weight:800;font-size:15px;color:var(--text)">AG-UI (CopilotKit)</span>
+      </div>
+      <div class="badge badge-blue" style="margin-bottom:10px">SSE Streaming</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Server-Sent Events as transport option. Real-time status updates without requiring a public agent endpoint. Adapted from AG-UI's event architecture.</div>
+    </div>
+    <div class="card anim-card" style="border-left:4px solid var(--purple)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span style="font-weight:800;font-size:15px;color:var(--text)">CHEQ (IETF)</span>
+      </div>
+      <div class="badge badge-purple" style="margin-bottom:10px">Response Signing</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Cryptographic proof that the human actually made the decision. RS256 signed responses for high-stakes financial/legal/compliance workflows.</div>
+    </div>
+    <div class="card anim-card" style="border-left:4px solid var(--accent)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span style="font-weight:800;font-size:15px;color:var(--text)">Adaptive Cards</span>
+      </div>
+      <div class="badge badge-orange" style="margin-bottom:10px">Input Patterns</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">6 years of proven input type semantics (text, number, date, toggle, choice). Mature patterns for structured data entry in agent workflows.</div>
+    </div>
+  </div>
+
+  <h2>Key Distinction</h2>
+  <div class="card" style="text-align:center;padding:28px">
+    <div class="grid-3" style="gap:28px">
+      <div>
+        <div style="font-weight:800;color:var(--blue);margin-bottom:6px;font-size:15px">AG-UI</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Agent embedded in YOUR app (React/Angular). Real-time streaming within a frontend you control.</div>
+      </div>
+      <div>
+        <div style="font-weight:800;color:var(--purple);margin-bottom:6px;font-size:15px">MCP Elicitation</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Simple prompts inline in AI client. Text, number, boolean. Synchronous, blocks the tool.</div>
+      </div>
+      <div>
+        <div style="font-weight:800;color:var(--accent);margin-bottom:6px;font-size:15px">HITL Protocol</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Agent has NO app. Runs in terminal/Telegram. Gets human decisions from EXTERNAL services via URL.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Tab switching ---
+function switchTab(n) {
+  document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === n));
+  document.querySelectorAll('.nav button').forEach((b, i) => b.classList.toggle('active', i === n));
+  if (n === 1) renderUC1();
+  if (n === 2) renderUC2();
+  if (n === 3) renderUC3();
+  if (n === 4) renderUC4();
+}
+
+// --- JSON syntax highlighting ---
+function hl(obj, indent = 0) {
+  const sp = '  '.repeat(indent);
+  if (obj === null) return '<span class="jnull">null</span>';
+  if (typeof obj === 'boolean') return `<span class="jb">${obj}</span>`;
+  if (typeof obj === 'number') return `<span class="jn">${obj}</span>`;
+  if (typeof obj === 'string') return `<span class="js">"${escHtml(obj)}"</span>`;
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]';
+    const items = obj.map(v => sp + '  ' + hl(v, indent + 1));
+    return '[\n' + items.join(',\n') + '\n' + sp + ']';
+  }
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return '{}';
+  const lines = keys.map(k => {
+    const val = obj[k];
+    if (k.startsWith('//')) return sp + '  ' + `<span class="jc">// ${escHtml(val)}</span>`;
+    return sp + '  ' + `<span class="jk">"${escHtml(k)}"</span>: ${hl(val, indent + 1)}`;
+  });
+  return '{\n' + lines.join(',\n') + '\n' + sp + '}';
+}
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// --- Copy to clipboard ---
+function copyJson(id) {
+  const el = document.getElementById(id);
+  const text = el.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = el.parentElement.querySelector('.copy-btn');
+    if (btn) { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500); }
+  });
+}
+
+// --- Utility ---
+function getRadio(name) { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : ''; }
+function getCheck(id) { const c = document.getElementById(id); return c ? c.checked : false; }
+
+// --- HITL Object Anatomy ---
+document.getElementById('hitl-anatomy').innerHTML = hl({
+  "spec_version": "0.5",
+  "case_id": "review_abc123def456",
+  "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
+  "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
+  "events_url": "https://api.service.example.com/v1/reviews/abc123/events",
+  "callback_url": null,
+  "type": "selection",
+  "prompt": "Select which jobs to apply for",
+  "timeout": "24h",
+  "reminder_at": ["2026-02-20T18:00:00Z", "2026-02-20T22:00:00Z"],
+  "previous_case_id": null,
+  "default_action": "skip",
+  "created_at": "2026-02-20T10:00:00Z",
+  "expires_at": "2026-02-21T10:00:00Z",
+  "context": { "total_options": 5, "query": "Senior Dev Berlin" }
+});
+
+// ========== UC1: Job Search ==========
+function renderUC1() {
+  const delivery = getRadio('uc1-delivery');
+  const transport = getRadio('uc1-transport');
+  const reminders = getCheck('uc1-reminders');
+  const scenario = getRadio('uc1-scenario');
+  const wdl = getCheck('uc1-wdl');
+  const wdlType = getRadio('uc1-wdl-type') || 'salary';
+  const isHappy = scenario === 'happy';
+  const isExpired = scenario === 'expired';
+
+  // Show/hide WDL negotiation sub-controls
+  const wdlControls = document.getElementById('uc1-wdl-controls');
+  if (wdlControls) wdlControls.style.display = wdl ? 'block' : 'none';
+
+  const hitlObj = {
+    spec_version: "0.5",
+    case_id: "review_job_sel_7f3a9b",
+    review_url: "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
+    poll_url: "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
+    ...(transport === 'sse' ? { events_url: "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/events" } : {}),
+    type: "selection",
+    prompt: "5 matching Senior Dev positions found. Select which to apply for.",
+    timeout: "24h",
+    ...(reminders ? { reminder_at: "2026-02-20T22:00:00Z" } : {}),
+    default_action: "skip",
+    created_at: "2026-02-20T10:00:00Z",
+    expires_at: "2026-02-21T10:00:00Z",
+    context: { total_results: 5, query: "Senior Full-Stack Developer, Berlin, Remote" }
+  };
+
+  let deliveryHtml = '';
+  if (delivery === 'telegram') {
+    deliveryHtml = `<div class="delivery-mock"><span class="dm-meta">Telegram Bot &rarr; User Chat</span>\n\n<span class="dm-prompt">I found 5 matching Senior Dev positions in Berlin.</span>\nPlease select which ones you'd like to apply for:\n\n<span class="dm-url">https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...</span>\n\n<span class="dm-meta">Expires in 24 hours</span></div>`;
+  } else if (delivery === 'desktop') {
+    deliveryHtml = `<div class="delivery-mock"><span class="dm-meta">$ agent-cli</span>\n\nFound 5 matching positions. Opening review page...\n<span class="dm-prompt">$ xdg-open "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC..."</span>\n\n<span class="dm-meta">Browser opened. Waiting for your selection...</span></div>`;
+  } else {
+    deliveryHtml = `<div class="delivery-mock"><span class="dm-meta">$ agent-cli (SSH session)</span>\n\nFound 5 matching positions. Scan QR to review:\n\n<span class="dm-prompt">  ██████████████  ████  ██\n  ██          ██  ████  ██\n  ██  ██████  ██    ██  ██\n  ██  ██████  ██  ██    ██\n  ██  ██████  ██  ██  ████\n  ██          ██  ██  ████\n  ██████████████  ██  ████</span>\n\n<span class="dm-meta">Scan with phone camera. Expires in 24h.</span></div>`;
+  }
+
+  // Reminder timeline bar
+  let reminderBarHtml = '';
+  if (reminders) {
+    reminderBarHtml = `<div style="margin-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.06em">Reminder Timeline</div>
+      <div class="reminder-bar">
+        <div class="rb-seg" style="flex:12;background:var(--blue-bg);color:var(--blue)">0-12h: waiting</div>
+        <div class="rb-seg" style="flex:1;background:var(--accent);color:#fff">reminder</div>
+        <div class="rb-seg" style="flex:11;background:var(--yellow-bg);color:var(--yellow)">12-24h: nudged</div>
+        <div class="rb-seg" style="flex:1;background:var(--red);color:#fff">expire</div>
+      </div>
+    </div>`;
+  }
+
+  let resultHtml = '';
+  if (isHappy) {
+    const pollResult = {
+      status: "completed",
+      case_id: "review_job_sel_7f3a9b",
+      completed_at: "2026-02-20T10:12:00Z",
+      result: { action: "select", data: { selected: ["job-tc-senior-fs", "job-dx-platform"], note: "Only fully remote" } },
+      responded_by: { name: "Alex M.", email: "alex@example.com" }
+    };
+
+    if (transport === 'poll') {
+      resultHtml = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Poll #1: <span class="badge badge-blue" style="font-size:10px">pending</span> &rarr; Poll #4: <span class="badge badge-yellow" style="font-size:10px">opened</span> &rarr; Poll #7: <span class="badge badge-green" style="font-size:10px">completed</span></div>`;
+      resultHtml += `<div class="json-block" id="uc1-result">${hl(pollResult)}</div><button class="copy-btn" onclick="copyJson('uc1-result')">Copy</button>`;
+    } else if (transport === 'sse') {
+      resultHtml = `<div class="sse-timeline">
+        <div class="sse-event opened"><span class="se-time">+3min</span><span class="se-type">review.opened</span> Human opened the review URL</div>
+        <div class="sse-event in_progress"><span class="se-time">+5min</span><span class="se-type">review.in_progress</span> Human is interacting</div>
+        ${reminders ? '<div class="sse-event reminder"><span class="se-time">+12h</span><span class="se-type">review.reminder</span> "Review expires in 12 hours"</div>' : ''}
+        <div class="sse-event completed"><span class="se-time">+12min</span><span class="se-type">review.completed</span> Human submitted response</div>
+      </div>`;
+      resultHtml += `<div class="json-block" id="uc1-result" style="margin-top:8px">${hl(pollResult)}</div><button class="copy-btn" onclick="copyJson('uc1-result')">Copy</button>`;
+    } else {
+      const cbPayload = { method: "POST", url: "https://agent.example.com/webhooks/hitl", headers: { "Content-Type": "application/json", "X-HITL-Signature": "sha256=a3f2b8c91d4e..." }, body: { event: "review.completed", ...pollResult } };
+      resultHtml = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Service POSTs to agent's <code>callback_url</code> with <code style="color:var(--purple)">X-HITL-Signature</code> HMAC-SHA256 header:</div>`;
+      resultHtml += `<div class="json-block" id="uc1-result">${hl(cbPayload)}</div><button class="copy-btn" onclick="copyJson('uc1-result')">Copy</button>`;
+    }
+  } else if (isExpired) {
+    resultHtml = `<div class="json-block" id="uc1-result">${hl({ status: "expired", case_id: "review_job_sel_7f3a9b", expired_at: "2026-02-21T10:00:00Z", default_action: "skip" })}</div><button class="copy-btn" onclick="copyJson('uc1-result')">Copy</button>`;
+    resultHtml += `<div style="font-size:12px;color:var(--red);margin-top:8px">Agent executes default_action: <strong>skip</strong> &mdash; moves to next task without applying.</div>`;
+  } else {
+    resultHtml = `<div class="json-block" id="uc1-result">${hl({ status: "cancelled", case_id: "review_job_sel_7f3a9b", cancelled_at: "2026-02-20T10:05:00Z", reason: "User clicked cancel" })}</div><button class="copy-btn" onclick="copyJson('uc1-result')">Copy</button>`;
+    resultHtml += `<div style="font-size:12px;color:var(--dim);margin-top:8px">Agent informs user: "Job selection cancelled. Let me know if you'd like to search again."</div>`;
+  }
+
+  const confirmHtml = isHappy ? `
+    <div class="step-card service">
+      <div class="step-title"><span class="badge badge-orange" style="font-size:10px">6</span> Confirmation Round</div>
+      <div class="step-body">Agent prepares applications for selected jobs &rarr; service returns another HTTP 202 (confirmation type).</div>
+      <div class="json-block" id="uc1-confirm">${hl({
+        hitl: {
+          case_id: "review_job_confirm_8d4e2c",
+          previous_case_id: "review_job_sel_7f3a9b",
+          type: "confirmation",
+          prompt: "About to send 2 applications. Confirm?",
+          timeout: "4h",
+          default_action: "abort"
+        }
+      })}</div>
+      <button class="copy-btn" onclick="copyJson('uc1-confirm')">Copy</button>
+      <div style="font-size:12px;color:var(--muted);margin-top:10px"><strong style="color:var(--accent)">previous_case_id</strong> links this confirmation to the selection, creating a review chain.</div>
+    </div>` : '';
+
+  // --- WDL Integration (conditional) ---
+  const wdlStatements = {
+    salary: { category: "Compensation", key: "compensation.base_salary", kind: "NEGOTIABLE", bridge_type: "human_escalation", escalation_urgency: "high", escalation_context: "Candidate countered \u20ac105k, budget max is \u20ac95k", external_review_protocol: "hitl", hitl_config: { review_type: "approval", timeout: "PT48H", requires_signed_response: true } },
+    visa: { category: "WorkCondition", key: "work.visa_status", kind: "NEGOTIABLE", bridge_type: "human_escalation", escalation_urgency: "medium", escalation_context: "Candidate requires work visa. Status unclear.", external_review_protocol: "hitl", hitl_config: { review_type: "input", timeout: "PT72H" } },
+    assessment: { category: "Aptitude", key: "aptitude.assessment_verification", kind: "MUST", bridge_type: "human_escalation", escalation_urgency: "medium", escalation_context: "Codility score 0.85, predictive validity 0.72. HR must confirm.", external_review_protocol: "hitl", hitl_config: { review_type: "confirmation", timeout: "PT24H" } }
+  };
+  const wdlStmt = wdlStatements[wdlType];
+
+  const wdlStep0Html = wdl ? `
+    <div class="step-card agent" style="border-left-color:var(--purple)">
+      <div class="step-title"><span class="badge badge-purple" style="font-size:10px">0</span> WDL Statement triggers HITL <span class="badge badge-purple" style="font-size:10px">${wdlStmt.category}</span></div>
+      <div class="step-body" style="margin-bottom:8px">WDL evaluation detects <strong>bridge_type: human_escalation</strong> with <code>external_review_protocol: "hitl"</code>. Platform creates HITL case instead of using native portal UI.</div>
+      <div class="json-block" id="uc1-wdl-stmt">${hl(wdlStmt)}</div>
+      <button class="copy-btn" onclick="copyJson('uc1-wdl-stmt')">Copy</button>
+    </div>` : '';
+
+  const wdlBoostHtml = wdl ? `
+    <div class="step-card service" style="border-left-color:var(--purple)">
+      <div class="step-title"><span class="badge badge-purple" style="font-size:10px">2b</span> WDL processes bridge</div>
+      <div class="step-body"><code>human_escalation</code> applies Coverage Boost of <strong style="color:var(--accent)">+0.75</strong>. Statement transitions to <span class="badge badge-yellow" style="font-size:10px">sent</span> state, awaiting HITL result.</div>
+      <div class="json-block" id="uc1-wdl-boost">${hl({ wdl_event: "bridge_evaluated", statement_key: wdlStmt.key, bridge_type: "human_escalation", coverage_boost: 0.75, statement_state: "sent", hitl_case_id: "review_job_sel_7f3a9b" })}</div>
+      <button class="copy-btn" onclick="copyJson('uc1-wdl-boost')">Copy</button>
+    </div>` : '';
+
+  const wdlFinalState = isHappy ? 'accepted' : 'declined';
+  const wdlStateUpdateHtml = wdl ? `
+    <div class="step-card service" style="border-left-color:var(--purple)">
+      <div class="step-title"><span class="badge badge-purple" style="font-size:10px">5b</span> WDL State Update</div>
+      <div class="step-body" style="margin-bottom:8px">HITL result maps to WDL outcome. Statement: <span class="badge badge-yellow" style="font-size:10px">sent</span> &rarr; <span class="badge badge-${isHappy ? 'green' : 'red'}" style="font-size:10px">${wdlFinalState}</span></div>
+      <div class="json-block" id="uc1-wdl-update">${hl({ wdl_event: "statement_resolved", statement_key: wdlStmt.key, hitl_action: isHappy ? "select" : isExpired ? "expired" : "cancel", wdl_outcome: isHappy ? "ACCEPT" : "DENY", statement_state: wdlFinalState })}</div>
+      <button class="copy-btn" onclick="copyJson('uc1-wdl-update')">Copy</button>
+    </div>` : '';
+
+  const wdlMappingHtml = wdl ? `
+    <div class="card" style="margin-top:16px;padding:16px">
+      <div style="font-weight:800;font-size:13px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/></svg>
+        WDL &harr; HITL State Mapping
+      </div>
+      <table class="state-map">
+        <tr><td>WDL Statement</td><td>HITL Case</td><td>Trigger</td></tr>
+        <tr><td style="font-weight:600">sent (with bridge)</td><td class="hitl-state">pending</td><td style="color:var(--muted);font-size:11px">bridge evaluated</td></tr>
+        <tr><td style="font-weight:600">&mdash;</td><td class="hitl-state">opened</td><td style="color:var(--muted);font-size:11px">reviewer opens URL</td></tr>
+        <tr><td style="font-weight:600">&mdash;</td><td class="hitl-state">in_progress</td><td style="color:var(--muted);font-size:11px">reviewer interacting</td></tr>
+        <tr><td style="font-weight:600;color:var(--green)">accepted</td><td class="hitl-state">completed (approve)</td><td style="color:var(--green);font-size:11px">&rarr; ACCEPT</td></tr>
+        <tr><td style="font-weight:600;color:var(--red)">declined</td><td class="hitl-state">completed (reject)</td><td style="color:var(--red);font-size:11px">&rarr; DENY</td></tr>
+        <tr><td style="font-weight:600;color:var(--red)">expired</td><td class="hitl-state">expired</td><td style="color:var(--red);font-size:11px">timeout</td></tr>
+      </table>
+    </div>` : '';
+
+  document.getElementById('uc1-main').innerHTML = `
+    <div class="step-list" style="padding-left:24px">
+      ${wdlStep0Html}
+      <div class="step-card agent">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">1</span> Agent calls API</div>
+        <div class="json-block" id="uc1-req">${hl({ method: "POST", url: "/v1/search", body: { query: "Senior Full-Stack Developer", location: "Berlin", remote: true, max_results: 10 } })}</div>
+        <button class="copy-btn" onclick="copyJson('uc1-req')">Copy</button>
+      </div>
+
+      <div class="step-card service">
+        <div class="step-title"><span class="badge badge-orange" style="font-size:10px">2</span> Service returns HTTP 202</div>
+        <div class="step-body">5 matching positions found. Human input required for selection.</div>
+        <div class="json-block" id="uc1-hitl">${hl({ status: "human_input_required", message: "Found 5 matching positions. Please select which ones to apply for.", hitl: hitlObj })}</div>
+        <button class="copy-btn" onclick="copyJson('uc1-hitl')">Copy</button>
+        ${reminderBarHtml}
+      </div>
+
+      ${wdlBoostHtml}
+
+      <div class="step-card human">
+        <div class="step-title"><span class="badge badge-green" style="font-size:10px">3</span> Agent delivers URL <span class="badge badge-${delivery === 'telegram' ? 'green' : delivery === 'desktop' ? 'blue' : 'purple'}" style="font-size:10px">${delivery}</span></div>
+        ${deliveryHtml}
+      </div>
+
+      <div class="step-card review">
+        <div class="step-title"><span class="badge badge-purple" style="font-size:10px">4</span> Human reviews</div>
+        <div class="step-body">Review page shows 5 job cards with company, title, salary range, requirements, remote policy. User checks desired jobs and adds a note.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <div style="padding:10px;border:1px solid rgba(5,150,105,0.25);border-radius:var(--radius-sm);font-size:12px;background:var(--green-bg)"><input type="checkbox" checked disabled style="accent-color:var(--green)"> <strong style="color:var(--text)">TechCorp</strong> — Senior FS Dev<br><span style="color:var(--muted)">75-95k, Berlin, Remote</span></div>
+          <div style="padding:10px;border:1px solid rgba(5,150,105,0.25);border-radius:var(--radius-sm);font-size:12px;background:var(--green-bg)"><input type="checkbox" checked disabled style="accent-color:var(--green)"> <strong style="color:var(--text)">DataSystems</strong> — Platform Eng<br><span style="color:var(--muted)">80-100k, Berlin, Hybrid</span></div>
+          <div style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);opacity:0.5"><input type="checkbox" disabled> <strong style="color:var(--text2)">StartupXY</strong> — Full-Stack<br><span style="color:var(--dim)">55-70k, On-site only</span></div>
+          <div style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;background:var(--surface);opacity:0.5"><input type="checkbox" disabled> <strong style="color:var(--text2)">BigBank</strong> — Java Dev<br><span style="color:var(--dim)">90-110k, Frankfurt, On-site</span></div>
+        </div>
+      </div>
+
+      <div class="step-card agent" style="position:relative">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">5</span> Agent gets result <span class="badge badge-${isHappy ? 'green' : isExpired ? 'red' : 'yellow'}" style="font-size:10px">${scenario}</span></div>
+        ${resultHtml}
+      </div>
+
+      ${wdlStateUpdateHtml}
+
+      ${confirmHtml}
+
+      ${wdlMappingHtml}
+    </div>`;
+}
+
+// ========== UC2: Deploy ==========
+function renderUC2() {
+  const decision = getRadio('uc2-decision');
+  const signed = getCheck('uc2-signed');
+  const timeout = getCheck('uc2-timeout');
+  const audit = getCheck('uc2-audit');
+
+  const hitlObj = {
+    spec_version: "0.5",
+    case_id: "review_deploy_v210",
+    review_url: "https://ci.company.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
+    poll_url: "https://ci.company.com/api/reviews/deploy_v210/status",
+    type: "approval",
+    prompt: "v2.1.0 ready for production. 47 tests passed, 0 failed. Approve?",
+    timeout: "PT4H",
+    default_action: "abort",
+    created_at: "2026-02-20T14:00:00Z",
+    expires_at: "2026-02-20T18:00:00Z",
+    context: { version: "2.1.0", tests_passed: 47, tests_failed: 0, changes: 12, target: "production" }
+  };
+
+  let resultData = {};
+  if (decision === 'approve') {
+    resultData = { action: "approve", data: { feedback: "Looks good. Deploy during off-peak hours." } };
+  } else if (decision === 'reject') {
+    resultData = { action: "reject", data: { reason: "Failing performance tests in staging. Fix before deploying." } };
+  } else {
+    resultData = { action: "edit", data: { feedback: "Need a rollback plan documented first.", edits: { rollback_plan: "required", canary_percentage: 10 } } };
+  }
+
+  if (signed) {
+    // Response signature (RS256, Section 13.4) — signs the response payload, NOT the URL token
+    resultData.signature = {
+      algorithm: "RS256",
+      value: "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNlX2lk...",
+      signed_at: "2026-02-20T14:08:00Z",
+      signer: "https://ci.company.com/.well-known/jwks.json"
+    };
+  }
+
+  const pollResult = {
+    status: "completed",
+    case_id: "review_deploy_v210",
+    completed_at: "2026-02-20T14:08:00Z",
+    result: resultData,
+    ...(audit ? { responded_by: { name: "DevOps Lead", email: "ops-lead@company.com" } } : {})
+  };
+
+  const timeoutResult = {
+    status: "expired",
+    case_id: "review_deploy_v210",
+    expired_at: "2026-02-20T18:00:00Z",
+    default_action: "abort"
+  };
+
+  // Audit trail callout
+  const auditCallout = audit ? `
+    <div class="audit-card">
+      <div class="audit-title">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Audit Trail
+      </div>
+      <div class="audit-body">
+        Every deployment approval is fully auditable. The <code style="background:rgba(124,58,237,0.1);color:var(--purple)">responded_by</code> field records who approved,
+        <code style="background:rgba(124,58,237,0.1);color:var(--purple)">completed_at</code> records when, and the optional
+        <code style="background:rgba(124,58,237,0.1);color:var(--purple)">signature</code> provides cryptographic non-repudiation.
+        This audit chain is immutable and can be verified independently.
+      </div>
+    </div>` : '';
+
+  // Verify signature button
+  const verifyHtml = signed && !timeout ? `
+    <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+      <button class="verify-btn" onclick="this.innerHTML='<svg width=16 height=16 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Verified against ci.company.com/.well-known/jwks.json';this.style.background='var(--green)';this.style.boxShadow='0 4px 16px rgba(5,150,105,0.3)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Verify Signature
+      </button>
+      <span style="font-size:11px;color:var(--dim)">Validates RS256 response signature against JWKS endpoint</span>
+    </div>` : '';
+
+  document.getElementById('uc2-main').innerHTML = `
+    <div class="step-list" style="padding-left:24px">
+      <div class="step-card agent">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">1</span> Agent triggers build</div>
+        <div class="json-block" id="uc2-req">${hl({ method: "POST", url: "/v1/deploy", body: { version: "2.1.0", target: "production", confirm_before_deploy: true } })}</div>
+        <button class="copy-btn" onclick="copyJson('uc2-req')">Copy</button>
+      </div>
+
+      <div class="step-card service">
+        <div class="step-title"><span class="badge badge-orange" style="font-size:10px">2</span> HTTP 202 with approval HITL</div>
+        <div class="step-body">Build passed. Service needs human approval before deploying to production.</div>
+        <div class="json-block" id="uc2-hitl">${hl({ status: "human_input_required", message: "Build v2.1.0 passed all tests. Approve deployment to production?", hitl: hitlObj })}</div>
+        <button class="copy-btn" onclick="copyJson('uc2-hitl')">Copy</button>
+      </div>
+
+      <div class="step-card human">
+        <div class="step-title"><span class="badge badge-green" style="font-size:10px">3</span> Desktop delivery <span class="badge badge-blue" style="font-size:10px">Desktop Direct</span></div>
+        <div class="delivery-mock"><span class="dm-meta">$ claude-code</span>\n\nBuild v2.1.0 passed all 47 tests. Opening approval page...\n<span class="dm-prompt">$ open "https://ci.company.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC..."</span>\n\n<span class="dm-meta">Browser opened. Waiting for approval (4h timeout)...</span></div>
+      </div>
+
+      <div class="step-card review">
+        <div class="step-title"><span class="badge badge-purple" style="font-size:10px">4</span> Review page</div>
+        <div class="step-body">Shows build summary, test results (47/47), 12 files changed, diff preview.</div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid rgba(5,150,105,0.25);cursor:pointer;transition:all .2s" onmouseover="this.style.boxShadow='0 0 16px var(--green-glow)'" onmouseout="this.style.boxShadow='none'">Approve</div>
+          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,0.25);cursor:pointer;transition:all .2s" onmouseover="this.style.boxShadow='0 0 16px var(--red-glow)'" onmouseout="this.style.boxShadow='none'">Reject</div>
+          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(202,138,4,0.25);cursor:pointer;transition:all .2s" onmouseover="this.style.boxShadow='0 0 16px var(--yellow-glow)'" onmouseout="this.style.boxShadow='none'">Request Changes</div>
+        </div>
+      </div>
+
+      <div class="step-card agent" style="position:relative">
+        <div class="step-title"><span class="badge badge-blue" style="font-size:10px">5</span> Result ${timeout ? '(timeout scenario)' : ''} <span class="badge badge-${timeout ? 'red' : decision === 'approve' ? 'green' : decision === 'reject' ? 'red' : 'yellow'}" style="font-size:10px">${timeout ? 'expired' : decision}</span></div>
+        ${timeout ? `
+          <div class="json-block" id="uc2-result">${hl(timeoutResult)}</div>
+          <button class="copy-btn" onclick="copyJson('uc2-result')">Copy</button>
+          <div style="font-size:13px;color:var(--red);margin-top:10px">No response in 4h. Agent executes <strong>default_action: abort</strong>. Deployment cancelled. Agent notifies team.</div>
+        ` : `
+          <div class="json-block" id="uc2-result">${hl(pollResult)}</div>
+          <button class="copy-btn" onclick="copyJson('uc2-result')">Copy</button>
+          ${verifyHtml}
+          ${decision === 'approve' ? '<div style="font-size:13px;color:var(--green);margin-top:10px">Agent proceeds with deployment to production.</div>' : ''}
+          ${decision === 'reject' ? '<div style="font-size:13px;color:var(--red);margin-top:10px">Agent aborts deployment and notifies the team.</div>' : ''}
+          ${decision === 'changes' ? '<div style="font-size:13px;color:var(--yellow);margin-top:10px">Agent addresses requested changes, then triggers a new approval round (new case_id, previous_case_id links back).</div>' : ''}
+        `}
+      </div>
+
+      ${auditCallout}
+    </div>`;
+}
+
+// ========== UC3: Content ==========
+function renderUC3() {
+  const rounds = parseInt(getRadio('uc3-rounds'));
+  const channel = getRadio('uc3-channel');
+  const showSSE = getCheck('uc3-sse');
+  const showReminders = getCheck('uc3-reminders');
+
+  const channelNames = { slack: 'Slack', email: 'Email', whatsapp: 'WhatsApp' };
+
+  // Build case chain
+  let chainHtml = '<div class="chain">';
+  for (let i = 1; i <= rounds; i++) {
+    const isLast = i === rounds;
+    const action = isLast ? 'approve' : 'edit';
+    const actionLabel = isLast ? 'Approved' : 'Edit Requested';
+    chainHtml += `<div class="chain-case ${action}">
+      <div class="cc-id">review_post_v${i}</div>
+      <div class="cc-action ${action}">${actionLabel}</div>
+      ${i > 1 ? `<div style="font-size:9px;color:var(--dim);margin-top:4px">previous: review_post_v${i-1}</div>` : '<div style="font-size:9px;color:var(--dim);margin-top:4px">first in chain</div>'}
+    </div>`;
+    if (i < rounds) {
+      chainHtml += `<div class="chain-arrow"><span class="arr">&rarr;</span><span>previous_case_id</span><span>&larr; next_case_id</span></div>`;
+    }
+  }
+  chainHtml += '</div>';
+
+  // Reminder timeline
+  let reminderTimelineHtml = '';
+  if (showReminders) {
+    reminderTimelineHtml = `
+    <div style="margin-top:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">Per-Round Reminder Timeline</div>
+      <div class="reminder-bar">
+        <div class="rb-seg" style="flex:12;background:var(--blue-bg);color:var(--blue)">0-12h</div>
+        <div class="rb-seg" style="flex:1;background:var(--accent);color:#fff">nudge</div>
+        <div class="rb-seg" style="flex:11;background:var(--yellow-bg);color:var(--yellow)">12-24h</div>
+        <div class="rb-seg" style="flex:1;background:var(--red);color:#fff">expire</div>
+      </div>
+    </div>`;
+  }
+
+  // Build round details
+  let roundsHtml = '';
+  for (let i = 1; i <= rounds; i++) {
+    const isLast = i === rounds;
+    const isFirst = i === 1;
+    const action = isLast ? 'approve' : 'edit';
+
+    const hitl = {
+      case_id: `review_post_v${i}`,
+      ...(!isFirst ? { previous_case_id: `review_post_v${i-1}` } : {}),
+      type: "approval",
+      prompt: isFirst ? "Blog post draft ready: 'Scaling Microservices in 2026'. Please review." : `Revision ${i} ready. ${isLast ? 'Final review.' : 'Updated based on your feedback.'}`,
+      ...(showReminders ? { reminder_at: [`2026-02-2${i}T14:00:00Z`, `2026-02-2${i}T22:00:00Z`] } : {}),
+      timeout: "24h"
+    };
+
+    let resultObj;
+    if (isLast) {
+      resultObj = { status: "completed", result: { action: "approve", data: { feedback: "Perfect. Publish it." } }, responded_by: { name: "Editor", email: "editor@cms.com" } };
+    } else {
+      resultObj = { status: "completed", result: { action: "edit", data: { feedback: i === 1 ? "Good structure but title too generic. Fix the conclusion." : "Conclusion improved but intro needs work.", edits: { sections_to_revise: i === 1 ? ["title", "conclusion"] : ["introduction"] } } } };
+      if (i < rounds) resultObj.next_case_id = `review_post_v${i+1}`;
+    }
+
+    let sseHtml = '';
+    if (showSSE) {
+      sseHtml = `<div class="sse-timeline" style="margin-top:8px">
+        <div class="sse-event opened"><span class="se-time">+2h</span><span class="se-type">review.opened</span> Editor opened the review</div>
+        <div class="sse-event in_progress"><span class="se-time">+2h 5m</span><span class="se-type">review.in_progress</span> Editor is reading</div>
+        ${showReminders ? `<div class="sse-event reminder"><span class="se-time">+12h</span><span class="se-type">review.reminder</span> "Review expires in 12 hours"</div>` : ''}
+        <div class="sse-event completed"><span class="se-time">+3h</span><span class="se-type">review.completed</span> Editor submitted: <strong style="color:${isLast ? 'var(--green)' : 'var(--yellow)'}">${action}</strong></div>
+      </div>`;
+    }
+
+    let deliveryText = '';
+    if (channel === 'slack') deliveryText = `Slack #content-review: "Review ready: ${hitl.prompt}"`;
+    else if (channel === 'email') deliveryText = `Email to editor@cms.com: Subject: "Review needed: Post v${i}"`;
+    else deliveryText = `WhatsApp message: "New review: ${hitl.prompt}"`;
+
+    roundsHtml += `
+      <details ${i === 1 ? 'open' : ''}>
+        <summary>
+          Round ${i}: ${isLast ? 'Approved' : 'Edit Requested'} <span class="badge badge-${isLast ? 'green' : 'yellow'}" style="font-size:10px;margin-left:8px">${action}</span>
+        </summary>
+        <div style="padding:14px 0">
+          <div class="step-card service" style="margin-bottom:10px">
+            <div class="step-title">HITL Object</div>
+            <div class="json-block" id="uc3-hitl-${i}">${hl(hitl)}</div>
+            <button class="copy-btn" onclick="copyJson('uc3-hitl-${i}')">Copy</button>
+          </div>
+          <div class="step-card human" style="margin-bottom:10px">
+            <div class="step-title">Delivery via ${channelNames[channel]}</div>
+            <div style="font-size:13px;color:var(--muted)">${deliveryText}</div>
+          </div>
+          ${sseHtml}
+          <div class="step-card agent" style="position:relative">
+            <div class="step-title">Result</div>
+            <div class="json-block" id="uc3-result-${i}">${hl(resultObj)}</div>
+            <button class="copy-btn" onclick="copyJson('uc3-result-${i}')">Copy</button>
+          </div>
+        </div>
+      </details>`;
+  }
+
+  document.getElementById('uc3-main').innerHTML = `
+    <div>
+      <h3>Case Chain</h3>
+      <div class="card" style="margin-bottom:18px">${chainHtml}</div>
+
+      ${reminderTimelineHtml}
+
+      <h3 style="margin-top:20px">Round Details</h3>
+      ${roundsHtml}
+
+      <div class="callout callout-green" style="margin-top:18px">
+        <div style="font-weight:800;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Chain Complete
+        </div>
+        <div style="font-size:13px;color:var(--text2)">
+          Agent can traverse the full chain: ${Array.from({length: rounds}, (_, i) => `<code style="background:rgba(5,150,105,0.08);color:var(--green);padding:1px 6px;border-radius:4px">review_post_v${i+1}</code>`).join(' &rarr; ')}.<br>
+          Each case links via <strong style="color:var(--accent)">previous_case_id</strong> (forward) and <strong style="color:var(--accent)">next_case_id</strong> (backward). The review page can show revision history.
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── ADL helpers ──
+
+function buildDTableHtml(firedPriority) {
+  const rules = [
+    [0,'amount > budget × 2','DENY','—','Block extreme overbudget'],
+    [1,'requester.trust_score < 0.3','DENY','—','Block low-trust agents'],
+    [2,'category == "restricted"','DENY','—','Block restricted categories'],
+    [3,'compliance_flags.length > 0','DENY','—','Block compliance violations'],
+    [4,'amount <= auto_approve_limit','ACCEPT','—','Auto-approve small amounts'],
+    [5,'requester.trust_score > 0.9 && amount <= budget','ACCEPT','—','Fast-track trusted agents'],
+    [6,'previous_deals >= 5 && avg_satisfaction > 0.8','ACCEPT','boost: 0.1','Reward track record'],
+    [7,'time_pressure == "urgent"','ACCEPT','priority: high','Urgent auto-approve'],
+    [8,'category == "infrastructure" && amount <= budget × 0.5','ACCEPT','—','Low-risk infra'],
+    [9,'counter_count >= 3','DENY','reason: "max_rounds"','Prevent infinite negotiation'],
+    [10,'amount > budget × 1.5','COUNTER','reduce: 25%','Counter excessive ask'],
+    [11,'amount > budget && requires_human_review','ESCALATE','boost: 0.75','Human escalation'],
+    [12,'sla_impact == "critical"','ESCALATE','boost: 0.9','Critical SLA needs human'],
+    [13,'data_sensitivity == "pii"','ESCALATE','boost: 0.85','PII requires human review'],
+    [14,'amount > budget × 0.8','COUNTER','reduce: 10%','Moderate counter-offer'],
+    [15,'seasonal_factor > 1.2','ACCEPT','note: "seasonal"','Seasonal allowance'],
+    [16,'department.frozen == true','DENY','—','Frozen department budget'],
+    [17,'true','COUNTER','reduce: 15%','Default: counter-offer']
+  ];
+  let html = '<table class="dtable"><tr><th>Pri</th><th>Condition</th><th>Action</th><th>Modifier</th><th>Reason</th></tr>';
+  rules.forEach(([pri, cond, action, mod, reason]) => {
+    const cls = pri === firedPriority ? 'fired' : (pri < firedPriority ? 'skipped' : 'skipped');
+    const actionColor = action === 'DENY' ? 'var(--red)' : action === 'ACCEPT' ? 'var(--green)' : action === 'ESCALATE' ? 'var(--purple)' : 'var(--yellow)';
+    html += `<tr class="${pri === firedPriority ? 'fired' : 'skipped'}"><td>${pri}</td><td><code style="font-size:11px">${cond}</code></td><td style="color:${actionColor};font-weight:700">${action}</td><td style="font-size:11px">${mod}</td><td style="font-size:11px;color:var(--muted)">${reason}</td></tr>`;
+  });
+  html += '</table>';
+  return html;
+}
+
+function buildReviewMockHtml(category, decision) {
+  const titles = { comp: 'Infrastructure Budget Review', data: 'Data Access Request', sla: 'SLA Override Request' };
+  const details = {
+    comp: ['Requested: $48,000/mo (over $35,000 budget)', 'Services: 3× c5.4xlarge + RDS Multi-AZ + ElastiCache', 'Justification: Traffic projection +180% Q2'],
+    data: ['Dataset: customer_analytics_v3 (2.1M rows)', 'Sensitivity: PII (emails, purchase history)', 'Purpose: Churn prediction model training'],
+    sla: ['Current SLA: 99.9% (43.8min downtime/mo)', 'Requested: 99.99% (4.38min downtime/mo)', 'Cost impact: +$12,000/mo for redundancy']
+  };
+  const actions = { approve: '[ ✓ APPROVE ]  [ ✗ Reject ]  [ ↩ Counter ]', counter: '[ ✓ Approve ]  [ ✗ Reject ]  [ ↩ COUNTER ]', reject: '[ ✓ Approve ]  [ ✗ REJECT ]  [ ↩ Counter ]' };
+  return `<div style="background:#1a1b26;color:#a9b1d6;font-family:'JetBrains Mono',monospace;font-size:11px;padding:14px;border-radius:8px;line-height:1.7;white-space:pre">┌─────────────────────────────────────┐
+│  ${titles[category].padEnd(36)}│
+├─────────────────────────────────────┤
+${details[category].map(d => '│  ' + d.padEnd(36) + '│').join('\n')}
+├─────────────────────────────────────┤
+│  ${actions[decision].padEnd(36)}│
+└─────────────────────────────────────┘</div>`;
+}
+
+function renderUC4() {
+  const cat = getRadio('uc4-category') || 'comp';
+  const decision = getRadio('uc4-decision') || 'approve';
+  const transport = getRadio('uc4-transport') || 'poll';
+  const showDTable = getCheck('uc4-dtable');
+  const showAudit = getCheck('uc4-audit');
+  const signed = getCheck('uc4-signed');
+
+  const catLabels = { comp: 'Infrastructure Budget', data: 'Data Access', sla: 'SLA Override' };
+  const catTermTypes = { comp: 'budget_allocation', data: 'data_access', sla: 'sla_override' };
+  const hitlTypes = { comp: 'approval', data: 'input', sla: 'approval' };
+  const firedPriorities = { comp: 11, data: 13, sla: 12 };
+
+  // Step 1: Agent proposes deal
+  const dealTerms = {
+    comp: { category: 'infrastructure', amount: 48000, currency: 'USD', period: 'monthly', services: ['compute','database','cache'], justification: 'Traffic projection +180% Q2' },
+    data: { category: 'data_access', dataset: 'customer_analytics_v3', rows: 2100000, sensitivity: 'pii', purpose: 'Churn prediction model', retention: '90d' },
+    sla: { category: 'sla_override', current: '99.9%', requested: '99.99%', cost_impact: 12000, services: ['api-gateway','primary-db'], reason: 'Enterprise client requirement' }
+  };
+
+  // Step 3: HITL case
+  const hitlPrompts = {
+    comp: 'Review infrastructure budget request: $48,000/mo (budget: $35,000). Agent justification: traffic growth.',
+    data: 'Approve or scope data access: customer_analytics_v3 (PII, 2.1M rows) for churn prediction model.',
+    sla: 'Review SLA upgrade from 99.9% to 99.99%. Additional cost: $12,000/mo for redundancy.'
+  };
+
+  // Step 5: Results by decision
+  const results = {
+    approve: {
+      comp: { action: 'approve', data: { feedback: 'Approved for Q2. Review after 90 days.', conditions: ['monthly_review','alert_at_80pct'] }},
+      data: { action: 'approve', data: { scope: { columns: ['email_hash','purchase_count','last_active'], row_limit: 500000 }, conditions: ['anonymize_emails','delete_after_90d'] }},
+      sla: { action: 'approve', data: { feedback: 'Approved. Implement redundancy first.', effective_date: '2026-03-01' }}
+    },
+    counter: {
+      comp: { action: 'edit', data: { edits: { amount: 38000, period: 'monthly' }, feedback: 'Reduce to $38k. Drop ElastiCache, use Redis on compute.' }},
+      data: { action: 'edit', data: { edits: { rows: 500000, columns: ['email_hash','purchase_count'] }, feedback: 'Limit to 500k rows, hash emails.' }},
+      sla: { action: 'edit', data: { edits: { requested: '99.95%', cost_impact: 6000 }, feedback: 'Meet at 99.95% — half the cost.' }}
+    },
+    reject: {
+      comp: { action: 'reject', data: { reason: 'Budget freeze until Q3 board review. Re-submit after April 15.' }},
+      data: { action: 'reject', data: { reason: 'PII access denied. Use anonymized dataset customer_analytics_anon_v2 instead.' }},
+      sla: { action: 'reject', data: { reason: 'Cost not justified. Current 99.9% meets all client SLAs.' }}
+    }
+  };
+
+  const adlFinalStates = { approve: 'AGREED', counter: 'COUNTER_PROPOSED', reject: 'DECLINED' };
+  const adlFinalColors = { approve: 'var(--green)', counter: 'var(--yellow)', reject: 'var(--red)' };
+
+  // Decision table HTML
+  const dtableHtml = showDTable ? `<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">DECISION TABLE — 18 Rules (Priority ${firedPriorities[cat]} fired)</div>${buildDTableHtml(firedPriorities[cat])}</div>` : '';
+
+  // Signed response object for Step 5
+  const uc4ResultObj = {
+    case_id: 'review_deal_001',
+    status: 'completed',
+    result: results[decision][cat],
+    responded_by: { name: 'Infrastructure Lead', email: 'infra-lead@company.com', role: 'budget_owner' },
+    completed_at: '2026-02-20T14:08:00Z'
+  };
+  if (signed) {
+    // Response signature (RS256, Section 13.4) — signs the response payload, NOT the URL token
+    uc4ResultObj.signature = {
+      algorithm: 'RS256',
+      value: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNlX2lk...',
+      signed_at: '2026-02-20T14:08:00Z',
+      signer: 'https://platform.company.com/.well-known/jwks.json'
+    };
+  }
+
+  const verifyBtnHtml = signed ? `
+    <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+      <button class="verify-btn" onclick="this.innerHTML='<svg width=16 height=16 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Verified against platform.company.com/.well-known/jwks.json';this.style.background='var(--green)';this.style.boxShadow='0 4px 16px rgba(5,150,105,0.3)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Verify Signature
+      </button>
+      <span style="font-size:11px;color:var(--dim)">Validates RS256 response signature against JWKS endpoint</span>
+    </div>` : '';
+
+  // SSE timeline for transport=sse
+  const sseHtml = transport === 'sse' ? `<div class="json-block" style="margin-top:10px"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">SSE Event Stream</div><pre style="font-size:11px;color:var(--text2)">event: deal.escalated\ndata: {"deal_id":"deal_infra_q2","priority":${firedPriorities[cat]},"bridge":"human_escalation"}\n\nevent: hitl.case_created\ndata: {"case_id":"review_deal_001","type":"${hitlTypes[cat]}"}\n\nevent: hitl.opened\ndata: {"case_id":"review_deal_001","opened_at":"2026-02-20T14:02:00Z"}\n\nevent: hitl.completed\ndata: {"case_id":"review_deal_001","action":"${decision === 'counter' ? 'edit' : decision}"}\n\nevent: deal.resolved\ndata: {"deal_id":"deal_infra_q2","state":"${adlFinalStates[decision]}"}</pre></div>` : '';
+
+  // Audit trail
+  const auditEntries = [
+    ['14:00:00','ADL-001','Agent proposes deal: ' + catLabels[cat]],
+    ['14:00:01','ADL-011','Decision Table evaluates — Priority ' + firedPriorities[cat] + ' fires: ESCALATE'],
+    ['14:00:02','ADL-012','Bridge: human_escalation, boost: 0.75'],
+    ['14:00:03','HITL-001','Case created: review_deal_001 (type: ' + hitlTypes[cat] + ')'],
+    ['14:02:15','HITL-010','Case opened by reviewer'],
+    ['14:05:30','HITL-015','Reviewer interacting (in_progress)'],
+    ['14:08:00','HITL-020','Decision submitted: ' + (decision === 'counter' ? 'edit' : decision)],
+    ['14:08:01','ADL-020','Deal resolved → ' + adlFinalStates[decision]],
+  ];
+  if (decision === 'counter') {
+    auditEntries.push(['14:08:02','ADL-021','Counter-proposal sent back to agent']);
+    auditEntries.push(['14:08:05','ADL-030','Agent evaluating counter-terms']);
+  }
+  const auditHtml = showAudit ? `<div style="margin-top:18px"><h3>Audit Trail</h3><div class="audit-log">${auditEntries.map(([t,c,m]) => `<div class="audit-entry"><span class="ae-time">${t}</span><span class="ae-code">${c}</span><span class="ae-msg">${m}</span></div>`).join('')}</div></div>` : '';
+
+  // State mapping tables
+  const stateMappingHtml = `<div style="margin-top:18px"><h3>ADL ↔ HITL State Mapping</h3>
+    <table class="state-map"><tr><td>ADL State</td><td>HITL State</td><td>Trigger</td></tr>
+    <tr><td class="adl-state">PROPOSED</td><td class="hitl-state">pending</td><td style="font-size:12px">Deal submitted, awaiting human</td></tr>
+    <tr><td class="adl-state">NEGOTIATING</td><td class="hitl-state">opened</td><td style="font-size:12px">Human opened review URL</td></tr>
+    <tr><td class="adl-state">NEGOTIATING</td><td class="hitl-state">in_progress</td><td style="font-size:12px">Human interacting with form</td></tr>
+    <tr><td class="adl-state">AGREED</td><td class="hitl-state">completed (approve)</td><td style="font-size:12px">Human approved deal</td></tr>
+    <tr><td class="adl-state">DECLINED</td><td class="hitl-state">completed (reject)</td><td style="font-size:12px">Human rejected deal</td></tr>
+    <tr><td class="adl-state">COUNTER_PROPOSED</td><td class="hitl-state">completed (edit)</td><td style="font-size:12px">Human sent counter-offer</td></tr>
+    <tr><td class="adl-state">EXPIRED</td><td class="hitl-state">expired</td><td style="font-size:12px">Timeout reached, default_action executes</td></tr>
+    </table></div>
+
+    <div style="margin-top:14px"><h3>HITL → ADL Response Mapping</h3>
+    <table class="state-map"><tr><td>HITL Action</td><td>ADL Outcome</td><td>Description</td></tr>
+    <tr><td class="hitl-state">approve</td><td class="adl-state">ACCEPT</td><td style="font-size:12px">Deal accepted as proposed</td></tr>
+    <tr><td class="hitl-state">reject</td><td class="adl-state">DENY</td><td style="font-size:12px">Deal rejected with reason</td></tr>
+    <tr><td class="hitl-state">edit</td><td class="adl-state">COUNTER</td><td style="font-size:12px">Modified terms sent back</td></tr>
+    <tr><td class="hitl-state">input</td><td class="adl-state">CLARIFY</td><td style="font-size:12px">Additional info requested</td></tr>
+    <tr><td class="hitl-state">timeout</td><td class="adl-state">DENY + TIMEOUT</td><td style="font-size:12px">No response, default_action applies</td></tr>
+    </table></div>`;
+
+  document.getElementById('uc4-main').innerHTML = `<div class="flow-steps">
+    <h3>Scenario: DevOps Agent — ${catLabels[cat]}</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">An autonomous agent negotiates ${catLabels[cat].toLowerCase()} via ADL. The platform's Decision Table (Priority ${firedPriorities[cat]}) fires <code>human_escalation</code> bridge → HITL case for human review.</p>
+
+    <div class="step-card" style="border-left-color:var(--blue)">
+      <div class="step-num" style="background:var(--blue-bg);color:var(--blue)">1</div>
+      <div class="step-title">Agent Proposes Deal</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL: POST /deals — Agent submits terms via Agent Deal Language</div>
+      <div class="json-block" data-copy="uc4-req">${hl({
+        method: 'POST',
+        url: '/v1/deals',
+        body: {
+          deal_type: catTermTypes[cat],
+          proposer: { agent_id: 'devops-agent-7b', trust_score: 0.82 },
+          terms: dealTerms[cat],
+          constraints: { budget_limit: cat === 'comp' ? 35000 : cat === 'sla' ? 50000 : null, requires_human_review: true }
+        }
+      })}<button class="copy-btn" onclick="copyJson('uc4-req')">Copy</button></div>
+    </div>
+
+    <div class="step-card" style="border-left-color:var(--accent)">
+      <div class="step-num" style="background:var(--accent-bg);color:var(--accent)">2</div>
+      <div class="step-title">Platform Evaluates — Decision Table</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">18-rule priority cascade. Priority ${firedPriorities[cat]} fires: <strong style="color:var(--purple)">ESCALATE</strong> with <strong style="color:var(--accent)">boost: 0.75</strong></div>
+      <div class="json-block" data-copy="uc4-eval">${hl({
+        evaluation: {
+          deal_id: 'deal_infra_q2',
+          rules_evaluated: 18,
+          first_match: { priority: firedPriorities[cat], action: 'ESCALATE', modifier: { boost: 0.75, bridge: 'human_escalation' }},
+          coverage_before: 0.82,
+          coverage_after: 0.82 + 0.75,
+          note: 'Coverage boost 0.75 applied — human_escalation bridge'
+        }
+      })}<button class="copy-btn" onclick="copyJson('uc4-eval')">Copy</button></div>
+      ${dtableHtml}
+    </div>
+
+    <div class="step-card" style="border-left-color:var(--purple)">
+      <div class="step-num" style="background:var(--purple-bg);color:var(--purple)">3</div>
+      <div class="step-title">HITL Case Created — HTTP 202</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL bridge creates a HITL case. The deal enters <code>NEGOTIATING</code> state.</div>
+      <div class="json-block" data-copy="uc4-hitl">${hl({
+        spec_version: '0.1',
+        case_id: 'review_deal_001',
+        review_url: 'https://platform.company.com/review/deal_infra_q2?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...',
+        poll_url: 'https://platform.company.com/api/v1/hitl/review_deal_001/status',
+        events_url: transport === 'sse' ? 'https://platform.company.com/api/v1/hitl/review_deal_001/events' : undefined,
+        type: hitlTypes[cat],
+        prompt: hitlPrompts[cat],
+        timeout: '4h',
+        default_action: 'deny',
+        context: { deal_id: 'deal_infra_q2', adl_version: '1.1', source_priority: firedPriorities[cat] },
+        created_at: '2026-02-20T14:00:03Z',
+        expires_at: '2026-02-20T18:00:03Z'
+      })}<button class="copy-btn" onclick="copyJson('uc4-hitl')">Copy</button></div>
+    </div>
+
+    <div class="step-card" style="border-left-color:var(--green)">
+      <div class="step-num" style="background:var(--green-bg);color:var(--green)">4</div>
+      <div class="step-title">Human Reviews Deal</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Reviewer opens the review URL. The HITL case transitions: pending → opened → in_progress.</div>
+      ${buildReviewMockHtml(cat, decision)}
+    </div>
+
+    <div class="step-card" style="border-left-color:var(--blue)">
+      <div class="step-num" style="background:var(--blue-bg);color:var(--blue)">5</div>
+      <div class="step-title">Human Decides — ${decision === 'approve' ? 'Approved' : decision === 'counter' ? 'Counter-Offer' : 'Rejected'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">HITL result submitted. Action: <strong style="color:${adlFinalColors[decision]}">${decision === 'counter' ? 'edit' : decision}</strong></div>
+      <div class="json-block" data-copy="uc4-result">${hl(uc4ResultObj)}<button class="copy-btn" onclick="copyJson('uc4-result')">Copy</button></div>
+      ${verifyBtnHtml}
+      ${sseHtml}
+    </div>
+
+    <div class="step-card" style="border-left-color:${adlFinalColors[decision]}">
+      <div class="step-num" style="background:${decision === 'approve' ? 'var(--green-bg)' : decision === 'counter' ? 'var(--yellow-bg)' : 'var(--red-bg)'};color:${adlFinalColors[decision]}">6</div>
+      <div class="step-title">ADL Deal Resolved → ${adlFinalStates[decision]}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">HITL result mapped back to ADL. Deal state: <strong style="color:${adlFinalColors[decision]}">${adlFinalStates[decision]}</strong></div>
+      <div class="json-block" data-copy="uc4-final">${hl({
+        deal_id: 'deal_infra_q2',
+        state: adlFinalStates[decision],
+        resolution: {
+          source: 'human_escalation',
+          hitl_case_id: 'review_deal_001',
+          action: decision === 'counter' ? 'edit' : decision,
+          terms: decision === 'counter' ? results.counter[cat].data.edits : (decision === 'approve' ? 'original_accepted' : null),
+          resolved_at: '2026-02-20T14:08:01Z'
+        },
+        coverage_final: decision === 'approve' ? 1.57 : decision === 'counter' ? 1.57 : 1.57
+      })}<button class="copy-btn" onclick="copyJson('uc4-final')">Copy</button></div>
+    </div>
+  </div>
+
+  ${auditHtml}
+  ${stateMappingHtml}`;
+}
+
+// --- Initial renders ---
+renderUC1();
+renderUC2();
+renderUC3();
+renderUC4();
+</script>
+</body>
+</html>

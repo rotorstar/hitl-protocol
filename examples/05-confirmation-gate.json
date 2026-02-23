@@ -1,0 +1,152 @@
+{
+  "_comment": "HITL Protocol v0.5 — Example: Confirmation Gate Before Irreversible Action",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "An email sending service is about to send 3 personalized application emails on behalf of the user. Since sending emails is irreversible, the service requires human confirmation before proceeding. The human reviews the email previews and confirms sending all 3.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Agent requests the email service to send 3 application emails",
+      "request": {
+        "method": "POST",
+        "url": "https://api.mailcraft.example/v1/batch-send",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer sk_agent_mail_s5t6u7v8w9x0",
+          "X-Agent-Id": "openclaw-agent-4c1d"
+        },
+        "body": {
+          "template": "job_application",
+          "from": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          },
+          "emails": [
+            {
+              "id": "email_001",
+              "to": "recruiting@klarna.com",
+              "subject": "Application: Staff Frontend Developer — Alex Mueller",
+              "body_preview": "Hi Klarna Engineering team, Klarna's recent move to a micro-frontend architecture caught my attention..."
+            },
+            {
+              "id": "email_002",
+              "to": "careers@zalando.com",
+              "subject": "Application: Senior React Engineer — Alex Mueller",
+              "body_preview": "Dear Zalando Tech team, Your commitment to open source and the scale of Zalando's frontend platform..."
+            },
+            {
+              "id": "email_003",
+              "to": "jobs@techflow.de",
+              "subject": "Application: Senior Frontend Engineer — Alex Mueller",
+              "body_preview": "Hi TechFlow team, I was excited to see your focus on building developer tools with React and TypeScript..."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Service returns HTTP 202 with a confirmation-type hitl object. The review page will show full email previews.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "15"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "3 application emails are ready to send. Please confirm before they are dispatched.",
+          "hitl": {
+            "spec_version": "0.5",
+            "case_id": "review_confirm_s5t6u7v8",
+            "review_url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS",
+            "poll_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",
+            "callback_url": null,
+            "type": "confirmation",
+            "prompt": "Confirm sending 3 job application emails (Klarna, Zalando, TechFlow)",
+            "timeout": "12h",
+            "default_action": "abort",
+            "created_at": "2026-02-22T12:00:00Z",
+            "expires_at": "2026-02-23T00:00:00Z",
+            "context": {
+              "action_type": "send_emails",
+              "irreversible": true,
+              "total_emails": 3,
+              "recipients": [
+                "recruiting@klarna.com",
+                "careers@zalando.com",
+                "jobs@techflow.de"
+              ],
+              "items_to_confirm": [
+                {
+                  "id": "email_001",
+                  "label": "Klarna — Staff Frontend Developer",
+                  "to": "recruiting@klarna.com",
+                  "subject": "Application: Staff Frontend Developer — Alex Mueller"
+                },
+                {
+                  "id": "email_002",
+                  "label": "Zalando — Senior React Engineer",
+                  "to": "careers@zalando.com",
+                  "subject": "Application: Senior React Engineer — Alex Mueller"
+                },
+                {
+                  "id": "email_003",
+                  "label": "TechFlow — Senior Frontend Engineer",
+                  "to": "jobs@techflow.de",
+                  "subject": "Application: Senior Frontend Engineer — Alex Mueller"
+                }
+              ],
+              "warning": "Emails will be sent from alex.mueller@example.com. This action cannot be undone."
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Agent forwards the confirmation URL to the human",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Ready to send 3 application emails:\n1. Klarna — Staff Frontend Developer\n2. Zalando — Senior React Engineer\n3. TechFlow — Senior Frontend Engineer\n\nPlease review and confirm: https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS\n\nEmails will be sent from alex.mueller@example.com. This cannot be undone."
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent polls and receives 'completed' — human confirmed all 3 emails for sending",
+      "request": {
+        "method": "GET",
+        "url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_mail_s5t6u7v8w9x0"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_confirm_s5t6u7v8",
+          "created_at": "2026-02-22T12:00:00Z",
+          "opened_at": "2026-02-22T12:02:11Z",
+          "expires_at": "2026-02-23T00:00:00Z",
+          "completed_at": "2026-02-22T12:04:38Z",
+          "result": {
+            "action": "confirm",
+            "data": {
+              "confirmed_items": ["email_001", "email_002", "email_003"],
+              "confirmed_count": 3,
+              "total_items": 3,
+              "all_confirmed": true
+            }
+          },
+          "responded_by": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          }
+        }
+      }
+    }
+  ]
+}
