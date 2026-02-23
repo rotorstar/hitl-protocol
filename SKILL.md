@@ -1,6 +1,6 @@
 ---
 name: hitl-protocol
-description: "HITL Protocol — the open standard for human decisions in agent workflows. Learn how services return HTTP 202 with a review URL when human input is needed, how agents detect and handle HITL responses (forward URL, poll for result), and how humans make structured decisions via rich browser UI. Covers: approval, selection, input, confirmation, escalation review types. Three transport modes: polling, SSE, callbacks. Use when building HITL-compliant services or HITL-aware agents."
+description: "HITL Protocol — the open standard for human decisions in autonomous agent workflows. When a website or API needs human input, it returns HTTP 202 with a review URL. Autonomous agents like OpenClaw, Claude, Codex, or Goose forward the URL, poll for the structured result, and continue. Use this skill to make any website agent-ready, or to handle human-in-the-loop responses in your agent. Covers approval, selection, input forms, confirmation, and escalation review types. Supports polling, SSE, and webhook transports, opaque token security, multi-step form wizards, and multi-round edit cycles."
 license: Apache-2.0
 compatibility:
   - claude
