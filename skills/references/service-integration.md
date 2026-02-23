@@ -439,6 +439,59 @@ Working implementations in 4 frameworks:
 | Next.js | [implementations/reference-service/nextjs/](../../implementations/reference-service/nextjs/) | TypeScript |
 | FastAPI | [implementations/reference-service/python/](../../implementations/reference-service/python/) | Python |
 
+## Common Implementation Mistakes
+
+Real-world audits of services implementing HITL v0.6 have revealed recurring patterns. Avoid these:
+
+### Mistake 1: Accepting Both Tokens Interchangeably (Security Critical)
+
+**Wrong:**
+```javascript
+function verifyToken(token, hitlCase) {
+  if (matchesHash(token, hitlCase.review_token_hash)) return true
+  if (matchesHash(token, hitlCase.submit_token_hash)) return true  // ← WRONG
+  return false
+}
+```
+
+**Why it's dangerous:** If the `review_url` leaks (shared in chat, bookmarked, forwarded), an attacker can use the review token to make inline submissions — defeating the entire dual-token security model.
+
+**Right:** Add a `purpose` parameter:
+```javascript
+function verifyToken(token, hitlCase, purpose) {
+  if (purpose === 'review') return matchesHash(token, hitlCase.review_token_hash)
+  if (purpose === 'submit') return matchesHash(token, hitlCase.submit_token_hash)
+  return false
+}
+```
+
+See [Spec Section 7.5](../../spec/v0.6/hitl-protocol.md) — `submit_token` MUST be different from the review URL token.
+
+### Mistake 2: Wrong Body Format for Inline Submit
+
+**Wrong:** Expecting `{ result: { action, data } }` for Bearer-authenticated inline submissions.
+
+**Right:** Two distinct formats depending on the auth path:
+- **Inline submit (Bearer header):** `{ action, data, submitted_via, submitted_by }` — flat
+- **Review page (body/URL token):** `{ action, data }` or your existing format
+
+See [Spec Section 7.5.1](../../spec/v0.6/hitl-protocol.md) for the inline submit request body.
+
+### Mistake 3: HTTP 422 Instead of 403 for Invalid Inline Actions
+
+**Wrong:** Returning `422 Unprocessable Entity` when an action is not in `inline_actions`.
+
+**Right:** Return **403 Forbidden** with `review_url` in the error body:
+```json
+{
+  "error": "action_not_inline",
+  "message": "Action 'edit' requires the review page.",
+  "review_url": "https://yourservice.com/review/abc123?token=..."
+}
+```
+
+This lets the agent fall back to the browser flow gracefully. The human can complete the action on the full review page.
+
 ## JSON Schema Validation
 
 Validate your HITL objects and poll responses:

@@ -348,6 +348,8 @@ When a service supports inline submit, it includes three additional fields in th
 - `submit_token` MUST be present whenever `submit_url` is present.
 - `submit_token` MUST be different from the review URL token. The two tokens serve different purposes: the review token authenticates the human's browser session; the submit token authenticates the agent's programmatic submission.
 - `submit_token` follows the same generation and storage pattern as the review URL token: `randomBytes(32).toString('base64url')` → 43 characters, SHA-256 hash stored server-side.
+
+> **Implementation note:** Services MUST NOT accept `submit_token` where the review URL token is expected, or vice versa. Each token MUST be validated only against its corresponding hash for its intended purpose. A common mistake is implementing a single `verifyToken()` function that checks both hashes — this defeats the security separation entirely, because a leaked `review_url` would then also grant inline submit access.
 - `inline_actions` is OPTIONAL even when `submit_url` is present. When omitted, all actions for the review type are permitted via `submit_url`.
 
 ### Submit Endpoint

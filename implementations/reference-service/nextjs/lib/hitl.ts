@@ -1,6 +1,6 @@
 /**
- * HITL Protocol v0.5 — Shared utilities for Next.js reference implementation.
- * Token generation/verification, in-memory store, state machine.
+ * HITL Protocol v0.6 — Shared utilities for Next.js reference implementation.
+ * Token generation/verification (dual-token), in-memory store, state machine.
  */
 
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
@@ -23,6 +23,13 @@ export function verifyToken(token: string, storedHash: Buffer): boolean {
   return timingSafeEqual(candidate, storedHash);
 }
 
+// v0.6: Scope-separated token verification
+export function verifyTokenForPurpose(token: string, rc: ReviewCase, purpose: 'review' | 'submit'): boolean {
+  if (purpose === 'review') return verifyToken(token, rc.token_hash);
+  if (purpose === 'submit') return rc.submit_token_hash ? verifyToken(token, rc.submit_token_hash) : false;
+  return false;
+}
+
 // ============================================================
 // Types
 // ============================================================
@@ -36,6 +43,8 @@ export interface ReviewCase {
   status: ReviewStatus;
   prompt: string;
   token_hash: Buffer;
+  submit_token_hash: Buffer;                // v0.6: separate token for inline submit
+  inline_actions: string[];                 // v0.6: actions allowed via inline submit
   context: Record<string, unknown>;
   created_at: string;
   expires_at: string;
@@ -44,6 +53,7 @@ export interface ReviewCase {
   etag: string;
   result: { action: string; data: Record<string, unknown> } | null;
   responded_by: { name: string; email: string } | null;
+  submitted_via?: string;                   // v0.6: 'inline' | 'review_page'
   opened_at?: string;
   completed_at?: string;
   expired_at?: string;
@@ -159,6 +169,15 @@ export const PROMPTS: Record<ReviewType, string> = {
   input: 'Provide application details',
   confirmation: 'Confirm sending 2 emails',
   escalation: 'Deployment failed — decide how to proceed',
+};
+
+// v0.6: Actions allowed per review type for inline submit
+export const INLINE_ACTIONS: Record<ReviewType, string[]> = {
+  confirmation: ['confirm', 'cancel'],
+  escalation: ['retry', 'skip', 'abort'],
+  approval: ['approve', 'reject'],   // edit requires review page
+  selection: [],                      // URL only — needs cards UI
+  input: [],                          // URL only — needs form fields
 };
 
 export function getBaseUrl(): string {

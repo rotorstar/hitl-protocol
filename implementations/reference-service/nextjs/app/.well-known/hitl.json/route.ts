@@ -5,11 +5,12 @@ export async function GET() {
   const base = getBaseUrl();
   return NextResponse.json({
     hitl_protocol: {
-      spec_version: '0.5',
+      spec_version: '0.6',
       service: { name: 'HITL Reference Service (Next.js)', url: base },
       capabilities: {
         review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
         transports: ['polling', 'sse'],
+        supports_inline_submit: true,  // v0.6
         default_timeout: 'PT24H',
         supports_reminders: false,
         supports_multi_round: false,

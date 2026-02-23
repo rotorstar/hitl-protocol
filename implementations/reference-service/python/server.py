@@ -1,7 +1,16 @@
 """
-HITL Protocol v0.5 — Reference Implementation (FastAPI)
+HITL Protocol v0.6 — Reference Implementation (FastAPI)
 
-Same features as Express/Hono variants.
+Demonstrates all HITL features:
+  - 5 review types (approval, selection, input, confirmation, escalation)
+  - 3 transports (polling, SSE, callback placeholder)
+  - Token security (secrets + SHA-256 + hmac.compare_digest)
+  - Channel-native inline submit (v0.6: submit_url, submit_token, inline_actions)
+  - State machine with valid transitions
+  - ETag / If-None-Match for efficient polling
+  - Rate limiting (429)
+  - One-time response guarantee (409)
+  - Discovery endpoint (/.well-known/hitl.json)
 
 Usage:
     pip install -r requirements.txt
@@ -46,6 +55,26 @@ def hash_token(token: str) -> bytes:
 def verify_token(token: str, stored_hash: bytes) -> bool:
     candidate = hash_token(token)
     return hmac.compare_digest(candidate, stored_hash)
+
+
+# v0.6: Scope-separated token verification
+def verify_token_for_purpose(token: str, review_case: dict, purpose: str) -> bool:
+    if purpose == "review":
+        return verify_token(token, review_case["token_hash"])
+    if purpose == "submit":
+        submit_hash = review_case.get("submit_token_hash")
+        return verify_token(token, submit_hash) if submit_hash else False
+    return False
+
+
+# v0.6: Actions allowed per review type
+INLINE_ACTIONS: dict[str, list[str]] = {
+    "confirmation": ["confirm", "cancel"],
+    "escalation": ["retry", "skip", "abort"],
+    "approval": ["approve", "reject"],   # edit requires review page
+    "selection": [],                       # URL only — needs cards UI
+    "input": [],                           # URL only — needs form fields
+}
 
 
 # ============================================================
@@ -156,13 +185,18 @@ async def create_demo(type: str = Query(default="selection")):
         raise HTTPException(400, detail={"error": "invalid_type", "message": f"Use: {', '.join(SAMPLE_CONTEXTS)}"})
 
     case_id = "review_" + secrets.token_hex(8)
-    token = generate_token()
+    token = generate_token()              # review URL token
+    submit_token = generate_token()       # v0.6: separate inline submit token
     now = datetime.now(timezone.utc)
     expires = now + timedelta(hours=24)
+    inline_actions = INLINE_ACTIONS.get(type, [])
 
     rc = {
         "case_id": case_id, "type": type, "status": "pending", "prompt": PROMPTS[type],
-        "token_hash": hash_token(token), "context": SAMPLE_CONTEXTS[type],
+        "token_hash": hash_token(token),
+        "submit_token_hash": hash_token(submit_token),  # v0.6
+        "inline_actions": inline_actions,                # v0.6
+        "context": SAMPLE_CONTEXTS[type],
         "created_at": now.isoformat(), "expires_at": expires.isoformat(),
         "default_action": "skip", "version": 1, "etag": '"v1-pending"',
         "result": None, "responded_by": None,
@@ -172,20 +206,27 @@ async def create_demo(type: str = Query(default="selection")):
     # Auto-expire after 24h (matching Express/Hono behavior)
     asyncio.create_task(schedule_expiration(case_id, 86400))
 
+    # v0.6: Inline submit fields (only for types that support it)
+    hitl: dict[str, Any] = {
+        "spec_version": "0.6", "case_id": case_id,
+        "review_url": f"{BASE_URL}/review/{case_id}?token={token}",
+        "poll_url": f"{BASE_URL}/api/reviews/{case_id}/status",
+        "type": type, "prompt": rc["prompt"], "timeout": "24h",
+        "default_action": "skip", "created_at": rc["created_at"], "expires_at": rc["expires_at"],
+        "context": rc["context"],
+    }
+    if inline_actions:
+        hitl["submit_url"] = f"{BASE_URL}/reviews/{case_id}/respond"
+        hitl["submit_token"] = submit_token
+        hitl["inline_actions"] = inline_actions
+
     return JSONResponse(
         status_code=202,
         headers={"Retry-After": "30"},
         content={
             "status": "human_input_required",
             "message": rc["prompt"],
-            "hitl": {
-                "spec_version": "0.5", "case_id": case_id,
-                "review_url": f"{BASE_URL}/review/{case_id}?token={token}",
-                "poll_url": f"{BASE_URL}/api/reviews/{case_id}/status",
-                "type": type, "prompt": rc["prompt"], "timeout": "24h",
-                "default_action": "skip", "created_at": rc["created_at"], "expires_at": rc["expires_at"],
-                "context": rc["context"],
-            },
+            "hitl": hitl,
         },
     )
 
@@ -195,8 +236,8 @@ async def review_page(case_id: str, token: str = Query()):
     rc = store.get(case_id)
     if not rc:
         raise HTTPException(404, detail={"error": "not_found"})
-    if not verify_token(token, rc["token_hash"]):
-        raise HTTPException(401, detail={"error": "invalid_token"})
+    if not verify_token_for_purpose(token, rc, "review"):
+        raise HTTPException(401, detail={"error": "invalid_token", "message": "Invalid or expired review token."})
 
     if rc["status"] == "pending":
         try:
@@ -221,24 +262,49 @@ async def review_page(case_id: str, token: str = Query()):
 
 
 @app.post("/reviews/{case_id}/respond")
-async def submit_response(case_id: str, request: Request, token: str = Query()):
+async def submit_response(case_id: str, request: Request, token: str = Query(default=None)):
     rc = store.get(case_id)
     if not rc:
         raise HTTPException(404, detail={"error": "not_found"})
-    if not verify_token(token, rc["token_hash"]):
-        raise HTTPException(401, detail={"error": "invalid_token"})
+
+    # v0.6: Determine auth path — Bearer header (inline) vs query param (review page)
+    auth_header = request.headers.get("authorization", "")
+    is_inline_submit = False
+
+    if auth_header.startswith("Bearer "):
+        # Inline submit path: verify against submit_token_hash
+        bearer_token = auth_header[7:]
+        if not verify_token_for_purpose(bearer_token, rc, "submit"):
+            raise HTTPException(401, detail={"error": "invalid_token", "message": "Invalid submit token."})
+        is_inline_submit = True
+    else:
+        # Review page path: verify against review token_hash (query param)
+        if not token or not verify_token_for_purpose(token, rc, "review"):
+            raise HTTPException(401, detail={"error": "invalid_token", "message": "Invalid or expired review token."})
+
     if rc["status"] == "expired":
-        raise HTTPException(410, detail={"error": "case_expired", "message": f"Expired on {rc['expires_at']}."})
+        raise HTTPException(410, detail={"error": "case_expired", "message": f"This review case expired on {rc['expires_at']}."})
     if rc["status"] == "completed":
-        raise HTTPException(409, detail={"error": "duplicate_submission", "message": "Already responded."})
+        raise HTTPException(409, detail={"error": "duplicate_submission", "message": "This review case has already been responded to."})
 
     body = await request.json()
     action = body.get("action")
     if not action:
-        raise HTTPException(400, detail={"error": "missing_action"})
+        raise HTTPException(400, detail={"error": "missing_action", "message": 'Request body must include "action".'})
+
+    # v0.6: Validate inline_actions for Bearer path
+    allowed = rc.get("inline_actions", [])
+    if is_inline_submit and allowed and action not in allowed:
+        raise HTTPException(403, detail={
+            "error": "action_not_inline",
+            "message": f"Action '{action}' is not allowed via inline submit. Allowed: {', '.join(allowed)}",
+            "review_url": f"{BASE_URL}/review/{rc['case_id']}",
+        })
 
     rc["result"] = {"action": action, "data": body.get("data", {})}
-    rc["responded_by"] = {"name": "Demo User", "email": "demo@example.com"}
+    rc["responded_by"] = body.get("submitted_by", {"name": "Demo User", "email": "demo@example.com"})
+    if body.get("submitted_via"):
+        rc["submitted_via"] = body["submitted_via"]
     transition(rc, "completed")
     return {"status": "completed", "case_id": rc["case_id"], "completed_at": rc["completed_at"]}
 
@@ -311,9 +377,17 @@ async def event_stream(case_id: str):
 async def discovery():
     return JSONResponse(
         content={"hitl_protocol": {
-            "spec_version": "0.5",
-            "service": {"name": "HITL Reference Service (FastAPI)", "url": BASE_URL},
-            "capabilities": {"review_types": ["approval", "selection", "input", "confirmation", "escalation"], "transports": ["polling", "sse"], "default_timeout": "PT24H", "supports_reminders": False, "supports_multi_round": False, "supports_signatures": False},
+            "spec_version": "0.6",
+            "service": {"name": "HITL Reference Service (FastAPI)", "description": "Reference implementation for testing", "url": BASE_URL},
+            "capabilities": {
+                "review_types": ["approval", "selection", "input", "confirmation", "escalation"],
+                "transports": ["polling", "sse"],
+                "supports_inline_submit": True,  # v0.6
+                "default_timeout": "PT24H",
+                "supports_reminders": False,
+                "supports_multi_round": False,
+                "supports_signatures": False,
+            },
             "endpoints": {"reviews_base": f"{BASE_URL}/api/reviews", "review_page_base": f"{BASE_URL}/review"},
             "rate_limits": {"poll_recommended_interval_seconds": 30, "max_requests_per_minute": 60},
         }},

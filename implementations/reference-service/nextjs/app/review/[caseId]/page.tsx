@@ -1,4 +1,4 @@
-import { getCase, verifyToken, transition, getBaseUrl } from '@/lib/hitl';
+import { getCase, verifyTokenForPurpose, transition, getBaseUrl } from '@/lib/hitl';
 import { notFound } from 'next/navigation';
 
 const TEMPLATE_MAP: Record<string, string> = {
@@ -17,7 +17,7 @@ export default async function ReviewPage({ params, searchParams }: {
   const rc = getCase(caseId);
 
   if (!rc) notFound();
-  if (!token || !verifyToken(token, rc.token_hash)) {
+  if (!token || !verifyTokenForPurpose(token, rc, 'review')) {
     return (
       <main style={{ fontFamily: 'system-ui', padding: '2rem', textAlign: 'center' }}>
         <h1>Invalid Token</h1>

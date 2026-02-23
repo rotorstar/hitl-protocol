@@ -49,7 +49,8 @@ All variants implement the same routes:
 |--------|------|:------------:|-------------|
 | POST | `/api/demo?type={type}` | 202 | Create a demo review case |
 | GET | `/review/{caseId}?token={token}` | 200, 401, 404 | Serve review page (HTML template) |
-| POST | `/reviews/{caseId}/respond?token={token}` | 200, 401, 409, 410 | Submit human response |
+| POST | `/reviews/{caseId}/respond?token={token}` | 200, 401, 409, 410 | Submit via review page (query token) |
+| POST | `/reviews/{caseId}/respond` + Bearer | 200, 401, 403, 409, 410 | Submit via agent inline (Bearer token) |
 | GET | `/api/reviews/{caseId}/status` | 200, 304, 429 | Poll status (ETag, Retry-After) |
 | GET | `/api/reviews/{caseId}/events` | 200 (SSE) | Server-Sent Events stream |
 | GET | `/.well-known/hitl.json` | 200 | Discovery endpoint |
@@ -67,6 +68,8 @@ Use the `?type=` query parameter with `/api/demo`:
 | `escalation` | Deploy failed — retry, skip, or abort | retry, skip, abort |
 
 ## Full Flow (curl)
+
+### Standard Flow (review page)
 
 ```bash
 # 1. Create a review case
@@ -95,16 +98,38 @@ curl -s -X POST "http://localhost:3456/reviews/${CASE_ID}/respond?token=${TOKEN}
 curl -s "$POLL_URL" | jq .
 ```
 
+### Inline Flow (agent submit via Bearer token)
+
+For confirmation/escalation/approval types, agents can submit directly without a browser:
+
+```bash
+# 1. Create a confirmation case
+RESPONSE=$(curl -s -X POST http://localhost:3456/api/demo?type=confirmation)
+CASE_ID=$(echo "$RESPONSE" | jq -r '.hitl.case_id')
+SUBMIT_TOKEN=$(echo "$RESPONSE" | jq -r '.hitl.submit_token')
+SUBMIT_URL=$(echo "$RESPONSE" | jq -r '.hitl.submit_url')
+
+# 2. Submit inline via Bearer token (flat body format)
+curl -s -X POST "$SUBMIT_URL" \
+  -H "Authorization: Bearer ${SUBMIT_TOKEN}" \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"confirm","submitted_via":"cli"}'
+```
+
+Note: The `submit_token` is separate from the review URL token — each is scope-restricted and validated independently. See [spec Section 7.5](../../spec/v0.6/hitl-protocol.md) for security details.
+
 ## Features Demonstrated
 
-- **Token Security** — `randomBytes(32)` + SHA-256 hash + `timingSafeEqual`
+- **Dual Token Security** — Separate `review_token` (browser) and `submit_token` (agent), each SHA-256 hashed, scope-validated via `verifyTokenForPurpose()`
+- **Inline Submit (v0.6)** — `submit_url` + `submit_token` + `inline_actions` in HITL response; Bearer auth for agent-driven submissions
 - **State Machine** — 6 states with validated transitions
 - **ETag / If-None-Match** — Efficient polling (304 Not Modified)
 - **Rate Limiting** — 60 req/min per case, 429 with Retry-After
 - **One-Time Response** — 409 Conflict on duplicate submission
+- **403 + review_url** — Invalid inline action returns 403 with fallback URL
 - **SSE** — Real-time event stream with heartbeat
-- **Discovery** — `/.well-known/hitl.json` endpoint
-- **All 5 Review Types** — With type-specific sample data
+- **Discovery** — `/.well-known/hitl.json` with `supports_inline_submit: true`
+- **All 5 Review Types** — With type-specific sample data and inline actions
 
 ## Differences Between Variants
 
@@ -115,6 +140,18 @@ curl -s "$POLL_URL" | jq .
 | TypeScript | JavaScript (ES modules) | JavaScript (ES modules) | Native TypeScript | Python (type hints) |
 | Edge ready | No | Yes (Deno/Bun/CF) | Yes (Vercel Edge) | No |
 | Auto-reload | No | No | Yes (Fast Refresh) | Yes (uvicorn --reload) |
+
+## Inline Actions by Review Type
+
+| Type | `inline_actions` | Inline possible? |
+|------|-----------------|:----------------:|
+| `confirmation` | `["confirm", "cancel"]` | Yes |
+| `escalation` | `["retry", "skip", "abort"]` | Yes |
+| `approval` | `["approve", "reject"]` | Yes |
+| `selection` | — | No (needs list UI) |
+| `input` | — | No (needs form fields) |
+
+Types without inline support omit `submit_url`, `submit_token`, and `inline_actions` from the HITL response. Agents fall back to the standard review URL flow.
 
 ## Production Notes
 

@@ -1,10 +1,11 @@
 /**
- * HITL Protocol v0.5 — Reference Implementation (Express 5)
+ * HITL Protocol v0.6 — Reference Implementation (Express 5)
  *
  * Demonstrates all HITL features:
  *   - 5 review types (approval, selection, input, confirmation, escalation)
  *   - 3 transports (polling, SSE, callback placeholder)
  *   - Token security (randomBytes + SHA-256 + timingSafeEqual)
+ *   - Channel-native inline submit (v0.6: submit_url, submit_token, inline_actions)
  *   - State machine with valid transitions
  *   - ETag / If-None-Match for efficient polling
  *   - Rate limiting (429)
@@ -50,6 +51,22 @@ function verifyToken(token, storedHash) {
   if (candidateHash.length !== storedHash.length) return false;
   return timingSafeEqual(candidateHash, storedHash);
 }
+
+// v0.6: Scope-separated token verification
+function verifyTokenForPurpose(token, reviewCase, purpose) {
+  if (purpose === 'review') return verifyToken(token, reviewCase.token_hash);
+  if (purpose === 'submit') return reviewCase.submit_token_hash ? verifyToken(token, reviewCase.submit_token_hash) : false;
+  return false;
+}
+
+// v0.6: Actions allowed per review type
+const INLINE_ACTIONS = {
+  confirmation: ['confirm', 'cancel'],
+  escalation: ['retry', 'skip', 'abort'],
+  approval: ['approve', 'reject'],  // edit requires review page
+  selection: [],  // URL only — needs cards UI
+  input: [],      // URL only — needs form fields
+};
 
 // ============================================================
 // In-Memory Store (swap with your DB in production)
@@ -198,7 +215,8 @@ app.post('/api/demo', (req, res) => {
   }
 
   const caseId = 'review_' + randomBytes(8).toString('hex');
-  const token = generateToken();
+  const token = generateToken();           // review URL token
+  const submitToken = generateToken();     // v0.6: separate inline submit token
   const now = new Date();
   const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -208,6 +226,8 @@ app.post('/api/demo', (req, res) => {
     status: 'pending',
     prompt: PROMPTS[type],
     token_hash: hashToken(token),
+    submit_token_hash: hashToken(submitToken),  // v0.6
+    inline_actions: INLINE_ACTIONS[type] || [],  // v0.6
     context: SAMPLE_CONTEXTS[type],
     created_at: now.toISOString(),
     expires_at: expires.toISOString(),
@@ -233,10 +253,16 @@ app.post('/api/demo', (req, res) => {
       status: 'human_input_required',
       message: reviewCase.prompt,
       hitl: {
-        spec_version: '0.5',
+        spec_version: '0.6',
         case_id: caseId,
         review_url: `${BASE_URL}/review/${caseId}?token=${token}`,
         poll_url: `${BASE_URL}/api/reviews/${caseId}/status`,
+        // v0.6: Inline submit (only for types that support it)
+        ...(INLINE_ACTIONS[type]?.length > 0 ? {
+          submit_url: `${BASE_URL}/reviews/${caseId}/respond`,
+          submit_token: submitToken,
+          inline_actions: INLINE_ACTIONS[type],
+        } : {}),
         type,
         prompt: reviewCase.prompt,
         timeout: '24h',
@@ -254,7 +280,7 @@ app.get('/review/:caseId', (req, res) => {
   if (!reviewCase) return res.status(404).json({ error: 'not_found', message: 'Review case not found.' });
 
   const token = req.query.token;
-  if (!token || !verifyToken(token, reviewCase.token_hash)) {
+  if (!token || !verifyTokenForPurpose(token, reviewCase, 'review')) {
     return res.status(401).json({ error: 'invalid_token', message: 'Invalid or expired review token.' });
   }
 
@@ -291,14 +317,28 @@ app.get('/review/:caseId', (req, res) => {
   res.type('html').send(html);
 });
 
-// POST /reviews/:caseId/respond?token=... — Submit response
+// POST /reviews/:caseId/respond — Submit response (v0.6: dual auth paths)
 app.post('/reviews/:caseId/respond', (req, res) => {
   const reviewCase = store.get(req.params.caseId);
   if (!reviewCase) return res.status(404).json({ error: 'not_found', message: 'Review case not found.' });
 
-  const token = req.query.token;
-  if (!token || !verifyToken(token, reviewCase.token_hash)) {
-    return res.status(401).json({ error: 'invalid_token', message: 'Invalid or expired review token.' });
+  // v0.6: Determine auth path — Bearer header (inline) vs query param (review page)
+  const authHeader = req.get('Authorization');
+  let isInlineSubmit = false;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Inline submit path: verify against submit_token_hash
+    const bearerToken = authHeader.slice(7);
+    if (!verifyTokenForPurpose(bearerToken, reviewCase, 'submit')) {
+      return res.status(401).json({ error: 'invalid_token', message: 'Invalid submit token.' });
+    }
+    isInlineSubmit = true;
+  } else {
+    // Review page path: verify against review token_hash (query param)
+    const token = req.query.token;
+    if (!token || !verifyTokenForPurpose(token, reviewCase, 'review')) {
+      return res.status(401).json({ error: 'invalid_token', message: 'Invalid or expired review token.' });
+    }
   }
 
   // Check expired
@@ -311,11 +351,21 @@ app.post('/reviews/:caseId/respond', (req, res) => {
     return res.status(409).json({ error: 'duplicate_submission', message: 'This review case has already been responded to.' });
   }
 
-  const { action, data } = req.body;
+  const { action, data, submitted_via, submitted_by } = req.body;
   if (!action) return res.status(400).json({ error: 'missing_action', message: 'Request body must include "action".' });
 
+  // v0.6: Validate inline_actions for Bearer path
+  if (isInlineSubmit && reviewCase.inline_actions?.length > 0 && !reviewCase.inline_actions.includes(action)) {
+    return res.status(403).json({
+      error: 'action_not_inline',
+      message: `Action '${action}' is not allowed via inline submit. Allowed: ${reviewCase.inline_actions.join(', ')}`,
+      review_url: `${BASE_URL}/review/${reviewCase.case_id}`,
+    });
+  }
+
   reviewCase.result = { action, data: data || {} };
-  reviewCase.responded_by = { name: 'Demo User', email: 'demo@example.com' };
+  reviewCase.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
+  if (submitted_via) reviewCase.submitted_via = submitted_via;
   transition(reviewCase, 'completed');
 
   res.json({
@@ -398,11 +448,12 @@ app.get('/api/reviews/:caseId/events', (req, res) => {
 app.get('/.well-known/hitl.json', (_req, res) => {
   res.set('Cache-Control', 'public, max-age=86400').json({
     hitl_protocol: {
-      spec_version: '0.5',
+      spec_version: '0.6',
       service: { name: 'HITL Reference Service (Express)', description: 'Reference implementation for testing', url: BASE_URL },
       capabilities: {
         review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
         transports: ['polling', 'sse'],
+        supports_inline_submit: true,  // v0.6
         default_timeout: 'PT24H',
         supports_reminders: false,
         supports_multi_round: false,

@@ -1,7 +1,18 @@
 /**
- * HITL Protocol v0.5 — Reference Implementation (Hono)
+ * HITL Protocol v0.6 — Reference Implementation (Hono)
  *
  * Same features as Express variant. Hono runs on Node.js, Deno, Bun, and Cloudflare Workers.
+ *
+ * Demonstrates all HITL features:
+ *   - 5 review types (approval, selection, input, confirmation, escalation)
+ *   - 3 transports (polling, SSE, callback placeholder)
+ *   - Token security (randomBytes + SHA-256 + timingSafeEqual)
+ *   - Channel-native inline submit (v0.6: submit_url, submit_token, inline_actions)
+ *   - State machine with valid transitions
+ *   - ETag / If-None-Match for efficient polling
+ *   - Rate limiting (429)
+ *   - One-time response guarantee (409)
+ *   - Discovery endpoint (/.well-known/hitl.json)
  *
  * Usage:
  *   npm install && npm start
@@ -33,6 +44,22 @@ function verifyToken(token, storedHash) {
   const h = hashToken(token);
   return h.length === storedHash.length && timingSafeEqual(h, storedHash);
 }
+
+// v0.6: Scope-separated token verification
+function verifyTokenForPurpose(token, reviewCase, purpose) {
+  if (purpose === 'review') return verifyToken(token, reviewCase.token_hash);
+  if (purpose === 'submit') return reviewCase.submit_token_hash ? verifyToken(token, reviewCase.submit_token_hash) : false;
+  return false;
+}
+
+// v0.6: Actions allowed per review type
+const INLINE_ACTIONS = {
+  confirmation: ['confirm', 'cancel'],
+  escalation: ['retry', 'skip', 'abort'],
+  approval: ['approve', 'reject'],  // edit requires review page
+  selection: [],  // URL only — needs cards UI
+  input: [],      // URL only — needs form fields
+};
 
 // ============================================================
 // Store + State Machine
@@ -108,12 +135,16 @@ app.post('/api/demo', (c) => {
   if (!SAMPLE_CONTEXTS[type]) return c.json({ error: 'invalid_type', message: `Unknown type. Use: ${Object.keys(SAMPLE_CONTEXTS).join(', ')}` }, 400);
 
   const caseId = 'review_' + randomBytes(8).toString('hex');
-  const token = generateToken();
+  const token = generateToken();           // review URL token
+  const submitToken = generateToken();     // v0.6: separate inline submit token
   const now = new Date();
 
   const rc = {
     case_id: caseId, type, status: 'pending', prompt: PROMPTS[type],
-    token_hash: hashToken(token), context: SAMPLE_CONTEXTS[type],
+    token_hash: hashToken(token),
+    submit_token_hash: hashToken(submitToken),  // v0.6
+    inline_actions: INLINE_ACTIONS[type] || [],  // v0.6
+    context: SAMPLE_CONTEXTS[type],
     created_at: now.toISOString(), expires_at: new Date(now.getTime() + 86400000).toISOString(),
     default_action: 'skip', version: 1, etag: '"v1-pending"', result: null, responded_by: null,
   };
@@ -123,7 +154,20 @@ app.post('/api/demo', (c) => {
 
   return c.json({
     status: 'human_input_required', message: rc.prompt,
-    hitl: { spec_version: '0.5', case_id: caseId, review_url: `${BASE_URL}/review/${caseId}?token=${token}`, poll_url: `${BASE_URL}/api/reviews/${caseId}/status`, type, prompt: rc.prompt, timeout: '24h', default_action: 'skip', created_at: rc.created_at, expires_at: rc.expires_at, context: rc.context },
+    hitl: {
+      spec_version: '0.6',
+      case_id: caseId,
+      review_url: `${BASE_URL}/review/${caseId}?token=${token}`,
+      poll_url: `${BASE_URL}/api/reviews/${caseId}/status`,
+      // v0.6: Inline submit (only for types that support it)
+      ...(INLINE_ACTIONS[type]?.length > 0 ? {
+        submit_url: `${BASE_URL}/reviews/${caseId}/respond`,
+        submit_token: submitToken,
+        inline_actions: INLINE_ACTIONS[type],
+      } : {}),
+      type, prompt: rc.prompt, timeout: '24h', default_action: 'skip',
+      created_at: rc.created_at, expires_at: rc.expires_at, context: rc.context,
+    },
   }, 202, { 'Retry-After': '30' });
 });
 
@@ -131,7 +175,7 @@ app.get('/review/:caseId', (c) => {
   const rc = store.get(c.req.param('caseId'));
   if (!rc) return c.json({ error: 'not_found', message: 'Not found.' }, 404);
   const token = c.req.query('token');
-  if (!token || !verifyToken(token, rc.token_hash)) return c.json({ error: 'invalid_token', message: 'Invalid token.' }, 401);
+  if (!token || !verifyTokenForPurpose(token, rc, 'review')) return c.json({ error: 'invalid_token', message: 'Invalid or expired review token.' }, 401);
   if (rc.status === 'pending') try { transition(rc, 'opened'); } catch {}
 
   let html;
@@ -142,18 +186,50 @@ app.get('/review/:caseId', (c) => {
   return c.html(html);
 });
 
+// POST /reviews/:caseId/respond — Submit response (v0.6: dual auth paths)
 app.post('/reviews/:caseId/respond', async (c) => {
   const rc = store.get(c.req.param('caseId'));
-  if (!rc) return c.json({ error: 'not_found' }, 404);
-  const token = c.req.query('token');
-  if (!token || !verifyToken(token, rc.token_hash)) return c.json({ error: 'invalid_token' }, 401);
-  if (rc.status === 'expired') return c.json({ error: 'case_expired', message: `Expired on ${rc.expires_at}.` }, 410);
-  if (rc.status === 'completed') return c.json({ error: 'duplicate_submission', message: 'Already responded.' }, 409);
+  if (!rc) return c.json({ error: 'not_found', message: 'Review case not found.' }, 404);
 
-  const { action, data } = await c.req.json();
-  if (!action) return c.json({ error: 'missing_action' }, 400);
+  // v0.6: Determine auth path — Bearer header (inline) vs query param (review page)
+  const authHeader = c.req.header('Authorization');
+  let isInlineSubmit = false;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Inline submit path: verify against submit_token_hash
+    const bearerToken = authHeader.slice(7);
+    if (!verifyTokenForPurpose(bearerToken, rc, 'submit')) {
+      return c.json({ error: 'invalid_token', message: 'Invalid submit token.' }, 401);
+    }
+    isInlineSubmit = true;
+  } else {
+    // Review page path: verify against review token_hash (query param)
+    const token = c.req.query('token');
+    if (!token || !verifyTokenForPurpose(token, rc, 'review')) {
+      return c.json({ error: 'invalid_token', message: 'Invalid or expired review token.' }, 401);
+    }
+  }
+
+  // Check expired
+  if (rc.status === 'expired') return c.json({ error: 'case_expired', message: `This review case expired on ${rc.expires_at}.` }, 410);
+  // One-time response (409)
+  if (rc.status === 'completed') return c.json({ error: 'duplicate_submission', message: 'This review case has already been responded to.' }, 409);
+
+  const { action, data, submitted_via, submitted_by } = await c.req.json();
+  if (!action) return c.json({ error: 'missing_action', message: 'Request body must include "action".' }, 400);
+
+  // v0.6: Validate inline_actions for Bearer path
+  if (isInlineSubmit && rc.inline_actions?.length > 0 && !rc.inline_actions.includes(action)) {
+    return c.json({
+      error: 'action_not_inline',
+      message: `Action '${action}' is not allowed via inline submit. Allowed: ${rc.inline_actions.join(', ')}`,
+      review_url: `${BASE_URL}/review/${rc.case_id}`,
+    }, 403);
+  }
+
   rc.result = { action, data: data || {} };
-  rc.responded_by = { name: 'Demo User', email: 'demo@example.com' };
+  rc.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
+  if (submitted_via) rc.submitted_via = submitted_via;
   transition(rc, 'completed');
   return c.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
 });
@@ -212,9 +288,17 @@ app.get('/.well-known/hitl.json', (c) => {
   c.header('Cache-Control', 'public, max-age=86400');
   return c.json({
     hitl_protocol: {
-      spec_version: '0.5',
-      service: { name: 'HITL Reference Service (Hono)', url: BASE_URL },
-      capabilities: { review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'], transports: ['polling', 'sse'], default_timeout: 'PT24H', supports_reminders: false, supports_multi_round: false, supports_signatures: false },
+      spec_version: '0.6',
+      service: { name: 'HITL Reference Service (Hono)', description: 'Reference implementation for testing', url: BASE_URL },
+      capabilities: {
+        review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
+        transports: ['polling', 'sse'],
+        supports_inline_submit: true,  // v0.6
+        default_timeout: 'PT24H',
+        supports_reminders: false,
+        supports_multi_round: false,
+        supports_signatures: false,
+      },
       endpoints: { reviews_base: `${BASE_URL}/api/reviews`, review_page_base: `${BASE_URL}/review` },
       rate_limits: { poll_recommended_interval_seconds: 30, max_requests_per_minute: 60 },
     }
