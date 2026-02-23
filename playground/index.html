@@ -596,8 +596,36 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   </div>
 </div>
 
-<!-- TAB 6: Compare -->
+<!-- TAB 6: Inline Confirmation (v0.6) -->
 <div class="section" id="tab-6">
+  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">v0.6 Inline Submit</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">Email service needs confirmation before sending. Agent renders native messaging buttons — human confirms with one tap, no browser needed.</p>
+
+  <div class="pg-grid">
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Platform</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc7-platform" value="telegram" checked onchange="renderUC7()"> Telegram</label>
+          <label class="radio-option"><input type="radio" name="uc7-platform" value="slack" onchange="renderUC7()"> Slack</label>
+          <label class="radio-option"><input type="radio" name="uc7-platform" value="discord" onchange="renderUC7()"> Discord</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Human Action</div>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="uc7-action" value="confirm" checked onchange="renderUC7()"> Confirm (inline)</label>
+          <label class="radio-option"><input type="radio" name="uc7-action" value="cancel" onchange="renderUC7()"> Cancel (inline)</label>
+          <label class="radio-option"><input type="radio" name="uc7-action" value="details" onchange="renderUC7()"> View Details (URL)</label>
+        </div>
+      </div>
+    </div>
+    <div id="uc7-main"></div>
+  </div>
+</div>
+
+<!-- TAB 7: Compare -->
+<div class="section" id="tab-7">
   <h2>Comparison Matrix</h2>
   <p class="subtitle" style="margin-bottom:16px">How HITL Protocol compares to existing standards for human interaction in agent workflows.</p>
 
@@ -685,34 +713,6 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   </div>
 </div>
 
-<!-- TAB 7: Inline Confirmation (v0.6) -->
-<div class="section" id="tab-7">
-  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">v0.6 Inline Submit</span></h2>
-  <p class="subtitle" style="margin-bottom:16px">Email service needs confirmation before sending. Agent renders native messaging buttons — human confirms with one tap, no browser needed.</p>
-
-  <div class="pg-grid">
-    <div class="controls">
-      <div class="control-group">
-        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Platform</div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="uc7-platform" value="telegram" checked onchange="renderUC7()"> Telegram</label>
-          <label class="radio-option"><input type="radio" name="uc7-platform" value="slack" onchange="renderUC7()"> Slack</label>
-          <label class="radio-option"><input type="radio" name="uc7-platform" value="discord" onchange="renderUC7()"> Discord</label>
-        </div>
-      </div>
-      <div class="control-group">
-        <div class="control-label"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Human Action</div>
-        <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="uc7-action" value="confirm" checked onchange="renderUC7()"> Confirm (inline)</label>
-          <label class="radio-option"><input type="radio" name="uc7-action" value="cancel" onchange="renderUC7()"> Cancel (inline)</label>
-          <label class="radio-option"><input type="radio" name="uc7-action" value="details" onchange="renderUC7()"> View Details (URL)</label>
-        </div>
-      </div>
-    </div>
-    <div id="uc7-main"></div>
-  </div>
-</div>
-
 <script>
 // --- Tab switching ---
 function switchTab(n) {
@@ -723,7 +723,7 @@ function switchTab(n) {
   if (n === 3) renderUC3();
   if (n === 4) renderUC4();
   if (n === 5) renderUC5();
-  if (n === 7) renderUC7();
+  if (n === 6) renderUC7();
 }
 
 // --- JSON syntax highlighting ---
@@ -738,7 +738,7 @@ function hl(obj, indent = 0) {
     const items = obj.map(v => sp + '  ' + hl(v, indent + 1));
     return '[\n' + items.join(',\n') + '\n' + sp + ']';
   }
-  const keys = Object.keys(obj);
+  const keys = Object.keys(obj).filter(k => obj[k] !== undefined);
   if (keys.length === 0) return '{}';
   const lines = keys.map(k => {
     const val = obj[k];
@@ -1456,7 +1456,7 @@ function renderUC4() {
       <div class="step-title">HITL Case Created — HTTP 202</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL bridge creates a HITL case. The deal enters <code>NEGOTIATING</code> state.</div>
       <div class="json-block" data-copy="uc4-hitl">${hl({
-        spec_version: '0.1',
+        spec_version: '0.6',
         case_id: 'review_deal_001',
         review_url: 'https://platform.company.com/review/deal_infra_q2?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...',
         poll_url: 'https://platform.company.com/api/v1/hitl/review_deal_001/status',
