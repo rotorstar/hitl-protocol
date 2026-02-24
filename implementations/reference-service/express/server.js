@@ -20,10 +20,16 @@
  */
 
 import express from 'express';
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  generateToken, hashToken, verifyTokenForPurpose,
+  transition, TERMINAL_STATES,
+  checkRateLimit, clearRateLimit, RATE_LIMIT,
+  INLINE_ACTIONS, PROMPTS, SAMPLE_CONTEXTS,
+} from '@hitl-protocol/core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = join(__dirname, '..', '..', '..', 'templates');
@@ -35,77 +41,13 @@ const PORT = process.env.PORT || 3456;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 // ============================================================
-// Token Utilities
-// ============================================================
-
-function generateToken() {
-  return randomBytes(32).toString('base64url');
-}
-
-function hashToken(token) {
-  return createHash('sha256').update(token).digest();
-}
-
-function verifyToken(token, storedHash) {
-  const candidateHash = hashToken(token);
-  if (candidateHash.length !== storedHash.length) return false;
-  return timingSafeEqual(candidateHash, storedHash);
-}
-
-// v0.6: Scope-separated token verification
-function verifyTokenForPurpose(token, reviewCase, purpose) {
-  if (purpose === 'review') return verifyToken(token, reviewCase.token_hash);
-  if (purpose === 'submit') return reviewCase.submit_token_hash ? verifyToken(token, reviewCase.submit_token_hash) : false;
-  return false;
-}
-
-// v0.6: Actions allowed per review type
-const INLINE_ACTIONS = {
-  confirmation: ['confirm', 'cancel'],
-  escalation: ['retry', 'skip', 'abort'],
-  approval: ['approve', 'reject'],  // edit requires review page
-  selection: [],  // URL only — needs cards UI
-  input: [],      // URL only — needs form fields
-};
-
-// ============================================================
 // In-Memory Store (swap with your DB in production)
 // ============================================================
 
 const store = new Map();
 
 // ============================================================
-// State Machine
-// ============================================================
-
-const VALID_TRANSITIONS = {
-  pending:     ['opened', 'expired', 'cancelled'],
-  opened:      ['in_progress', 'completed', 'expired', 'cancelled'],
-  in_progress: ['completed', 'expired', 'cancelled'],
-  completed:   [],  // terminal
-  expired:     [],  // terminal
-  cancelled:   [],  // terminal
-};
-
-function transition(reviewCase, newStatus) {
-  const allowed = VALID_TRANSITIONS[reviewCase.status];
-  if (!allowed || !allowed.includes(newStatus)) {
-    throw new Error(`Invalid transition: ${reviewCase.status} → ${newStatus}`);
-  }
-  reviewCase.status = newStatus;
-  reviewCase[newStatus + '_at'] = new Date().toISOString();
-  reviewCase.etag = `"v${++reviewCase.version}-${newStatus}"`;
-  // Clean up resources on terminal state
-  if (['completed', 'expired', 'cancelled'].includes(newStatus)) {
-    if (reviewCase._expirationTimer) { clearTimeout(reviewCase._expirationTimer); delete reviewCase._expirationTimer; }
-    rateLimits.delete(reviewCase.case_id);
-  }
-  notifySSE(reviewCase);
-  return reviewCase;
-}
-
-// ============================================================
-// SSE Connections
+// SSE Connections (framework-specific: Express res.write)
 // ============================================================
 
 const sseClients = new Map(); // caseId → Set<res>
@@ -122,78 +64,18 @@ function notifySSE(reviewCase) {
   if (clients.size === 0) sseClients.delete(reviewCase.case_id);
 }
 
-// ============================================================
-// Rate Limiting (simple per-case counter)
-// ============================================================
-
-const rateLimits = new Map(); // caseId → { count, resetAt }
-const RATE_LIMIT = 60; // requests per minute
-
-function checkRateLimit(caseId) {
-  const now = Date.now();
-  let entry = rateLimits.get(caseId);
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + 60000 };
-    rateLimits.set(caseId, entry);
+// Framework-specific side effects after state transition
+function handleTransition(rc) {
+  if (TERMINAL_STATES.includes(rc.status)) {
+    clearRateLimit(rc.case_id);
+    if (rc._expirationTimer) { clearTimeout(rc._expirationTimer); delete rc._expirationTimer; }
   }
-  entry.count++;
-  return { allowed: entry.count <= RATE_LIMIT, remaining: Math.max(0, RATE_LIMIT - entry.count) };
+  notifySSE(rc);
 }
 
 // ============================================================
-// Sample Contexts for Demo
+// Template Map
 // ============================================================
-
-const SAMPLE_CONTEXTS = {
-  selection: {
-    items: [
-      { id: 'job_001', title: 'Senior Frontend Engineer', description: 'React/Next.js role at TechCorp, Berlin.', metadata: { salary: '85-110k EUR', remote: 'Hybrid' } },
-      { id: 'job_002', title: 'Full-Stack Developer', description: 'Node.js + React at StartupXYZ, Munich.', metadata: { salary: '70-95k EUR', remote: 'Fully remote' } },
-      { id: 'job_003', title: 'Tech Lead', description: 'Team of 8, microservices architecture.', metadata: { salary: '110-140k EUR', remote: 'On-site' } },
-    ]
-  },
-  approval: {
-    artifact: {
-      title: 'Production Deployment v2.4.0',
-      content: 'Changes:\n- Updated auth middleware\n- Fixed rate limiter bypass\n- Added HITL Protocol support\n\nRisk: Medium (auth changes)\nRollback: Automated via blue-green',
-      metadata: { environment: 'production', author: 'CI Pipeline', commit: 'a1b2c3d' }
-    }
-  },
-  input: {
-    form: {
-      fields: [
-        { key: 'salary_expectation', label: 'Salary Expectation (EUR)', type: 'number', required: true, validation: { min: 30000, max: 300000 }, hint: 'Gross annual salary' },
-        { key: 'start_date', label: 'Earliest Start Date', type: 'date', required: true },
-        { key: 'work_auth', label: 'Work Authorization', type: 'select', required: true, options: [
-          { value: 'citizen', label: 'EU Citizen' }, { value: 'blue_card', label: 'Blue Card' }, { value: 'visa_required', label: 'Visa Required' }
-        ] }
-      ]
-    }
-  },
-  confirmation: {
-    description: 'The following application emails will be sent:',
-    items: [
-      { id: 'email_1', label: 'Application to TechCorp — Senior Frontend Engineer' },
-      { id: 'email_2', label: 'Application to StartupXYZ — Full-Stack Developer' },
-    ]
-  },
-  escalation: {
-    error: {
-      title: 'Deployment Failed',
-      summary: 'Container OOMKilled during startup — exceeded memory limit.',
-      details: 'Error: OOMKilled\nContainer: web-api-v2.4.0\nMemory used: 2.1GB / 2GB limit\nTimestamp: 2026-02-22T14:32:00Z\nPod: web-api-7b8c9d-xk4m2'
-    },
-    params: { memory: '2GB', replicas: '3', cpu: '1000m' }
-  }
-};
-
-const PROMPTS = {
-  selection: 'Select which jobs to apply for',
-  approval: 'Approve production deployment of v2.4.0',
-  input: 'Provide your job application details',
-  confirmation: 'Confirm sending 2 application emails',
-  escalation: 'Deployment failed — decide how to proceed'
-};
 
 const TEMPLATE_MAP = {
   selection: 'selection.html',
@@ -243,7 +125,7 @@ app.post('/api/demo', (req, res) => {
   // Auto-expire after timeout (store timer so it can be cleared on early completion)
   reviewCase._expirationTimer = setTimeout(() => {
     if (['pending', 'opened', 'in_progress'].includes(reviewCase.status)) {
-      try { transition(reviewCase, 'expired'); } catch {}
+      try { transition(reviewCase, 'expired', handleTransition); } catch {}
     }
   }, 24 * 60 * 60 * 1000);
 
@@ -286,7 +168,7 @@ app.get('/review/:caseId', (req, res) => {
 
   // Mark as opened on first visit
   if (reviewCase.status === 'pending') {
-    try { transition(reviewCase, 'opened'); } catch {}
+    try { transition(reviewCase, 'opened', handleTransition); } catch {}
   }
 
   const templateFile = TEMPLATE_MAP[reviewCase.type];
@@ -366,7 +248,7 @@ app.post('/reviews/:caseId/respond', (req, res) => {
   reviewCase.result = { action, data: data || {} };
   reviewCase.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
   if (submitted_via) reviewCase.submitted_via = submitted_via;
-  transition(reviewCase, 'completed');
+  transition(reviewCase, 'completed', handleTransition);
 
   res.json({
     status: 'completed',

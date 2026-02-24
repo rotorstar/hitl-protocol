@@ -22,10 +22,16 @@
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { serve } from '@hono/node-server';
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  generateToken, hashToken, verifyTokenForPurpose,
+  transition, TERMINAL_STATES,
+  checkRateLimit, clearRateLimit, RATE_LIMIT,
+  INLINE_ACTIONS, PROMPTS, SAMPLE_CONTEXTS,
+} from '@hitl-protocol/core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = join(__dirname, '..', '..', '..', 'templates');
@@ -35,95 +41,29 @@ const PORT = Number(process.env.PORT) || 3457;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 // ============================================================
-// Token Utilities
-// ============================================================
-
-function generateToken() { return randomBytes(32).toString('base64url'); }
-function hashToken(token) { return createHash('sha256').update(token).digest(); }
-function verifyToken(token, storedHash) {
-  const h = hashToken(token);
-  return h.length === storedHash.length && timingSafeEqual(h, storedHash);
-}
-
-// v0.6: Scope-separated token verification
-function verifyTokenForPurpose(token, reviewCase, purpose) {
-  if (purpose === 'review') return verifyToken(token, reviewCase.token_hash);
-  if (purpose === 'submit') return reviewCase.submit_token_hash ? verifyToken(token, reviewCase.submit_token_hash) : false;
-  return false;
-}
-
-// v0.6: Actions allowed per review type
-const INLINE_ACTIONS = {
-  confirmation: ['confirm', 'cancel'],
-  escalation: ['retry', 'skip', 'abort'],
-  approval: ['approve', 'reject'],  // edit requires review page
-  selection: [],  // URL only — needs cards UI
-  input: [],      // URL only — needs form fields
-};
-
-// ============================================================
-// Store + State Machine
+// In-Memory Store + SSE (framework-specific: Hono writer functions)
 // ============================================================
 
 const store = new Map();
-const sseClients = new Map();
-const rateLimits = new Map();
-const RATE_LIMIT = 60;
+const sseClients = new Map(); // caseId → Set<(msg) => void>
 
-const VALID_TRANSITIONS = {
-  pending: ['opened', 'expired', 'cancelled'],
-  opened: ['in_progress', 'completed', 'expired', 'cancelled'],
-  in_progress: ['completed', 'expired', 'cancelled'],
-  completed: [], expired: [], cancelled: [],
-};
-
-function transition(rc, newStatus) {
-  if (!VALID_TRANSITIONS[rc.status]?.includes(newStatus)) throw new Error(`Invalid: ${rc.status} → ${newStatus}`);
-  rc.status = newStatus;
-  rc[newStatus + '_at'] = new Date().toISOString();
-  rc.etag = `"v${++rc.version}-${newStatus}"`;
-  // Clean up resources on terminal state
-  if (['completed', 'expired', 'cancelled'].includes(newStatus)) {
-    if (rc._expirationTimer) { clearTimeout(rc._expirationTimer); delete rc._expirationTimer; }
-    rateLimits.delete(rc.case_id);
-  }
+function notifySSE(rc) {
   const clients = sseClients.get(rc.case_id);
-  if (clients) {
-    const payload = JSON.stringify({ case_id: rc.case_id, status: rc.status, ...(rc.result && { result: rc.result }) });
-    const msg = `event: review.${rc.status}\ndata: ${payload}\nid: evt_${Date.now()}\n\n`;
-    clients.forEach((w) => { try { w(msg); } catch {} });
+  if (!clients) return;
+  const payload = JSON.stringify({ case_id: rc.case_id, status: rc.status, ...(rc.result && { result: rc.result }) });
+  const msg = `event: review.${rc.status}\ndata: ${payload}\nid: evt_${Date.now()}\n\n`;
+  clients.forEach((w) => { try { w(msg); } catch {} });
+}
+
+// Framework-specific side effects after state transition
+function handleTransition(rc) {
+  if (TERMINAL_STATES.includes(rc.status)) {
+    clearRateLimit(rc.case_id);
+    if (rc._expirationTimer) { clearTimeout(rc._expirationTimer); delete rc._expirationTimer; }
   }
+  notifySSE(rc);
 }
 
-function checkRateLimit(caseId) {
-  const now = Date.now();
-  let e = rateLimits.get(caseId);
-  if (!e || now > e.resetAt) { e = { count: 0, resetAt: now + 60000 }; rateLimits.set(caseId, e); }
-  e.count++;
-  return { allowed: e.count <= RATE_LIMIT, remaining: Math.max(0, RATE_LIMIT - e.count) };
-}
-
-// ============================================================
-// Sample Data
-// ============================================================
-
-const SAMPLE_CONTEXTS = {
-  selection: { items: [
-    { id: 'job_001', title: 'Senior Frontend Engineer', description: 'React/Next.js at TechCorp, Berlin.', metadata: { salary: '85-110k EUR', remote: 'Hybrid' } },
-    { id: 'job_002', title: 'Full-Stack Developer', description: 'Node.js + React at StartupXYZ, Munich.', metadata: { salary: '70-95k EUR', remote: 'Fully remote' } },
-    { id: 'job_003', title: 'Tech Lead', description: 'Team of 8, microservices.', metadata: { salary: '110-140k EUR', remote: 'On-site' } },
-  ] },
-  approval: { artifact: { title: 'Production Deployment v2.4.0', content: 'Changes:\n- Updated auth\n- Fixed rate limiter\n- Added HITL support\n\nRisk: Medium\nRollback: Automated', metadata: { environment: 'production', commit: 'a1b2c3d' } } },
-  input: { form: { fields: [
-    { key: 'salary_expectation', label: 'Salary Expectation (EUR)', type: 'number', required: true, validation: { min: 30000, max: 300000 } },
-    { key: 'start_date', label: 'Earliest Start Date', type: 'date', required: true },
-    { key: 'work_auth', label: 'Work Authorization', type: 'select', required: true, options: [{ value: 'citizen', label: 'EU Citizen' }, { value: 'blue_card', label: 'Blue Card' }, { value: 'visa_required', label: 'Visa Required' }] }
-  ] } },
-  confirmation: { description: 'The following emails will be sent:', items: [{ id: 'email_1', label: 'Application to TechCorp' }, { id: 'email_2', label: 'Application to StartupXYZ' }] },
-  escalation: { error: { title: 'Deployment Failed', summary: 'Container OOMKilled', details: 'Error: OOMKilled\nMemory: 2.1GB / 2GB\nPod: web-api-7b8c9d-xk4m2' }, params: { memory: '2GB', replicas: '3' } },
-};
-
-const PROMPTS = { selection: 'Select which jobs to apply for', approval: 'Approve production deployment v2.4.0', input: 'Provide application details', confirmation: 'Confirm sending 2 emails', escalation: 'Deployment failed — decide how to proceed' };
 const TEMPLATE_MAP = { selection: 'selection.html', approval: 'approval.html', input: 'input.html', confirmation: 'confirmation.html', escalation: 'escalation.html' };
 
 // ============================================================
@@ -150,7 +90,7 @@ app.post('/api/demo', (c) => {
   };
   store.set(caseId, rc);
 
-  rc._expirationTimer = setTimeout(() => { if (['pending', 'opened', 'in_progress'].includes(rc.status)) try { transition(rc, 'expired'); } catch {} }, 86400000);
+  rc._expirationTimer = setTimeout(() => { if (['pending', 'opened', 'in_progress'].includes(rc.status)) try { transition(rc, 'expired', handleTransition); } catch {} }, 86400000);
 
   return c.json({
     status: 'human_input_required', message: rc.prompt,
@@ -176,7 +116,7 @@ app.get('/review/:caseId', (c) => {
   if (!rc) return c.json({ error: 'not_found', message: 'Not found.' }, 404);
   const token = c.req.query('token');
   if (!token || !verifyTokenForPurpose(token, rc, 'review')) return c.json({ error: 'invalid_token', message: 'Invalid or expired review token.' }, 401);
-  if (rc.status === 'pending') try { transition(rc, 'opened'); } catch {}
+  if (rc.status === 'pending') try { transition(rc, 'opened', handleTransition); } catch {}
 
   let html;
   try { html = readFileSync(join(TEMPLATES_DIR, TEMPLATE_MAP[rc.type]), 'utf-8'); } catch { return c.json({ error: 'template_error' }, 500); }
@@ -230,7 +170,7 @@ app.post('/reviews/:caseId/respond', async (c) => {
   rc.result = { action, data: data || {} };
   rc.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
   if (submitted_via) rc.submitted_via = submitted_via;
-  transition(rc, 'completed');
+  transition(rc, 'completed', handleTransition);
   return c.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCase, verifyTokenForPurpose, transition, getBaseUrl } from '@/lib/hitl';
+import { getCase, verifyTokenForPurpose, transition, handleTransition, getBaseUrl } from '@/lib/hitl';
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
@@ -52,7 +52,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   rc.result = { action, data: data || {} };
   rc.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
   if (submitted_via) rc.submitted_via = submitted_via;
-  transition(rc, 'completed');
+  transition(rc, 'completed', handleTransition);
 
   return NextResponse.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
 }

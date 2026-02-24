@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { generateToken, hashToken, setCase, transition, SAMPLE_CONTEXTS, PROMPTS, INLINE_ACTIONS, getBaseUrl } from '@/lib/hitl';
+import { generateToken, hashToken, setCase, transition, handleTransition, SAMPLE_CONTEXTS, PROMPTS, INLINE_ACTIONS, getBaseUrl } from '@/lib/hitl';
 import type { ReviewType, ReviewCase } from '@/lib/hitl';
 
 export async function POST(request: Request) {
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     case_id: caseId, type, status: 'pending', prompt: PROMPTS[type],
     token_hash: hashToken(token),
     submit_token_hash: hashToken(submitToken),  // v0.6
-    inline_actions: inlineActions,              // v0.6
+    inline_actions: [...inlineActions],           // v0.6
     context: SAMPLE_CONTEXTS[type],
     created_at: now.toISOString(), expires_at: expires.toISOString(),
     default_action: 'skip', version: 1, etag: '"v1-pending"', result: null, responded_by: null,
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   // Auto-expire
   setTimeout(() => {
-    if (['pending', 'opened', 'in_progress'].includes(rc.status)) try { transition(rc, 'expired'); } catch {}
+    if (['pending', 'opened', 'in_progress'].includes(rc.status)) try { transition(rc, 'expired', handleTransition); } catch {}
   }, 86400000);
 
   return NextResponse.json({

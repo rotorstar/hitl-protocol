@@ -1,4 +1,4 @@
-import { getCase, verifyTokenForPurpose, transition, getBaseUrl } from '@/lib/hitl';
+import { getCase, verifyTokenForPurpose, transition, handleTransition, getBaseUrl } from '@/lib/hitl';
 import { notFound } from 'next/navigation';
 
 const TEMPLATE_MAP: Record<string, string> = {
@@ -28,7 +28,7 @@ export default async function ReviewPage({ params, searchParams }: {
 
   // Mark as opened
   if (rc.status === 'pending') {
-    try { transition(rc, 'opened'); } catch {}
+    try { transition(rc, 'opened', handleTransition); } catch {}
   }
 
   const base = getBaseUrl();

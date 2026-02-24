@@ -6,6 +6,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@hitl-protocol/core": "workspace:*",
     "express": "^5.1.0"
   }
 }
