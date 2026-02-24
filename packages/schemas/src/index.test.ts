@@ -59,7 +59,7 @@ describe('Schema exports', () => {
 describe('validateHitlObject', () => {
   it('validates a minimal valid hitl object', () => {
     const obj: HitlObject = {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: 'review_test123',
       review_url: 'https://example.com/review/test123?token=abc',
       poll_url: 'https://example.com/api/reviews/test123/status',
@@ -73,7 +73,7 @@ describe('validateHitlObject', () => {
 
   it('validates hitl object with inline submit fields', () => {
     const obj: HitlObject = {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: 'review_inline',
       review_url: 'https://example.com/review/inline?token=abc',
       poll_url: 'https://example.com/api/reviews/inline/status',
@@ -95,7 +95,7 @@ describe('validateHitlObject', () => {
 
   it('rejects submit_url without submit_token', () => {
     const obj = {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: 'review_bad',
       review_url: 'https://example.com/review/bad?token=abc',
       poll_url: 'https://example.com/api/reviews/bad/status',
@@ -111,7 +111,7 @@ describe('validateHitlObject', () => {
 
   it('rejects invalid spec_version', () => {
     const obj = {
-      spec_version: '0.5',
+      spec_version: '0.7',
       case_id: 'review_old',
       review_url: 'https://example.com/review/old?token=abc',
       poll_url: 'https://example.com/api/reviews/old/status',
