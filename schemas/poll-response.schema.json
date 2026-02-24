@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.5/poll-response.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.7/poll-response.json",
   "title": "HITL Poll Response",
-  "description": "Response from the poll endpoint, as defined by HITL Protocol v0.5",
+  "description": "Response from the poll endpoint, as defined by HITL Protocol v0.7",
   "type": "object",
   "required": [
     "status",

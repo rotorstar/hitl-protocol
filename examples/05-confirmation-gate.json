@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Confirmation Gate Before Irreversible Action",
+  "_comment": "HITL Protocol v0.7 — Example: Confirmation Gate Before Irreversible Action",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "An email sending service is about to send 3 personalized application emails on behalf of the user. Since sending emails is irreversible, the service requires human confirmation before proceeding. The human reviews the email previews and confirms sending all 3.",
   "steps": [

@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Escalation After Deployment Failure",
+  "_comment": "HITL Protocol v0.7 — Example: Escalation After Deployment Failure",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A deployment to production failed after the rolling update timed out at 60% of pods. The CI/CD service escalates to a human for a decision: retry with modified parameters, skip this deployment, or abort the release entirely. The human decides to retry with a canary strategy instead of rolling, and increases the timeout.",
   "steps": [

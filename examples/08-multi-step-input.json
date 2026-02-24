@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Multi-Step Input Wizard",
+  "_comment": "HITL Protocol v0.7 — Example: Multi-Step Input Wizard",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A freelancer platform onboards a new contractor. The platform needs structured information across three steps: personal details, work preferences (with conditional fields based on employment type), and a final review. The agent forwards the wizard URL, and the human completes the multi-step form at their own pace.",
   "steps": [

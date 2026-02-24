@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Structured Input Form (Single-Step)",
+  "_comment": "HITL Protocol v0.7 — Example: Structured Input Form (Single-Step)",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "_note": "Migrated from context.required_fields to context.form.fields (v0.5 form field definitions)",
   "scenario": "A job application service needs information that the agent cannot infer from the applicant's profile: salary expectations, earliest start date, visa/work authorization status, and relocation willingness. The service presents a structured form. The human fills it out and submits.",

@@ -1,4 +1,4 @@
-"""HITL Protocol v0.5 — Schema Validation Tests (Python)."""
+"""HITL Protocol v0.7 — Schema Validation Tests (Python)."""
 
 import json
 
@@ -13,7 +13,7 @@ def make_validator(schema, form_field_schema):
     resource = Resource.from_contents(form_field_schema, default_specification=DRAFT202012)
     registry = Registry().with_resources([
         ("form-field.json", resource),
-        ("https://hitl-protocol.org/schemas/v0.5/form-field.json", resource),
+        ("https://hitl-protocol.org/schemas/v0.7/form-field.json", resource),
     ])
     return Draft202012Validator(schema, registry=registry)
 

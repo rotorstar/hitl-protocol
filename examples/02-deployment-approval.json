@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Deployment Approval with Signed Response",
+  "_comment": "HITL Protocol v0.7 — Example: Deployment Approval with Signed Response",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A CI/CD pipeline service needs human approval to deploy application v2.1.0 to production. The service includes test results and deployment context. The human approves with feedback, and the response includes a CHEQ-style cryptographic signature for audit trail integrity.",
   "steps": [

@@ -1,4 +1,4 @@
-"""HITL Protocol v0.5 — State Machine Tests (Python)."""
+"""HITL Protocol v0.7 — State Machine Tests (Python)."""
 
 import pytest
 

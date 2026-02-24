@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.5 — Example: Multi-Round Content Review with Edits",
+  "_comment": "HITL Protocol v0.7 — Example: Multi-Round Content Review with Edits",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "An agent drafts a cover letter for a job application. The content review service presents the draft to the human. In round 1, the human requests edits (tone too formal, add specific project mention). The agent revises and resubmits. In round 2, the human approves the revised version. The two rounds are linked via previous_case_id.",
   "steps": [

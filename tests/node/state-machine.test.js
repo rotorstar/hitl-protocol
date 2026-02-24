@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.5 — State Machine Tests
+ * HITL Protocol v0.7 — State Machine Tests
  *
  * Validates all state transitions as defined in Spec Section 8.
  * 6 states: pending, opened, in_progress, completed, expired, cancelled
