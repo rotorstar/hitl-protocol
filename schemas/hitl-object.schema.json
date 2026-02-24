@@ -18,7 +18,7 @@
     "spec_version": {
       "type": "string",
       "const": "0.7",
-      "description": "Protocol version. MUST be '0.6' for this spec."
+      "description": "Protocol version. MUST be '0.7' for this spec."
     },
     "case_id": {
       "type": "string",

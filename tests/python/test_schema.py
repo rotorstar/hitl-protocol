@@ -54,7 +54,7 @@ class TestHitlObjectSchema:
     def test_rejects_invalid_type(self, hitl_schema, form_field_schema):
         validator = make_validator(hitl_schema, form_field_schema)
         obj = {
-            "spec_version": "0.5",
+            "spec_version": "0.7",
             "case_id": "test",
             "review_url": "https://example.com/review",
             "poll_url": "https://example.com/poll",
@@ -68,7 +68,7 @@ class TestHitlObjectSchema:
     def test_accepts_custom_x_prefix_type(self, hitl_schema, form_field_schema):
         validator = make_validator(hitl_schema, form_field_schema)
         obj = {
-            "spec_version": "0.5",
+            "spec_version": "0.7",
             "case_id": "test",
             "review_url": "https://example.com/review",
             "poll_url": "https://example.com/poll",
@@ -82,7 +82,7 @@ class TestHitlObjectSchema:
     def test_minimal_valid(self, hitl_schema, form_field_schema):
         validator = make_validator(hitl_schema, form_field_schema)
         obj = {
-            "spec_version": "0.5",
+            "spec_version": "0.7",
             "case_id": "review_123",
             "review_url": "https://example.com/review/123",
             "poll_url": "https://example.com/reviews/123/status",
