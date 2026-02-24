@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const base = getBaseUrl();
   const caseId = 'review_' + randomBytes(8).toString('hex');
   const token = generateToken();            // review URL token
-  const submitToken = generateToken();      // v0.6: separate inline submit token
+  const submitToken = generateToken();      // v0.7: separate inline submit token
   const now = new Date();
   const expires = new Date(now.getTime() + 86400000);
   const inlineActions = INLINE_ACTIONS[type] || [];
@@ -25,8 +25,8 @@ export async function POST(request: Request) {
   const rc: ReviewCase = {
     case_id: caseId, type, status: 'pending', prompt: PROMPTS[type],
     token_hash: hashToken(token),
-    submit_token_hash: hashToken(submitToken),  // v0.6
-    inline_actions: [...inlineActions],           // v0.6
+    submit_token_hash: hashToken(submitToken),  // v0.7
+    inline_actions: [...inlineActions],           // v0.7
     context: SAMPLE_CONTEXTS[type],
     created_at: now.toISOString(), expires_at: expires.toISOString(),
     default_action: 'skip', version: 1, etag: '"v1-pending"', result: null, responded_by: null,
@@ -41,10 +41,10 @@ export async function POST(request: Request) {
   return NextResponse.json({
     status: 'human_input_required', message: rc.prompt,
     hitl: {
-      spec_version: '0.6', case_id: caseId,
+      spec_version: '0.7', case_id: caseId,
       review_url: `${base}/review/${caseId}?token=${token}`,
       poll_url: `${base}/api/reviews/${caseId}/status`,
-      // v0.6: Inline submit (only for types that support it)
+      // v0.7: Inline submit (only for types that support it)
       ...(inlineActions.length > 0 ? {
         submit_url: `${base}/api/reviews/${caseId}/respond`,
         submit_token: submitToken,

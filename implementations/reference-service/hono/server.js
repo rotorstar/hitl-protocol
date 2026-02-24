@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.6 — Reference Implementation (Hono)
+ * HITL Protocol v0.7 — Reference Implementation (Hono)
  *
  * Same features as Express variant. Hono runs on Node.js, Deno, Bun, and Cloudflare Workers.
  *
@@ -7,7 +7,7 @@
  *   - 5 review types (approval, selection, input, confirmation, escalation)
  *   - 3 transports (polling, SSE, callback placeholder)
  *   - Token security (randomBytes + SHA-256 + timingSafeEqual)
- *   - Channel-native inline submit (v0.6: submit_url, submit_token, inline_actions)
+ *   - Channel-native inline submit (v0.7: submit_url, submit_token, inline_actions)
  *   - State machine with valid transitions
  *   - ETag / If-None-Match for efficient polling
  *   - Rate limiting (429)
@@ -76,14 +76,14 @@ app.post('/api/demo', (c) => {
 
   const caseId = 'review_' + randomBytes(8).toString('hex');
   const token = generateToken();           // review URL token
-  const submitToken = generateToken();     // v0.6: separate inline submit token
+  const submitToken = generateToken();     // v0.7: separate inline submit token
   const now = new Date();
 
   const rc = {
     case_id: caseId, type, status: 'pending', prompt: PROMPTS[type],
     token_hash: hashToken(token),
-    submit_token_hash: hashToken(submitToken),  // v0.6
-    inline_actions: INLINE_ACTIONS[type] || [],  // v0.6
+    submit_token_hash: hashToken(submitToken),  // v0.7
+    inline_actions: INLINE_ACTIONS[type] || [],  // v0.7
     context: SAMPLE_CONTEXTS[type],
     created_at: now.toISOString(), expires_at: new Date(now.getTime() + 86400000).toISOString(),
     default_action: 'skip', version: 1, etag: '"v1-pending"', result: null, responded_by: null,
@@ -95,11 +95,11 @@ app.post('/api/demo', (c) => {
   return c.json({
     status: 'human_input_required', message: rc.prompt,
     hitl: {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: caseId,
       review_url: `${BASE_URL}/review/${caseId}?token=${token}`,
       poll_url: `${BASE_URL}/api/reviews/${caseId}/status`,
-      // v0.6: Inline submit (only for types that support it)
+      // v0.7: Inline submit (only for types that support it)
       ...(INLINE_ACTIONS[type]?.length > 0 ? {
         submit_url: `${BASE_URL}/reviews/${caseId}/respond`,
         submit_token: submitToken,
@@ -126,12 +126,12 @@ app.get('/review/:caseId', (c) => {
   return c.html(html);
 });
 
-// POST /reviews/:caseId/respond — Submit response (v0.6: dual auth paths)
+// POST /reviews/:caseId/respond — Submit response (v0.7: dual auth paths)
 app.post('/reviews/:caseId/respond', async (c) => {
   const rc = store.get(c.req.param('caseId'));
   if (!rc) return c.json({ error: 'not_found', message: 'Review case not found.' }, 404);
 
-  // v0.6: Determine auth path — Bearer header (inline) vs query param (review page)
+  // v0.7: Determine auth path — Bearer header (inline) vs query param (review page)
   const authHeader = c.req.header('Authorization');
   let isInlineSubmit = false;
 
@@ -158,7 +158,7 @@ app.post('/reviews/:caseId/respond', async (c) => {
   const { action, data, submitted_via, submitted_by } = await c.req.json();
   if (!action) return c.json({ error: 'missing_action', message: 'Request body must include "action".' }, 400);
 
-  // v0.6: Validate inline_actions for Bearer path
+  // v0.7: Validate inline_actions for Bearer path
   if (isInlineSubmit && rc.inline_actions?.length > 0 && !rc.inline_actions.includes(action)) {
     return c.json({
       error: 'action_not_inline',
@@ -228,12 +228,12 @@ app.get('/.well-known/hitl.json', (c) => {
   c.header('Cache-Control', 'public, max-age=86400');
   return c.json({
     hitl_protocol: {
-      spec_version: '0.6',
+      spec_version: '0.7',
       service: { name: 'HITL Reference Service (Hono)', description: 'Reference implementation for testing', url: BASE_URL },
       capabilities: {
         review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
         transports: ['polling', 'sse'],
-        supports_inline_submit: true,  // v0.6
+        supports_inline_submit: true,  // v0.7
         default_timeout: 'PT24H',
         supports_reminders: false,
         supports_multi_round: false,

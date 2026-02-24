@@ -1,6 +1,6 @@
 {
   "name": "@hitl-protocol/schemas",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "JSON Schemas, TypeScript types, and validators for the HITL Protocol",
   "type": "module",
   "exports": {

@@ -21,7 +21,7 @@ const token = generateToken()           // base64url, 256 bits
 const hash = hashToken(token)           // SHA-256 → Buffer
 const valid = verifyToken(token, hash)  // timing-safe comparison
 
-// Purpose-scoped verification (v0.6)
+// Purpose-scoped verification (v0.7)
 const ok = verifyTokenForPurpose(token, reviewCase, 'submit')
 ```
 

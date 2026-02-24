@@ -1,5 +1,5 @@
 /**
- * TypeScript type definitions for HITL Protocol v0.6.
+ * TypeScript type definitions for HITL Protocol v0.7.
  *
  * These types mirror the JSON Schemas in schemas/ and are validated
  * against them in the test suite. The JSON Schemas remain the
@@ -130,11 +130,11 @@ export interface HitlContext {
 
 /**
  * The `hitl` object within an HTTP 202 response.
- * Defined by HITL Protocol v0.6.
+ * Defined by HITL Protocol v0.7.
  */
 export interface HitlObject {
   // Required fields
-  spec_version: '0.6'
+  spec_version: '0.7'
   case_id: string
   review_url: string
   poll_url: string
@@ -153,7 +153,7 @@ export interface HitlObject {
   previous_case_id?: string
   surface?: Surface
 
-  // Inline submit (v0.6)
+  // Inline submit (v0.7)
   submit_url?: string
   submit_token?: string
   inline_actions?: string[]
@@ -212,7 +212,7 @@ export interface PollResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Inline Submit Request (v0.6)
+// Inline Submit Request (v0.7)
 // ---------------------------------------------------------------------------
 
 /** Standard submission channels for inline submit. */

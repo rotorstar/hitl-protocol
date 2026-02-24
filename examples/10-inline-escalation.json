@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.6 — Example: Inline Escalation via Messaging Buttons",
+  "_comment": "HITL Protocol v0.7 — Example: Inline Escalation via Messaging Buttons",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A deployment failed and the CI/CD service escalates with inline submit support. The agent renders 3 native buttons (Retry, Skip, Abort) plus a 'View Error Details' URL button. The human taps 'Abort' directly in the chat. For retry with modified parameters, the human would use the URL button instead.",
   "steps": [
@@ -16,7 +16,7 @@
           "status": "human_input_required",
           "message": "Deployment of acme-web v2.1.0 to production failed. Human decision required.",
           "hitl": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "case_id": "review_escalate_h2i3j4k5",
             "review_url": "https://deploypipe.example/review/escalate_h2i3j4k5?token=T7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9qR1s",
             "poll_url": "https://api.deploypipe.example/v1/reviews/escalate_h2i3j4k5/status",

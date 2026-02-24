@@ -547,7 +547,7 @@ Working implementations in 4 frameworks:
 
 ## Common Implementation Mistakes
 
-Real-world audits of services implementing HITL v0.6 have revealed recurring patterns. Avoid these:
+Real-world audits of services implementing HITL v0.7 have revealed recurring patterns. Avoid these:
 
 ### Mistake 1: Accepting Both Tokens Interchangeably (Security Critical)
 
@@ -571,7 +571,7 @@ function verifyToken(token, hitlCase, purpose) {
 }
 ```
 
-See [Spec Section 7.5](../../spec/v0.6/hitl-protocol.md) — `submit_token` MUST be different from the review URL token.
+See [Spec Section 7.5](../../spec/v0.7/hitl-protocol.md) — `submit_token` MUST be different from the review URL token.
 
 ### Mistake 2: Wrong Body Format for Inline Submit
 
@@ -581,7 +581,7 @@ See [Spec Section 7.5](../../spec/v0.6/hitl-protocol.md) — `submit_token` MUST
 - **Inline submit (Bearer header):** `{ action, data, submitted_via, submitted_by }` — flat
 - **Review page (body/URL token):** `{ action, data }` or your existing format
 
-See [Spec Section 7.5.1](../../spec/v0.6/hitl-protocol.md) for the inline submit request body.
+See [Spec Section 7.5.1](../../spec/v0.7/hitl-protocol.md) for the inline submit request body.
 
 ### Mistake 3: HTTP 422 Instead of 403 for Invalid Inline Actions
 

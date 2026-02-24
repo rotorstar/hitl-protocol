@@ -87,7 +87,7 @@
             ]
           },
           "hitl": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "case_id": "review_jbs_a1b2c3d4e5",
             "review_url": "https://jobboard.example/review/jbs_a1b2c3d4e5?token=K7xR2mN4pQ8sT1vW3xY5zA9bC2dE4fG6hI8jK0l",
             "poll_url": "https://api.jobboard.example/v1/reviews/jbs_a1b2c3d4e5/status",

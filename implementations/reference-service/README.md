@@ -116,12 +116,12 @@ curl -s -X POST "$SUBMIT_URL" \
   -d '{"action":"confirm","submitted_via":"cli"}'
 ```
 
-Note: The `submit_token` is separate from the review URL token — each is scope-restricted and validated independently. See [spec Section 7.5](../../spec/v0.6/hitl-protocol.md) for security details.
+Note: The `submit_token` is separate from the review URL token — each is scope-restricted and validated independently. See [spec Section 7.5](../../spec/v0.7/hitl-protocol.md) for security details.
 
 ## Features Demonstrated
 
 - **Dual Token Security** — Separate `review_token` (browser) and `submit_token` (agent), each SHA-256 hashed, scope-validated via `verifyTokenForPurpose()`
-- **Inline Submit (v0.6)** — `submit_url` + `submit_token` + `inline_actions` in HITL response; Bearer auth for agent-driven submissions
+- **Inline Submit (v0.7)** — `submit_url` + `submit_token` + `inline_actions` in HITL response; Bearer auth for agent-driven submissions
 - **State Machine** — 6 states with validated transitions
 - **ETag / If-None-Match** — Efficient polling (304 Not Modified)
 - **Rate Limiting** — 60 req/min per case, 429 with Retry-After

@@ -10,8 +10,8 @@ compatibility:
   - goose
   - copilot
 metadata:
-  version: "0.6"
-  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.6/hitl-protocol.md"
+  version: "0.7"
+  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.7/hitl-protocol.md"
   hitl:
     supported: true
     types: [approval, selection, input, confirmation, escalation]
@@ -49,7 +49,7 @@ Standard flow (all review types):
 7. Agent → Service:  GET {poll_url} → {status: "completed", result: {action, data}}
 8. Agent → Human:    "Applied to 2 selected jobs."
 
-Inline flow (v0.6 — simple decisions only, when submit_url present):
+Inline flow (v0.7 — simple decisions only, when submit_url present):
 1. Human → Agent:    "Send my application emails"
 2. Agent → Service:  POST /api/send {emails: [...]}
 3. Service → Agent:  HTTP 202 + hitl object (incl. submit_url, submit_token, inline_actions)
@@ -98,7 +98,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.6",
+    "spec_version": "0.7",
     "case_id": "review_abc123",
     "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ...",
     "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -120,7 +120,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `spec_version` | `"0.6"` | Protocol version |
+| `spec_version` | `"0.7"` | Protocol version |
 | `case_id` | string | Unique, URL-safe identifier (pattern: `review_{random}`) |
 | `review_url` | URL | HTTPS URL to review page with opaque bearer token |
 | `poll_url` | URL | Status polling endpoint |
@@ -141,7 +141,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
 | `reminder_at` | datetime / datetime[] | When to re-send the review URL |
 | `previous_case_id` | string | Links to prior case in multi-round chain |
 | `surface` | object | UI format declaration (`format`, `version`) |
-| `submit_url` | URL | Agent-submit endpoint for channel-native inline buttons (v0.6) |
+| `submit_url` | URL | Agent-submit endpoint for channel-native inline buttons (v0.7) |
 | `submit_token` | string | Bearer token for `submit_url` authentication (required if `submit_url` set) |
 | `inline_actions` | string[] | Actions permitted via `submit_url` (e.g. `["confirm", "cancel"]`). If absent, all actions for the type are allowed. |
 
@@ -249,7 +249,7 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # v0.6: Check for inline submit support
+    # v0.7: Check for inline submit support
     if "submit_url" in hitl and "submit_token" in hitl:
         # Render native buttons in messaging platform (e.g. Telegram, Slack)
         send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
@@ -282,7 +282,7 @@ No SDK. No UI rendering. Just HTTP + URL forwarding + polling. See [Agent Integr
 
 Polling is the baseline — every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
 
-## Channel-Native Inline Actions (v0.6)
+## Channel-Native Inline Actions (v0.7)
 
 For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
 
@@ -308,7 +308,7 @@ For simple decisions, agents can render **native messaging buttons** instead of 
 - **Does NOT render review UI** — the service hosts and renders the review page. The agent is a messenger.
 - **Does NOT define the review page framework** — any web technology works (React, plain HTML, etc.).
 - **Does NOT replace OAuth** — HITL is for decisions, not authentication.
-- **Does NOT submit on behalf of the human** — unless the human explicitly triggers an inline action button in a messaging platform (v0.6 `submit_url`).
+- **Does NOT submit on behalf of the human** — unless the human explicitly triggers an inline action button in a messaging platform (v0.7 `submit_url`).
 
 ## SKILL.md Extension for Services
 
@@ -325,7 +325,7 @@ metadata:
     info: "May ask user to select preferred jobs or confirm applications."
 ```
 
-See [spec Section 12](spec/v0.6/hitl-protocol.md) for the full field reference.
+See [spec Section 12](spec/v0.7/hitl-protocol.md) for the full field reference.
 
 ### Best Practice: Enforce HITL Choice
 
@@ -385,7 +385,7 @@ See [Service Integration Guide — Enforcing HITL Choice](skills/references/serv
 
 ## Resources
 
-- [Full Specification (v0.6)](spec/v0.6/hitl-protocol.md)
+- [Full Specification (v0.7)](spec/v0.7/hitl-protocol.md)
 - [OpenAPI 3.1 Spec](schemas/openapi.yaml) — all endpoints documented
 - [JSON Schemas](schemas/) — HITL object, poll response, form field, submit request definitions
 - [Reference Implementations](implementations/reference-service/) — Express 5, Hono, Next.js, FastAPI

@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.6 — Example: Inline Confirmation via Messaging Buttons",
+  "_comment": "HITL Protocol v0.7 — Example: Inline Confirmation via Messaging Buttons",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "An email sending service returns a confirmation-type HITL with inline submit support. The agent renders native inline buttons on the messaging platform (Telegram, Slack, Discord, WhatsApp, or Teams). The human taps 'Confirm' directly in the chat — no browser needed. The agent submits via submit_url on behalf of the human.",
   "steps": [
@@ -41,7 +41,7 @@
     },
     {
       "step": 2,
-      "description": "Service returns HTTP 202 with confirmation-type hitl object INCLUDING submit_url and inline_actions (v0.6 inline submit)",
+      "description": "Service returns HTTP 202 with confirmation-type hitl object INCLUDING submit_url and inline_actions (v0.7 inline submit)",
       "response": {
         "status": 202,
         "headers": {
@@ -52,7 +52,7 @@
           "status": "human_input_required",
           "message": "3 application emails are ready to send. Please confirm before they are dispatched.",
           "hitl": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "case_id": "review_confirm_s5t6u7v8",
             "review_url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8vW0xY2zA4bC6dE8fG0hI2jK4lM6nO8pQ0rS",
             "poll_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",

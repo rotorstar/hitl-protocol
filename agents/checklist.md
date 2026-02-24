@@ -287,46 +287,40 @@ Choose URL delivery based on agent environment:
 
 | Mode | When | How |
 |------|------|-----|
-| **Messaging** | Agent communicates via Telegram, Slack, WhatsApp | Send URL as clickable link |
-| **Desktop** | Agent runs on user's machine (CLI) | `open` (macOS), `xdg-open` (Linux), `start` (Windows) |
-| **Terminal QR** | Remote terminal, user has phone | Render QR code (`qrencode -t ANSI`) |
+| **Messaging** (default) | Agent is a bot (Telegram, Slack, Discord, WhatsApp) | Send URL as clickable link in chat message |
+| **Messaging + Inline** (v0.7) | Bot + Service provides `submit_url` | Native buttons in chat + URL fallback |
+| **Desktop CLI** | Agent runs on user's own machine | `webbrowser.open(url)` |
+| **Remote CLI** | Agent on remote server (SSH) | Print URL (optionally QR code) |
+
+In most real deployments, the agent is a bot on a server — not on the human's device. The agent sends messages to the human via the messaging platform's API. The human taps the URL link, and the browser opens on **their** device.
 
 ```python
-import platform, subprocess, os
 from urllib.parse import urlparse
 
-def deliver_review_url(url: str, mode: str = "auto"):
-    # Validate URL to prevent command injection via malicious schemes
-    parsed = urlparse(url)
+def handle_hitl(hitl: dict, send_to_user) -> None:
+    """Forward a HITL review to the human."""
+    review_url = hitl["review_url"]
+
+    # Validate URL
+    parsed = urlparse(review_url)
     if parsed.scheme != "https" or not parsed.netloc:
-        raise ValueError(f"Invalid review URL: must be HTTPS with a valid host")
+        raise ValueError("Invalid review URL: must be HTTPS with a valid host")
 
-    if mode == "auto":
-        # Detect environment
-        if os.environ.get("TELEGRAM_BOT_TOKEN"):
-            mode = "messaging"
-        elif os.environ.get("SSH_CONNECTION"):
-            mode = "qr"
-        else:
-            mode = "desktop"
-
-    if mode == "desktop":
-        system = platform.system()
-        if system == "Darwin":
-            subprocess.run(["open", url])
-        elif system == "Linux":
-            subprocess.run(["xdg-open", url])
-        elif system == "Windows":
-            os.startfile(url)
-
-    elif mode == "qr":
-        subprocess.run(["qrencode", "-t", "ANSI", url])
-        print(f"\nOr open manually: {url}")
-
-    elif mode == "messaging":
-        # Send via messaging API (Telegram, Slack, etc.)
-        pass
+    # v0.7: Inline buttons for simple decisions (messaging platforms)
+    if "submit_url" in hitl and "submit_token" in hitl:
+        send_inline_buttons(
+            prompt=hitl["prompt"],
+            actions=hitl.get("inline_actions", []),
+            review_url=review_url,       # Always include URL fallback
+        )
+    else:
+        # Standard: send URL as clickable link
+        send_to_user(f"{hitl['prompt']}\n{review_url}")
 ```
+
+> **Desktop CLI agents** (running on the user's machine, e.g. Claude Code): Use `webbrowser.open(review_url)` to open the URL directly in the user's browser. This only applies when agent and human share the same device.
+
+> **Remote CLI agents** (SSH): Print the URL for manual opening. Optionally render a QR code with `qrencode -t ANSI <url>` if installed.
 
 ## What NOT to Do
 

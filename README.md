@@ -8,7 +8,7 @@
   </p>
   <p align="center">
     <a href="https://github.com/rotorstar/hitl-protocol/blob/main/LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
-    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.6" src="https://img.shields.io/badge/spec-v0.6_(Draft)-orange.svg"></a>
+    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.7" src="https://img.shields.io/badge/spec-v0.7_(Draft)-orange.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/rotorstar/hitl-protocol.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
   </p>
@@ -92,7 +92,7 @@ Return HTTP 202 with a `hitl` object when human input is needed:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.6",
+    "spec_version": "0.7",
     "case_id": "review_abc123",
     "review_url": "https://yourservice.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.yourservice.com/v1/reviews/abc123/status",
@@ -116,7 +116,7 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # v0.6: Check for inline submit support
+    # v0.7: Check for inline submit support
     if "submit_url" in hitl and "submit_token" in hitl:
         # Render native buttons in messaging platform (Telegram, Slack, Discord)
         send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
@@ -150,9 +150,9 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 | **Confirmation** | confirm, cancel | No | No | Irreversible action gate (send emails) |
 | **Escalation** | retry, skip, abort | No | No | Error recovery (deployment failed) |
 
-**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.6/hitl-protocol.md#103-input) for details.
+**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.7/hitl-protocol.md#103-input) for details.
 
-**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.6/hitl-protocol.md)).
+**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.7/hitl-protocol.md)).
 
 ## Three Transport Modes
 
@@ -164,7 +164,7 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
 Polling is the baseline. Every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
 
-## Channel-Native Inline Actions (v0.6)
+## Channel-Native Inline Actions (v0.7)
 
 For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
 
@@ -203,7 +203,7 @@ hitl-protocol/
 ├── CHANGELOG.md                       ← Version history
 ├── SECURITY.md                        ← Security reporting
 │
-├── spec/v0.6/
+├── spec/v0.7/
 │   └── hitl-protocol.md              ← Full specification (normative)
 │
 ├── schemas/
@@ -269,6 +269,7 @@ The specification follows [Semantic Versioning](https://semver.org/). Breaking c
 
 | Version | Status | Date |
 |---------|--------|------|
+| 0.7 | Draft | 2026-02-24 |
 | 0.6 | Draft | 2026-02-23 |
 | 0.5 | Draft | 2026-02-22 |
 
@@ -297,7 +298,7 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Full Specification (v0.6)](spec/v0.6/hitl-protocol.md)
+- [Full Specification (v0.7)](spec/v0.7/hitl-protocol.md)
 - [Quick Start Guide](docs/quick-start.md) — Get started in 5 minutes
 - [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented
 - [JSON Schemas](schemas/) — HITL object, poll response, form field definitions

@@ -1,4 +1,4 @@
-# HITL Protocol Specification v0.6
+# HITL Protocol Specification v0.7
 
 **The Open Standard for Human Decisions in Agent Workflows**
 
@@ -16,7 +16,7 @@ HITL Protocol is to human decisions what OAuth is to authentication: a standardi
 
 | Field | Value |
 |-------|-------|
-| **Version** | 0.6 (Draft) |
+| **Version** | 0.7 (Draft) |
 | **Date** | 2026-02-23 |
 | **Authors** | Torsten Heissler (@rotorstar) |
 | **License** | Apache 2.0 |
@@ -31,7 +31,7 @@ This specification follows Semantic Versioning. Breaking changes increment the m
 
 | Version | Date | Summary |
 |---------|------|---------|
-| 0.6 | 2026-02-23 | Inline Submit extension (`submit_url`, `submit_token`, `inline_actions`), Channel-Native Rendering guidance, Inline Submit Security considerations. |
+| 0.7 | 2026-02-23 | Inline Submit extension (`submit_url`, `submit_token`, `inline_actions`), Channel-Native Rendering guidance, Inline Submit Security considerations. |
 | 0.5 | 2026-02-22 | Initial public draft. HTTP 202 flow, 5 review types, poll/SSE/callback, signed URLs, SKILL.md extension, json-render recommendation. |
 
 ---
@@ -175,7 +175,7 @@ A service MUST NOT return HTTP 202 for:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.6",
+    "spec_version": "0.7",
     "case_id": "review_abc123def456",
     "review_url": "https://service.example.com/review/abc123def456?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.service.example.com/v1/reviews/abc123def456/status",
@@ -206,7 +206,7 @@ A service MUST NOT return HTTP 202 for:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `spec_version` | string | REQUIRED | Protocol version. MUST be `"0.6"` for this spec. |
+| `spec_version` | string | REQUIRED | Protocol version. MUST be `"0.7"` for this spec. |
 | `case_id` | string | REQUIRED | Unique identifier for this review case. MUST be URL-safe. RECOMMENDED format: `review_{random}` |
 | `review_url` | string (URL) | REQUIRED | Fully qualified URL to the review page. MUST include a signed token for authentication. |
 | `poll_url` | string (URL) | REQUIRED | Fully qualified URL to the status polling endpoint. |
@@ -328,7 +328,7 @@ When a service supports inline submit, it includes three additional fields in th
 ```json
 {
   "hitl": {
-    "spec_version": "0.6",
+    "spec_version": "0.7",
     "case_id": "review_confirm_s5t6u7v8",
     "review_url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8v...",
     "poll_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",
@@ -407,7 +407,7 @@ Services implementing dual-auth on the respond endpoint:
 | Authentication | Caller | Notes |
 |---------------|--------|-------|
 | `?token={review_token}` | Human's browser | Existing v0.5 behavior |
-| `Authorization: Bearer {submit_token}` | Agent (on behalf of human) | New v0.6 inline submit |
+| `Authorization: Bearer {submit_token}` | Agent (on behalf of human) | New v0.7 inline submit |
 
 ### Agent Behavior with Inline Submit
 
@@ -1478,7 +1478,7 @@ Content-Type: application/json
   "status": "human_input_required",
   "message": "Found 5 matching positions. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.6",
+    "spec_version": "0.7",
     "case_id": "review_job_sel_7f3a9b",
     "review_url": "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
@@ -1546,7 +1546,7 @@ The agent now prepares applications for the two selected positions, potentially 
   "status": "human_input_required",
   "message": "Build v2.1.0 passed all tests. Approve deployment to production?",
   "hitl": {
-    "spec_version": "0.6",
+    "spec_version": "0.7",
     "case_id": "review_deploy_v210",
     "review_url": "https://ci.company.example.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://ci.company.example.com/api/reviews/deploy_v210/status",
@@ -1764,7 +1764,7 @@ The `submitReview` action MUST POST to `POST /review/{caseId}/respond` with the 
 | **Async (hours/days)** | Yes (poll/SSE) | No (real-time session) | No (session) | No | No | No (blocks) | Yes |
 | **Crypto signing** | Optional (CHEQ-inspired) | No | No | No | No | No | Yes (core) |
 | **Streaming** | SSE + json-render | SSE (core) | Yes | No | No | No | No |
-| **Maturity** | Draft (v0.6) | Stable (v1.0) | Draft (v0.9) | Stable (v1.6) | Stable | Stable | Draft |
+| **Maturity** | Draft (v0.7) | Stable (v1.0) | Draft (v0.9) | Stable (v1.6) | Stable | Stable | Draft |
 | **Agent adoption** | New | CopilotKit ecosystem | New | Low (agent context) | Low (Slack only) | Growing | None |
 | **Autonomous CLI agents** | Yes (core use case) | No (needs frontend) | No (needs client) | Possible | No | Yes | Possible |
 
@@ -1791,15 +1791,15 @@ The following JSON Schema defines the HITL object within the HTTP 202 response. 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.6/hitl-object.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.7/hitl-object.json",
   "title": "HITL Object",
-  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.6",
+  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.7",
   "type": "object",
   "required": ["spec_version", "case_id", "review_url", "poll_url", "type", "prompt", "created_at", "expires_at"],
   "properties": {
     "spec_version": {
       "type": "string",
-      "const": "0.6",
+      "const": "0.7",
       "description": "Protocol version"
     },
     "case_id": {
@@ -1908,7 +1908,7 @@ The following JSON Schema defines the HITL object within the HTTP 202 response. 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.6/poll-response.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.7/poll-response.json",
   "title": "HITL Poll Response",
   "description": "Response from the poll endpoint",
   "type": "object",
@@ -2017,7 +2017,7 @@ GET https://service.example.com/.well-known/hitl.json
 
 ```json
 {
-  "hitl_protocol": "0.6",
+  "hitl_protocol": "0.7",
   "service": {
     "name": "JobBoard Pro",
     "description": "Job search and application service",

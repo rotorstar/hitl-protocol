@@ -1,7 +1,7 @@
 /**
  * @hitl-protocol/schemas
  *
- * JSON Schemas, TypeScript types, and validators for HITL Protocol v0.6.
+ * JSON Schemas, TypeScript types, and validators for HITL Protocol v0.7.
  *
  * @example
  * ```typescript

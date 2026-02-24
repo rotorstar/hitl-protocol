@@ -6,7 +6,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   const rc = getCase(caseId);
   if (!rc) return NextResponse.json({ error: 'not_found', message: 'Review case not found.' }, { status: 404 });
 
-  // v0.6: Determine auth path — Bearer header (inline) vs query param (review page)
+  // v0.7: Determine auth path — Bearer header (inline) vs query param (review page)
   const authHeader = request.headers.get('Authorization');
   let isInlineSubmit = false;
 
@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
   const { action, data, submitted_via, submitted_by } = await request.json();
   if (!action) return NextResponse.json({ error: 'missing_action', message: 'Request body must include "action".' }, { status: 400 });
 
-  // v0.6: Validate inline_actions for Bearer path
+  // v0.7: Validate inline_actions for Bearer path
   if (isInlineSubmit && rc.inline_actions?.length > 0 && !rc.inline_actions.includes(action)) {
     const base = getBaseUrl();
     return NextResponse.json({

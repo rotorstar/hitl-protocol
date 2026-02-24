@@ -1,10 +1,10 @@
 /**
- * Protocol constants and sample data for HITL Protocol v0.6.
+ * Protocol constants and sample data for HITL Protocol v0.7.
  */
 
 import type { ReviewType } from '@hitl-protocol/schemas'
 
-/** Actions allowed per review type for inline submit (v0.6). */
+/** Actions allowed per review type for inline submit (v0.7). */
 export const INLINE_ACTIONS: Readonly<Record<ReviewType, readonly string[]>> = {
   confirmation: ['confirm', 'cancel'],
   escalation: ['retry', 'skip', 'abort'],

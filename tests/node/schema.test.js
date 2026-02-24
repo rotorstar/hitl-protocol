@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.6 — Schema Validation Tests
+ * HITL Protocol v0.7 — Schema Validation Tests
  *
  * Validates all examples against JSON Schema definitions.
  * Framework-agnostic: only tests schema compliance.
@@ -77,7 +77,7 @@ describe('hitl-object.schema.json', () => {
 
   it('rejects missing required fields', () => {
     expect(validateHitl({})).toBe(false);
-    expect(validateHitl({ spec_version: '0.6' })).toBe(false);
+    expect(validateHitl({ spec_version: '0.7' })).toBe(false);
   });
 
   it('rejects invalid spec_version', () => {
@@ -96,7 +96,7 @@ describe('hitl-object.schema.json', () => {
 
   it('rejects invalid review type', () => {
     const invalid = {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: 'test',
       review_url: 'https://example.com/review',
       poll_url: 'https://example.com/poll',
@@ -110,7 +110,7 @@ describe('hitl-object.schema.json', () => {
 
   it('accepts custom review type with x- prefix', () => {
     const custom = {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: 'test',
       review_url: 'https://example.com/review',
       poll_url: 'https://example.com/poll',
@@ -124,7 +124,7 @@ describe('hitl-object.schema.json', () => {
 
   it('validates minimal hitl object', () => {
     const minimal = {
-      spec_version: '0.6',
+      spec_version: '0.7',
       case_id: 'review_123',
       review_url: 'https://example.com/review/123?token=abc',
       poll_url: 'https://example.com/reviews/123/status',

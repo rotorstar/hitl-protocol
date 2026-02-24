@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.6 — Example: Hybrid Approval (Inline Approve/Reject + URL for Edit)",
+  "_comment": "HITL Protocol v0.7 — Example: Hybrid Approval (Inline Approve/Reject + URL for Edit)",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A deployment approval where approve/reject can be done inline via messaging buttons, but 'edit' (requesting changes with feedback) requires the full review page. The service uses inline_actions to restrict which actions are available inline. The human approves directly via a Discord component button.",
   "steps": [
@@ -16,7 +16,7 @@
           "status": "human_input_required",
           "message": "Production deployment requires approval: acme-web v2.4.0",
           "hitl": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "case_id": "review_deploy_m3n4o5p6",
             "review_url": "https://deploypipe.example/review/deploy_m3n4o5p6?token=A1bC3dE5fG7hI9jK1lM3nO5pQ7rS9tU1vW3xY5z",
             "poll_url": "https://api.deploypipe.example/v1/reviews/deploy_m3n4o5p6/status",

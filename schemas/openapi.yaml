@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: HITL Protocol API
-  version: "0.6"
+  version: "0.7"
   description: |
     The Open Standard for Human Decisions in Agent Workflows.
 
@@ -456,7 +456,7 @@ paths:
                     status: human_input_required
                     message: "5 matching jobs found. Please select which ones to apply for."
                     hitl:
-                      spec_version: "0.6"
+                      spec_version: "0.7"
                       case_id: review_abc123
                       review_url: "https://service.example/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC6dE8fG0hI2jK4lM6n"
                       poll_url: "https://api.service.example/v1/reviews/abc123/status"
@@ -472,7 +472,7 @@ paths:
                     status: human_input_required
                     message: "Production deployment requires approval."
                     hitl:
-                      spec_version: "0.6"
+                      spec_version: "0.7"
                       case_id: review_deploy_789
                       review_url: "https://service.example/review/deploy_789?token=X9yZ1aB3cD5eF7gH9iJ1kL3mN5oP7qR9sT1uV3wX5y"
                       poll_url: "https://api.service.example/v1/reviews/deploy_789/status"
@@ -658,7 +658,7 @@ paths:
   /reviews/{caseId}/submit:
     post:
       tags: [Agent API]
-      summary: Inline submit via agent (v0.6)
+      summary: Inline submit via agent (v0.7)
       description: |
         Agent submits a response on behalf of the human after the human explicitly triggered
         a native messaging button (Telegram inline button, Slack action, Discord component, etc.).
@@ -803,7 +803,7 @@ paths:
                 $ref: '#/components/schemas/DiscoveryResponse'
               example:
                 hitl_protocol:
-                  spec_version: "0.6"
+                  spec_version: "0.7"
                   service:
                     name: Example Service
                     description: HITL-enabled service

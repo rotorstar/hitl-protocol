@@ -1,6 +1,6 @@
 # @hitl-protocol/schemas
 
-JSON Schemas, TypeScript types, and validators for [HITL Protocol](https://github.com/rotorstar/hitl-protocol) v0.6.
+JSON Schemas, TypeScript types, and validators for [HITL Protocol](https://github.com/rotorstar/hitl-protocol) v0.7.
 
 ## Install
 
@@ -18,7 +18,7 @@ import type { HitlObject, PollResponse, SubmitRequest } from '@hitl-protocol/sch
 function handleResponse(hitl: HitlObject) {
   console.log(hitl.case_id, hitl.review_url)
 
-  // Inline submit support (v0.6)
+  // Inline submit support (v0.7)
   if (hitl.submit_url && hitl.submit_token) {
     console.log('Inline actions:', hitl.inline_actions)
   }
@@ -61,7 +61,7 @@ import schema from '@hitl-protocol/schemas/hitl-object.schema.json' with { type:
 | `hitl-object.schema.json` | HITL object in HTTP 202 response |
 | `poll-response.schema.json` | Poll endpoint response |
 | `form-field.schema.json` | Form field definitions (Input reviews) |
-| `submit-request.schema.json` | Inline submit request body (v0.6) |
+| `submit-request.schema.json` | Inline submit request body (v0.7) |
 
 ## Types
 

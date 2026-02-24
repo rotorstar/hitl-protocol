@@ -276,7 +276,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 <div class="header">
   <img src="../assets/logo.svg" alt="HITL Protocol Logo" style="height:64px;margin-bottom:12px">
   <h1>HITL Protocol <span>Interactive Playground</span></h1>
-  <p>The Open Standard for Human Decisions in Agent Workflows &mdash; v0.6</p>
+  <p>The Open Standard for Human Decisions in Agent Workflows &mdash; v0.7</p>
 </div>
 
 <nav class="nav">
@@ -596,9 +596,9 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   </div>
 </div>
 
-<!-- TAB 6: Inline Confirmation (v0.6) -->
+<!-- TAB 6: Inline Confirmation (v0.7) -->
 <div class="section" id="tab-6">
-  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">v0.6 Inline Submit</span></h2>
+  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">v0.7 Inline Submit</span></h2>
   <p class="subtitle" style="margin-bottom:16px">Email service needs confirmation before sending. Agent renders native messaging buttons — human confirms with one tap, no browser needed.</p>
 
   <div class="pg-grid">
@@ -765,7 +765,7 @@ function getCheck(id) { const c = document.getElementById(id); return c ? c.chec
 
 // --- HITL Object Anatomy ---
 document.getElementById('hitl-anatomy').innerHTML = hl({
-  "spec_version": "0.6",
+  "spec_version": "0.7",
   "case_id": "review_abc123def456",
   "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
   "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -798,7 +798,7 @@ function renderUC1() {
   if (wdlControls) wdlControls.style.display = wdl ? 'block' : 'none';
 
   const hitlObj = {
-    spec_version: "0.6",
+    spec_version: "0.7",
     case_id: "review_job_sel_7f3a9b",
     review_url: "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
@@ -994,7 +994,7 @@ function renderUC2() {
   const audit = getCheck('uc2-audit');
 
   const hitlObj = {
-    spec_version: "0.6",
+    spec_version: "0.7",
     case_id: "review_deploy_v210",
     review_url: "https://ci.company.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://ci.company.com/api/reviews/deploy_v210/status",
@@ -1456,7 +1456,7 @@ function renderUC4() {
       <div class="step-title">HITL Case Created — HTTP 202</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL bridge creates a HITL case. The deal enters <code>NEGOTIATING</code> state.</div>
       <div class="json-block" data-copy="uc4-hitl">${hl({
-        spec_version: '0.6',
+        spec_version: '0.7',
         case_id: 'review_deal_001',
         review_url: 'https://platform.company.com/review/deal_infra_q2?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...',
         poll_url: 'https://platform.company.com/api/v1/hitl/review_deal_001/status',
@@ -1620,7 +1620,7 @@ function renderUC5() {
 
   // Build HITL object
   const hitlObj = {
-    spec_version: '0.6',
+    spec_version: '0.7',
     case_id: 'review_input_q1w2e3r4',
     review_url: 'https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q',
     poll_url: 'https://api.service.example.com/v1/reviews/input_q1w2e3r4/status',
@@ -1854,7 +1854,7 @@ function renderUC7() {
   const platformSubmittedVia = { telegram: 'telegram_inline_button', slack: 'slack_block_action', discord: 'discord_component' };
 
   const hitl = {
-    spec_version: '0.6',
+    spec_version: '0.7',
     case_id: 'review_confirm_s5t6u7v8',
     review_url: 'https://mailcraft.example/review/confirm_s5t6u7v8?token=X2yZ4aB6cD8eF0gH2i...',
     poll_url: 'https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status',

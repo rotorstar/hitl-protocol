@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.6 — Example: Selection via Embedded WebView (Telegram Mini App)",
+  "_comment": "HITL Protocol v0.7 — Example: Selection via Embedded WebView (Telegram Mini App)",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A job search returns 5 positions that need human selection. Since selection requires seeing option details, inline buttons are not sufficient. On Telegram, the agent uses a Mini App (web_app) button to open the review_url inside Telegram's embedded browser. On other platforms without embedded WebView support, the agent falls back to a standard URL button. No submit_url is needed — the human interacts with the full review page, and the agent polls for the result.",
   "steps": [
@@ -16,7 +16,7 @@
           "status": "human_input_required",
           "message": "5 matching jobs found for 'Senior Frontend Engineer, Berlin'. Please select which ones to apply for.",
           "hitl": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "case_id": "review_select_q7r8s9t0",
             "review_url": "https://jobboard.example/review/select_q7r8s9t0?token=B2cD4eF6gH8iJ0kL2mN4oP6qR8sT0uV2wX4yZ6a",
             "poll_url": "https://api.jobboard.example/v1/reviews/select_q7r8s9t0/status",

@@ -1,5 +1,5 @@
 /**
- * Pre-compiled AJV validators for HITL Protocol v0.6 schemas.
+ * Pre-compiled AJV validators for HITL Protocol v0.7 schemas.
  *
  * Each validator returns true/false and exposes errors via .errors property.
  *

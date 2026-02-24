@@ -38,7 +38,7 @@
             "contractor_name": "Sarah Chen"
           },
           "hitl": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "case_id": "review_onboard_v8w9x0y1",
             "review_url": "https://freelancehub.example/review/onboard_v8w9x0y1?token=A2bC4dE6fG8hI0jK2lM4nO6pQ8rS0tU2vW4xY6z",
             "poll_url": "https://api.freelancehub.example/v1/reviews/onboard_v8w9x0y1/status",

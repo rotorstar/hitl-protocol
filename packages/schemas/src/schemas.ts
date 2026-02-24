@@ -1,5 +1,5 @@
 /**
- * Raw JSON Schema objects for HITL Protocol v0.6.
+ * Raw JSON Schema objects for HITL Protocol v0.7.
  *
  * These are re-exported from the canonical schema files in schemas/.
  * Use these when you need the raw schema for custom AJV configuration

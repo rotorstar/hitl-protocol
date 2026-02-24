@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.6 — Shared utilities for Next.js reference implementation.
+ * HITL Protocol v0.7 — Shared utilities for Next.js reference implementation.
  *
  * Core logic (tokens, state machine, rate limiting, constants) is imported
  * from @hitl-protocol/core. This file provides framework-specific SSE,

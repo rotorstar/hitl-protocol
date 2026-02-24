@@ -1,11 +1,11 @@
 """
-HITL Protocol v0.6 — Reference Implementation (FastAPI)
+HITL Protocol v0.7 — Reference Implementation (FastAPI)
 
 Demonstrates all HITL features:
   - 5 review types (approval, selection, input, confirmation, escalation)
   - 3 transports (polling, SSE, callback placeholder)
   - Token security (secrets + SHA-256 + hmac.compare_digest)
-  - Channel-native inline submit (v0.6: submit_url, submit_token, inline_actions)
+  - Channel-native inline submit (v0.7: submit_url, submit_token, inline_actions)
   - State machine with valid transitions
   - ETag / If-None-Match for efficient polling
   - Rate limiting (429)
@@ -57,7 +57,7 @@ def verify_token(token: str, stored_hash: bytes) -> bool:
     return hmac.compare_digest(candidate, stored_hash)
 
 
-# v0.6: Scope-separated token verification
+# v0.7: Scope-separated token verification
 def verify_token_for_purpose(token: str, review_case: dict, purpose: str) -> bool:
     if purpose == "review":
         return verify_token(token, review_case["token_hash"])
@@ -67,7 +67,7 @@ def verify_token_for_purpose(token: str, review_case: dict, purpose: str) -> boo
     return False
 
 
-# v0.6: Actions allowed per review type
+# v0.7: Actions allowed per review type
 INLINE_ACTIONS: dict[str, list[str]] = {
     "confirmation": ["confirm", "cancel"],
     "escalation": ["retry", "skip", "abort"],
@@ -186,7 +186,7 @@ async def create_demo(type: str = Query(default="selection")):
 
     case_id = "review_" + secrets.token_hex(8)
     token = generate_token()              # review URL token
-    submit_token = generate_token()       # v0.6: separate inline submit token
+    submit_token = generate_token()       # v0.7: separate inline submit token
     now = datetime.now(timezone.utc)
     expires = now + timedelta(hours=24)
     inline_actions = INLINE_ACTIONS.get(type, [])
@@ -194,8 +194,8 @@ async def create_demo(type: str = Query(default="selection")):
     rc = {
         "case_id": case_id, "type": type, "status": "pending", "prompt": PROMPTS[type],
         "token_hash": hash_token(token),
-        "submit_token_hash": hash_token(submit_token),  # v0.6
-        "inline_actions": inline_actions,                # v0.6
+        "submit_token_hash": hash_token(submit_token),  # v0.7
+        "inline_actions": inline_actions,                # v0.7
         "context": SAMPLE_CONTEXTS[type],
         "created_at": now.isoformat(), "expires_at": expires.isoformat(),
         "default_action": "skip", "version": 1, "etag": '"v1-pending"',
@@ -206,9 +206,9 @@ async def create_demo(type: str = Query(default="selection")):
     # Auto-expire after 24h (matching Express/Hono behavior)
     asyncio.create_task(schedule_expiration(case_id, 86400))
 
-    # v0.6: Inline submit fields (only for types that support it)
+    # v0.7: Inline submit fields (only for types that support it)
     hitl: dict[str, Any] = {
-        "spec_version": "0.6", "case_id": case_id,
+        "spec_version": "0.7", "case_id": case_id,
         "review_url": f"{BASE_URL}/review/{case_id}?token={token}",
         "poll_url": f"{BASE_URL}/api/reviews/{case_id}/status",
         "type": type, "prompt": rc["prompt"], "timeout": "24h",
@@ -267,7 +267,7 @@ async def submit_response(case_id: str, request: Request, token: str = Query(def
     if not rc:
         raise HTTPException(404, detail={"error": "not_found"})
 
-    # v0.6: Determine auth path — Bearer header (inline) vs query param (review page)
+    # v0.7: Determine auth path — Bearer header (inline) vs query param (review page)
     auth_header = request.headers.get("authorization", "")
     is_inline_submit = False
 
@@ -292,7 +292,7 @@ async def submit_response(case_id: str, request: Request, token: str = Query(def
     if not action:
         raise HTTPException(400, detail={"error": "missing_action", "message": 'Request body must include "action".'})
 
-    # v0.6: Validate inline_actions for Bearer path
+    # v0.7: Validate inline_actions for Bearer path
     allowed = rc.get("inline_actions", [])
     if is_inline_submit and allowed and action not in allowed:
         raise HTTPException(403, detail={
@@ -377,12 +377,12 @@ async def event_stream(case_id: str):
 async def discovery():
     return JSONResponse(
         content={"hitl_protocol": {
-            "spec_version": "0.6",
+            "spec_version": "0.7",
             "service": {"name": "HITL Reference Service (FastAPI)", "description": "Reference implementation for testing", "url": BASE_URL},
             "capabilities": {
                 "review_types": ["approval", "selection", "input", "confirmation", "escalation"],
                 "transports": ["polling", "sse"],
-                "supports_inline_submit": True,  # v0.6
+                "supports_inline_submit": True,  # v0.7
                 "default_timeout": "PT24H",
                 "supports_reminders": False,
                 "supports_multi_round": False,
