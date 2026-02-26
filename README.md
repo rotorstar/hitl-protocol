@@ -49,7 +49,7 @@ Any website or API integrates HITL to become agent-ready: when human input is ne
     <img src="assets/hitl-flow.gif" alt="HITL Protocol v0.7 — Interactive Flow" width="800">
   </a>
   <br>
-  <a href="https://rotorstar.github.io/hitl-protocol/hitl-protocol-flow.html">▶ Interactive Flow durchspielen</a>
+  <a href="https://rotorstar.github.io/hitl-protocol/hitl-protocol-flow.html">▶ Try the Interactive Flow</a>
 </p>
 
 ```mermaid
