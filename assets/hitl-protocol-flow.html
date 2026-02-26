@@ -386,7 +386,7 @@
 
     .desc-panel {
       position: absolute;
-      bottom: 16px;
+      top: 16px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(255, 255, 255, .92);
@@ -747,16 +747,19 @@
             filter="url(#shadowFilter)" />
           <rect x="300" y="410" width="195" height="30" rx="10" fill="#0088CC" />
           <rect x="300" y="430" width="195" height="10" fill="#0088CC" />
-          <text x="398" y="430" text-anchor="middle" font-size="11" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">Telegram Bot</text>
+          <text x="398" y="425" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
+            font-family="system-ui,sans-serif" letter-spacing=".5">Messenger</text>
+          <text x="398" y="436" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.7)"
+            font-family="system-ui,sans-serif">e.g. Telegram, WhatsApp, Slack</text>
           <rect x="316" y="450" width="164" height="34" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1" />
           <text x="398" y="465" text-anchor="middle" font-size="9" font-weight="600" fill="#334155"
             font-family="system-ui,sans-serif">New Review Request</text>
           <text x="398" y="478" text-anchor="middle" font-size="8" fill="#64748b"
             font-family="system-ui,sans-serif">Task #4821 needs approval</text>
-          <rect x="316" y="494" width="78" height="28" rx="6" fill="#16A34A" />
-          <text x="355" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">Approve</text>
+          <rect id="approveBtn" x="316" y="494" width="78" height="28" rx="6" fill="#16A34A" style="transition:all .3s"/>
+          <rect id="approveGlow" x="312" y="490" width="86" height="36" rx="9" fill="none" stroke="#22C55E" stroke-width="2.5" opacity="0" style="transition:opacity .3s"/>
+          <text id="approveTxt" x="355" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
+            font-family="system-ui,sans-serif" style="transition:all .3s">Approve</text>
           <rect x="402" y="494" width="78" height="28" rx="6" fill="#EF4444" />
           <text x="441" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
             font-family="system-ui,sans-serif">Reject</text>
@@ -767,8 +770,6 @@
         <!-- Magnifier ring -->
         <g class="messenger-group" id="messengerRing">
           <circle cx="398" cy="490" r="105" fill="none" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 4"
-            opacity=".25" />
-          <line x1="472" y1="568" x2="510" y2="606" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"
             opacity=".25" />
         </g>
 
@@ -911,8 +912,8 @@
         <!-- Step 8: Result Service -> Agent (horizontal, y=163) -->
         <g class="step-group" id="step-8">
           <line x1="788" y1="163" x2="527" y2="163" stroke="#64748B" stroke-width="1.5" marker-end="url(#mP)" />
-          <circle cx="656" cy="163" r="11" fill="#475569" />
-          <text x="656" y="167" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
+          <circle cx="656" cy="167" r="11" fill="#475569" />
+          <text x="656" y="171" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
             font-family="system-ui,sans-serif">8</text>
           <text x="656" y="183" text-anchor="middle" font-size="7.5" font-weight="600" fill="#64748B"
             font-family="ui-monospace,'SF Mono',monospace">status: completed</text>
@@ -930,9 +931,9 @@
 
         <!-- Browser flow hint -->
         <g class="browser-hint" id="browserHint">
-          <path d="M 155 345 Q 420 640 718 500" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4"
+          <path d="M 155 345 Q 380 630 718 500" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4"
             marker-end="url(#mR)" />
-          <text x="400" y="610" text-anchor="middle" font-size="8" fill="#EF4444" opacity=".7"
+          <text x="530" y="548" text-anchor="start" font-size="8" fill="#EF4444" opacity=".7"
             font-family="system-ui,sans-serif">open review_url</text>
           <path d="M 855 400 L 855 180" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4"
             marker-end="url(#mR)" />
@@ -1091,6 +1092,9 @@
       document.getElementById("reviewPage").classList.remove("visible");
       document.getElementById("browserHint").classList.remove("visible");
       document.getElementById("hitlObject").classList.remove("visible");
+      document.getElementById("approveBtn").setAttribute("fill","#16A34A");
+      document.getElementById("approveGlow").setAttribute("opacity","0");
+      document.getElementById("approveTxt").textContent="Approve";
 
       document.querySelectorAll(".step-item").forEach(function (item, i) {
         item.classList.remove("active", "completed");
@@ -1122,6 +1126,11 @@
         document.getElementById("browserHint").classList.add("visible");
       }
       if (step.showHitlObj) document.getElementById("hitlObject").classList.add("visible");
+      if (step.id >= 6) {
+        document.getElementById("approveBtn").setAttribute("fill","#0F766E");
+        document.getElementById("approveGlow").setAttribute("opacity","1");
+        document.getElementById("approveTxt").textContent="\u2713 Approved";
+      }
 
       animatePacket(step.id);
       descPanel.classList.add("visible");

@@ -45,11 +45,11 @@ Any website or API integrates HITL to become agent-ready: when human input is ne
 ## The Solution
 
 <p align="center">
-  <a href="https://rotorstar.github.io/hitl-protocol/hitl-protocol-flow.html">
-    <img src="assets/hitl-flow.gif" alt="HITL Protocol v0.7 — Interactive Flow" width="800">
+  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">
+    <img src="assets/hitl-flow_v2.gif" alt="HITL Protocol v0.7 — Interactive Flow" width="800">
   </a>
   <br>
-  <a href="https://rotorstar.github.io/hitl-protocol/hitl-protocol-flow.html">▶ Try the Interactive Flow</a>
+  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">▶ Try the Interactive Flow</a>
 </p>
 
 ```mermaid
