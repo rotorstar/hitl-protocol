@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HITL Protocol v0.7 — Interactive Architecture</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --human:#2563EB;--human-g:#3B82F6;--human-l:#DBEAFE;
+  --agent:#7C3AED;--agent-g:#8B5CF6;--agent-l:#EDE9FE;
+  --service:#059669;--service-g:#10B981;--service-l:#D1FAE5;
+  --inline:#D97706;--inline-g:#F59E0B;--inline-l:#FEF3C7;
+  --review:#DC2626;--review-g:#EF4444;--review-l:#FEE2E2;
+  --poll:#475569;--poll-g:#64748B;
+  --ok:#16A34A;--ok-g:#22C55E;
+  --bg:#0A0E17;--bg2:#111827;--bg3:#1F2937;--bg4:#374151;
+  --text:#F9FAFB;--text2:#D1D5DB;--text3:#9CA3AF;--text4:#6B7280;
+  --border:#1F2937;--border2:#374151;
+}
+
+body{
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+.hdr{
+  padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid #E2E8F0;background:#F8FAFC;
+  position:relative;z-index:10;
+}
+.hdr::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,#FF5C00,var(--agent-g),transparent);
+}
+.hdr-left{flex:1}
+.hdr-center{display:flex;align-items:center;gap:14px;position:absolute;left:50%;transform:translateX(-50%)}
+.hdr-logo{height:50px;width:auto;margin:10px 0}
+.hdr .ver{
+  font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace;font-size:11px;
+  background:var(--agent);color:#fff;padding:2px 8px;border-radius:4px;
+  font-weight:600;letter-spacing:.5px;
+}
+.hdr-right{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:16px}
+.hdr-link{
+  font-size:12px;color:#475569;text-decoration:none;
+  font-family:'SF Mono',ui-monospace,monospace;transition:.2s;
+}
+.hdr-link:hover{color:#0B1121}
+
+.prog{height:2px;background:var(--bg3)}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--human-g),var(--agent-g),var(--ok-g));transition:width .5s ease;border-radius:0 1px 1px 0}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+.sidebar{
+  width:300px;min-width:300px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;background:var(--bg2);
+}
+.controls{padding:14px 16px;border-bottom:1px solid var(--border)}
+.controls-row{display:flex;align-items:center;gap:6px;justify-content:center}
+
+.btn{
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text);
+  padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;
+  font-weight:600;font-family:system-ui,sans-serif;transition:.15s;
+  display:flex;align-items:center;gap:4px;
+}
+.btn:hover{background:var(--bg4);border-color:var(--text4)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--agent);border-color:var(--agent)}
+.btn.primary:hover{background:#6D28D9}
+.btn:disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
+
+.step-counter{
+  font-family:'SF Mono',ui-monospace,monospace;font-size:12px;
+  color:var(--text4);min-width:56px;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+
+.speed-row{display:flex;align-items:center;gap:8px;margin-top:10px;justify-content:center}
+.speed-row label{font-size:11px;color:var(--text4)}
+.speed-row input[type=range]{width:90px;accent-color:var(--agent-g)}
+.speed-row span{font-family:'SF Mono',ui-monospace,monospace;font-size:10px;color:var(--text4);min-width:30px}
+
+.step-list{flex:1;overflow-y:auto;padding:10px 12px}
+.step-list::-webkit-scrollbar{width:4px}
+.step-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+
+.step-item{
+  display:flex;gap:10px;padding:9px 10px;border-radius:8px;
+  cursor:pointer;transition:.25s;border:1px solid transparent;opacity:.3;
+  margin-bottom:4px;
+}
+.step-item:hover{background:var(--bg3);opacity:.6}
+.step-item.completed{opacity:.55}
+.step-item.active{opacity:1;border-color:var(--border2);background:var(--bg3)}
+
+.step-badge{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.step-info h3{font-size:12px;font-weight:600;line-height:1.3}
+.step-info p{font-size:10px;color:var(--text4);margin-top:1px}
+
+.legend{padding:12px 14px;border-top:1px solid var(--border)}
+.legend-title{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text4);font-weight:700;margin-bottom:8px}
+.legend-items{display:flex;flex-wrap:wrap;gap:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text4)}
+.legend-line{width:20px;height:3px;border-radius:2px}
+.legend-line.dashed{background:repeating-linear-gradient(90deg,var(--review-g) 0,var(--review-g) 5px,transparent 5px,transparent 9px)}
+
+.insight-box{
+  margin-top:8px;padding:7px 10px;background:rgba(5,150,105,.08);
+  border:1px solid rgba(5,150,105,.2);border-radius:6px;
+  font-size:10px;color:#6EE7B7;text-align:center;line-height:1.5;
+}
+.insight-box strong{color:#A7F3D0}
+
+.canvas-area{flex:1;position:relative;overflow:hidden}
+.canvas-area canvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.canvas-area svg{position:absolute;top:0;left:0;width:100%;height:100%}
+
+.desc-panel{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:rgba(17,24,39,.92);border:1px solid var(--border2);
+  border-radius:10px;padding:12px 20px;max-width:560px;width:90%;
+  text-align:center;opacity:0;transition:.4s;pointer-events:none;
+  backdrop-filter:blur(12px);
+}
+.desc-panel.visible{opacity:1}
+.desc-panel h3{font-size:13px;font-weight:700;margin-bottom:3px}
+.desc-panel p{font-size:11px;color:var(--text3);line-height:1.5}
+
+.bottom-bar{
+  border-top:1px solid var(--border);padding:10px 20px;
+  background:var(--bg2);display:flex;align-items:center;gap:12px;
+}
+.bottom-text{
+  flex:1;font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace;font-size:11px;
+  color:var(--text4);line-height:1.5;white-space:pre-wrap;min-height:32px;
+}
+.copy-btn{
+  background:var(--bg3);border:1px solid var(--border2);color:var(--text2);
+  padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px;
+  font-weight:600;font-family:system-ui,sans-serif;transition:.2s;flex-shrink:0;
+}
+.copy-btn:hover{background:var(--bg4)}
+
+.actor-card{transition:all .4s ease}
+.actor-card rect.card-bg{transition:all .4s ease}
+.actor-card.glow rect.card-bg{filter:url(#glowFilter)}
+.step-group{opacity:0;transition:opacity .5s ease}
+.step-group.visible{opacity:1}
+.messenger-group{opacity:0;transition:opacity .5s ease}
+.messenger-group.visible{opacity:1}
+.review-group{opacity:.1;transition:opacity .5s ease}
+.review-group.visible{opacity:1}
+.browser-hint{opacity:.08;transition:opacity .5s ease}
+.browser-hint.visible{opacity:.35}
+.hitl-object{opacity:0;transition:opacity .6s ease}
+.hitl-object.visible{opacity:1}
+.state-ring{opacity:0;transition:opacity .3s}
+.state-ring.active{opacity:1}
+
+@keyframes dashFlow{to{stroke-dashoffset:-16}}
+.anim-dash{animation:dashFlow .6s linear infinite}
+@keyframes softPulse{0%,100%{opacity:1}50%{opacity:.65}}
+.pulse{animation:softPulse 2s ease-in-out infinite}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left"></div>
+  <div class="hdr-center">
+    <svg class="hdr-logo" viewBox="0 0 600 200" height="50">
+      <path d="M 54 40 L 30 40 L 30 160 L 54 160" fill="none" stroke="#0B1121" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M 146 40 L 170 40 L 170 160 L 146 160" fill="none" stroke="#0B1121" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="100" cy="100" r="24" fill="#FF5C00"/>
+      <text x="220" y="122"><tspan font-family="'Inter',system-ui,sans-serif" font-weight="800" font-size="64" fill="#0B1121" letter-spacing="-0.03em">HITL</tspan><tspan font-family="'Inter',system-ui,sans-serif" font-weight="300" font-size="64" fill="#64748B" letter-spacing="-0.01em"> Protocol</tspan></text>
+    </svg>
+    <span class="ver">v0.7</span>
+  </div>
+  <div class="hdr-right">
+    <a class="hdr-link" href="https://github.com/rotorstar/hitl-protocol" target="_blank">github.com/rotorstar/hitl-protocol</a>
+  </div>
+</div>
+<div class="prog"><div class="prog-fill" id="progress"></div></div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="controls">
+      <div class="controls-row">
+        <button class="btn" id="prevBtn" onclick="prevStep()" disabled>&#9664;</button>
+        <button class="btn primary" id="playBtn" onclick="togglePlay()">&#9654; Play</button>
+        <button class="btn" id="nextBtn" onclick="nextStep()">&#9654;</button>
+        <button class="btn" onclick="resetSteps()" title="Reset">&#8634;</button>
+      </div>
+      <div class="controls-row" style="margin-top:6px">
+        <span class="step-counter" id="stepCounter">0 / 9</span>
+      </div>
+      <div class="speed-row">
+        <label>Speed</label>
+        <input type="range" id="speedSlider" min="600" max="4000" value="1800" step="200" oninput="updateSpeed()">
+        <span id="speedLabel">1.8s</span>
+      </div>
+    </div>
+    <div class="step-list" id="stepList"></div>
+    <div class="legend">
+      <div class="legend-title">Legend</div>
+      <div class="legend-items">
+        <div class="legend-item"><div class="legend-line" style="background:var(--human-g)"></div>Core</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--inline-g)"></div>Inline</div>
+        <div class="legend-item"><div class="legend-line dashed"></div>Browser</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--poll-g)"></div>Polling</div>
+        <div class="legend-item"><div class="legend-line" style="background:var(--ok-g)"></div>Done</div>
+      </div>
+      <div class="insight-box"><strong>Inline</strong> = fast, channel-native &middot; <strong>Browser</strong> = rich UI, optional</div>
+    </div>
+  </div>
+
+  <div class="canvas-area">
+    <canvas id="particles"></canvas>
+    <svg viewBox="0 0 1050 680" id="diagram">
+      <defs>
+        <filter id="glowFilter">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="shadowFilter">
+          <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity=".35" flood-color="#000"/>
+        </filter>
+        <filter id="packetGlow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <marker id="mH" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#3B82F6"/></marker>
+        <marker id="mA" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#8B5CF6"/></marker>
+        <marker id="mS" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#10B981"/></marker>
+        <marker id="mI" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#F59E0B"/></marker>
+        <marker id="mR" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#EF4444"/></marker>
+        <marker id="mP" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#64748B"/></marker>
+        <marker id="mOk" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#22C55E"/></marker>
+      </defs>
+
+      <!-- ========== ACTORS ========== -->
+
+      <!-- Human (left, mid-height) -->
+      <g class="actor-card" id="actor-human" style="color:#3B82F6">
+        <rect class="card-bg" x="30" y="230" width="145" height="115" rx="12" fill="#111827" stroke="#3B82F6" stroke-width="2" filter="url(#shadowFilter)"/>
+        <rect x="30" y="230" width="145" height="28" rx="12" fill="#2563EB" opacity=".12"/>
+        <circle class="state-ring" id="ring-human" cx="103" cy="290" r="26" fill="none" stroke="#3B82F6" stroke-width="2" opacity="0">
+          <animate attributeName="r" values="24;30;24" dur="2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="103" cy="290" r="20" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5"/>
+        <text x="103" y="296" text-anchor="middle" font-size="17" font-weight="800" fill="#3B82F6" font-family="system-ui,sans-serif">H</text>
+        <text x="103" y="246" text-anchor="middle" font-size="10" font-weight="700" fill="#3B82F6" font-family="system-ui,sans-serif" letter-spacing=".5">HUMAN</text>
+        <text x="103" y="333" text-anchor="middle" font-size="9" fill="#6B7280" font-family="system-ui,sans-serif">Reviewer</text>
+      </g>
+
+      <!-- Agent (center-top) -->
+      <g class="actor-card" id="actor-agent" style="color:#8B5CF6">
+        <rect class="card-bg" x="370" y="40" width="155" height="140" rx="12" fill="#111827" stroke="#8B5CF6" stroke-width="2" filter="url(#shadowFilter)"/>
+        <rect x="370" y="40" width="155" height="28" rx="12" fill="#7C3AED" opacity=".12"/>
+        <circle class="state-ring" id="ring-agent" cx="448" cy="100" r="26" fill="none" stroke="#8B5CF6" stroke-width="2" opacity="0">
+          <animate attributeName="r" values="24;30;24" dur="2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="448" cy="100" r="20" fill="#EDE9FE" stroke="#8B5CF6" stroke-width="1.5"/>
+        <text x="448" y="106" text-anchor="middle" font-size="17" font-weight="800" fill="#8B5CF6" font-family="system-ui,sans-serif">A</text>
+        <text x="448" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#8B5CF6" font-family="system-ui,sans-serif" letter-spacing=".5">AGENT</text>
+        <text x="448" y="168" text-anchor="middle" font-size="9" fill="#6B7280" font-family="system-ui,sans-serif">Orchestrator</text>
+      </g>
+
+      <!-- Service (right-top, pushed far right) -->
+      <g class="actor-card" id="actor-service" style="color:#10B981">
+        <rect class="card-bg" x="790" y="40" width="185" height="140" rx="12" fill="#111827" stroke="#10B981" stroke-width="2" filter="url(#shadowFilter)"/>
+        <rect x="790" y="40" width="185" height="28" rx="12" fill="#059669" opacity=".12"/>
+        <circle class="state-ring" id="ring-service" cx="883" cy="100" r="26" fill="none" stroke="#10B981" stroke-width="2" opacity="0">
+          <animate attributeName="r" values="24;30;24" dur="2s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="883" cy="100" r="20" fill="#D1FAE5" stroke="#10B981" stroke-width="1.5"/>
+        <text x="883" y="106" text-anchor="middle" font-size="17" font-weight="800" fill="#10B981" font-family="system-ui,sans-serif">S</text>
+        <text x="883" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#10B981" font-family="system-ui,sans-serif" letter-spacing=".5">SERVICE API</text>
+        <text x="883" y="168" text-anchor="middle" font-size="9" fill="#6B7280" font-family="system-ui,sans-serif">Website / Backend</text>
+      </g>
+
+      <!-- ========== MESSENGER (pushed down) ========== -->
+      <g class="messenger-group" id="messenger">
+        <rect x="300" y="410" width="195" height="155" rx="10" fill="#111827" stroke="#F59E0B" stroke-width="1.5" filter="url(#shadowFilter)"/>
+        <rect x="300" y="410" width="195" height="30" rx="10" fill="#0088CC"/>
+        <rect x="300" y="430" width="195" height="10" fill="#0088CC"/>
+        <text x="398" y="430" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">Telegram Bot</text>
+        <rect x="316" y="450" width="164" height="34" rx="6" fill="#1F2937"/>
+        <text x="398" y="465" text-anchor="middle" font-size="9" font-weight="600" fill="#D1D5DB" font-family="system-ui,sans-serif">New Review Request</text>
+        <text x="398" y="478" text-anchor="middle" font-size="8" fill="#6B7280" font-family="system-ui,sans-serif">Task #4821 needs approval</text>
+        <rect x="316" y="494" width="78" height="28" rx="6" fill="#16A34A"/>
+        <text x="355" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">Approve</text>
+        <rect x="402" y="494" width="78" height="28" rx="6" fill="#EF4444"/>
+        <text x="441" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">Reject</text>
+        <text x="398" y="550" text-anchor="middle" font-size="9" fill="#F59E0B" font-weight="600" font-family="system-ui,sans-serif">Inline Buttons (v0.7)</text>
+      </g>
+
+      <!-- Magnifier ring -->
+      <g class="messenger-group" id="messengerRing">
+        <circle cx="398" cy="490" r="105" fill="none" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 4" opacity=".25"/>
+        <line x1="472" y1="568" x2="510" y2="606" stroke="#F59E0B" stroke-width="3" stroke-linecap="round" opacity=".25"/>
+      </g>
+
+      <!-- Dotted line Human -> Messenger -->
+      <g class="messenger-group" id="messengerLink">
+        <line x1="130" y1="345" x2="300" y2="460" stroke="#3B82F6" stroke-width="1" stroke-dasharray="3 3" opacity=".25"/>
+      </g>
+
+      <!-- ========== REVIEW PAGE (far bottom-right) ========== -->
+      <g class="review-group" id="reviewPage">
+        <rect x="720" y="400" width="240" height="170" rx="10" fill="#111827" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="6 4" filter="url(#shadowFilter)"/>
+        <rect x="720" y="400" width="240" height="26" rx="10" fill="#1F2937"/>
+        <rect x="720" y="418" width="240" height="8" fill="#1F2937"/>
+        <circle cx="734" cy="413" r="4" fill="#EF4444"/>
+        <circle cx="746" cy="413" r="4" fill="#F59E0B"/>
+        <circle cx="758" cy="413" r="4" fill="#22C55E"/>
+        <rect x="770" y="406" width="170" height="14" rx="3" fill="#0A0E17"/>
+        <text x="855" y="417" text-anchor="middle" font-size="6.5" fill="#6B7280" font-family="ui-monospace,'SF Mono',monospace">review.service.com/case/4821</text>
+        <text x="840" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#EF4444" font-family="system-ui,sans-serif">Review Page</text>
+        <text x="840" y="474" text-anchor="middle" font-size="9" fill="#6B7280" font-family="system-ui,sans-serif">Rich Browser UI</text>
+        <rect x="745" y="490" width="190" height="12" rx="3" fill="#1F2937"/>
+        <rect x="745" y="508" width="130" height="12" rx="3" fill="#1F2937"/>
+        <rect x="745" y="528" width="75" height="20" rx="5" fill="#DC2626" opacity=".5"/>
+        <text x="783" y="542" text-anchor="middle" font-size="8" font-weight="600" fill="#fff" font-family="system-ui,sans-serif">Submit</text>
+        <rect x="780" y="560" width="120" height="18" rx="5" fill="#EF4444" opacity=".12" stroke="#EF4444" stroke-width="1" stroke-dasharray="3 2"/>
+        <text x="840" y="572" text-anchor="middle" font-size="8" font-weight="700" fill="#EF4444" font-family="system-ui,sans-serif">OPTIONAL</text>
+      </g>
+
+      <!-- ========== HITL OBJECT (below arrow band, no overlap) ========== -->
+      <g class="hitl-object" id="hitlObject">
+        <rect x="575" y="190" width="152" height="92" rx="6" fill="#0A0E17" stroke="#10B981" stroke-width="1.2" filter="url(#shadowFilter)"/>
+        <rect x="575" y="190" width="152" height="18" rx="6" fill="#10B981" opacity=".15"/>
+        <text x="585" y="202" font-size="7.5" font-weight="700" fill="#10B981" font-family="ui-monospace,'SF Mono',monospace">HITL Object</text>
+        <text x="585" y="218" font-size="6.5" fill="#6B7280" font-family="ui-monospace,'SF Mono',monospace">{</text>
+        <text x="593" y="229" font-size="6.5" fill="#9CA3AF" font-family="ui-monospace,'SF Mono',monospace"><tspan fill="#F59E0B">"case_id"</tspan>: "rev_4821",</text>
+        <text x="593" y="240" font-size="6.5" fill="#9CA3AF" font-family="ui-monospace,'SF Mono',monospace"><tspan fill="#F59E0B">"review_url"</tspan>: "https://...",</text>
+        <text x="593" y="251" font-size="6.5" fill="#9CA3AF" font-family="ui-monospace,'SF Mono',monospace"><tspan fill="#F59E0B">"submit_url"</tspan>: "https://...",</text>
+        <text x="593" y="262" font-size="6.5" fill="#9CA3AF" font-family="ui-monospace,'SF Mono',monospace"><tspan fill="#F59E0B">"poll_url"</tspan>: "https://..."</text>
+        <text x="585" y="273" font-size="6.5" fill="#6B7280" font-family="ui-monospace,'SF Mono',monospace">}</text>
+      </g>
+
+      <!-- ========== FLOW ARROWS ========== -->
+
+      <!-- Step 1: Human -> Agent (diagonal up-right) -->
+      <g class="step-group" id="step-1">
+        <line x1="175" y1="265" x2="368" y2="115" stroke="#3B82F6" stroke-width="2.5" marker-end="url(#mH)"/>
+        <circle cx="260" cy="200" r="11" fill="#2563EB"/>
+        <text x="260" y="204" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">1</text>
+        <text x="250" y="188" text-anchor="middle" font-size="9" font-weight="600" fill="#3B82F6" font-family="system-ui,sans-serif">Task Request</text>
+      </g>
+
+      <!-- Step 2: Agent -> Service (horizontal, y=70) -->
+      <g class="step-group" id="step-2">
+        <line x1="525" y1="70" x2="788" y2="70" stroke="#8B5CF6" stroke-width="2.5" marker-end="url(#mA)"/>
+        <circle cx="656" cy="56" r="11" fill="#7C3AED"/>
+        <text x="656" y="60" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">2</text>
+        <text x="656" y="41" text-anchor="middle" font-size="9" font-weight="600" fill="#8B5CF6" font-family="system-ui,sans-serif">API Call</text>
+      </g>
+
+      <!-- Step 3: Service -> Agent (horizontal, y=98) -->
+      <g class="step-group" id="step-3">
+        <line x1="788" y1="98" x2="527" y2="98" stroke="#10B981" stroke-width="2" stroke-dasharray="7 3" marker-end="url(#mS)"/>
+        <circle cx="656" cy="86" r="11" fill="#059669"/>
+        <text x="656" y="90" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">3</text>
+        <text x="656" y="116" text-anchor="middle" font-size="8" font-weight="600" fill="#10B981" font-family="ui-monospace,'SF Mono',monospace">HTTP 202 + HITL Object</text>
+      </g>
+
+      <!-- Step 4: Agent -> Messenger (vertical down) -->
+      <g class="step-group" id="step-4">
+        <line x1="430" y1="180" x2="398" y2="408" stroke="#F59E0B" stroke-width="2.5" marker-end="url(#mI)"/>
+        <circle cx="418" cy="275" r="11" fill="#D97706"/>
+        <text x="418" y="279" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">4</text>
+        <text x="458" y="275" text-anchor="middle" font-size="8" font-weight="600" fill="#F59E0B" font-family="system-ui,sans-serif">Render Buttons</text>
+      </g>
+
+      <!-- Step 5: Human decides (Messenger -> Human) -->
+      <g class="step-group" id="step-5">
+        <path d="M 300 480 Q 210 410 160 345" stroke="#F59E0B" stroke-width="2" fill="none" stroke-dasharray="5 3" marker-end="url(#mI)"/>
+        <circle cx="220" cy="400" r="11" fill="#D97706"/>
+        <text x="220" y="404" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">5</text>
+        <text x="200" y="425" text-anchor="middle" font-size="8" font-weight="600" fill="#F59E0B" font-family="system-ui,sans-serif">Human decides</text>
+      </g>
+
+      <!-- Step 6: POST submit_url (curves from messenger area up-right to Service, avoids HITL Object) -->
+      <g class="step-group" id="step-6">
+        <path d="M 495 460 Q 780 340 790 175" stroke="#F59E0B" stroke-width="2.5" fill="none" marker-end="url(#mI)"/>
+        <circle cx="670" cy="345" r="11" fill="#D97706"/>
+        <text x="670" y="349" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">6</text>
+        <text x="670" y="330" text-anchor="middle" font-size="8" font-weight="600" fill="#F59E0B" font-family="ui-monospace,'SF Mono',monospace">POST submit_url</text>
+      </g>
+
+      <!-- Step 7: Poll Agent -> Service (horizontal, y=133) -->
+      <g class="step-group" id="step-7">
+        <line x1="525" y1="133" x2="788" y2="133" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#mP)"/>
+        <circle cx="656" cy="133" r="11" fill="#475569"/>
+        <text x="656" y="137" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">7</text>
+        <text x="656" y="153" text-anchor="middle" font-size="8" font-weight="600" fill="#64748B" font-family="system-ui,sans-serif">Poll status</text>
+      </g>
+
+      <!-- Step 8: Result Service -> Agent (horizontal, y=163) -->
+      <g class="step-group" id="step-8">
+        <line x1="788" y1="163" x2="527" y2="163" stroke="#64748B" stroke-width="1.5" marker-end="url(#mP)"/>
+        <circle cx="656" cy="163" r="11" fill="#475569"/>
+        <text x="656" y="167" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">8</text>
+        <text x="656" y="183" text-anchor="middle" font-size="7.5" font-weight="600" fill="#64748B" font-family="ui-monospace,'SF Mono',monospace">status: completed</text>
+      </g>
+
+      <!-- Step 9: Agent -> Human (diagonal down-left, separate from step 1) -->
+      <g class="step-group" id="step-9">
+        <path d="M 370 130 Q 280 220 175 290" stroke="#22C55E" stroke-width="3" fill="none" marker-end="url(#mOk)"/>
+        <circle cx="270" cy="225" r="11" fill="#16A34A"/>
+        <text x="270" y="229" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">9</text>
+        <text x="305" y="230" text-anchor="middle" font-size="8" font-weight="700" fill="#22C55E" font-family="system-ui,sans-serif">Continue</text>
+      </g>
+
+      <!-- Browser flow hint -->
+      <g class="browser-hint" id="browserHint">
+        <path d="M 155 345 Q 420 640 718 500" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4" marker-end="url(#mR)"/>
+        <text x="400" y="610" text-anchor="middle" font-size="8" fill="#EF4444" opacity=".7" font-family="system-ui,sans-serif">open review_url</text>
+        <path d="M 855 400 L 855 180" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4" marker-end="url(#mR)"/>
+      </g>
+
+      <!-- Data packet -->
+      <circle id="dataPacket" r="5" fill="#fff" opacity="0" filter="url(#packetGlow)"/>
+    </svg>
+
+    <div class="desc-panel" id="descPanel">
+      <h3 id="descTitle"></h3>
+      <p id="descText"></p>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <div class="bottom-text" id="bottomText">Press &#9654; Play or step through the HITL Protocol v0.7 architecture.</div>
+  <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">Copy</button>
+</div>
+
+<script>
+var PACKET_PATHS = {
+  1: { x1:175, y1:265, x2:368, y2:115, color:"#3B82F6" },
+  2: { x1:525, y1:70,  x2:788, y2:70,  color:"#8B5CF6" },
+  3: { x1:788, y1:98,  x2:527, y2:98,  color:"#10B981" },
+  4: { x1:430, y1:180, x2:398, y2:408, color:"#F59E0B" },
+  5: { x1:300, y1:480, x2:160, y2:345, cx:210, cy:410, color:"#F59E0B" },
+  6: { x1:495, y1:460, x2:790, y2:175, cx:780, cy:340, color:"#F59E0B" },
+  7: { x1:525, y1:133, x2:788, y2:133, color:"#64748B" },
+  8: { x1:788, y1:163, x2:527, y2:163, color:"#64748B" },
+  9: { x1:370, y1:130, x2:175, y2:290, cx:280, cy:220, color:"#22C55E" },
+};
+
+var ACTOR_RINGS = {
+  "actor-human": "ring-human",
+  "actor-agent": "ring-agent",
+  "actor-service": "ring-service",
+};
+
+var STEPS = [
+  { id:1, title:"Task Request", subtitle:"Human \u2192 Agent",
+    desc:"Human sends a task instruction to the Agent via Telegram, Slack, or any messaging channel. The Agent begins autonomous execution.",
+    hex:"#3B82F6", actors:["actor-human","actor-agent"],
+    elements:["step-1"], showMessenger:false, showReview:false, showHitlObj:false },
+  { id:2, title:"API Call", subtitle:"Agent \u2192 Service",
+    desc:"Agent makes a standard HTTP request to the Service API. No special SDK \u2014 just a normal REST call to execute the task.",
+    hex:"#8B5CF6", actors:["actor-agent","actor-service"],
+    elements:["step-1","step-2"], showMessenger:false, showReview:false, showHitlObj:false },
+  { id:3, title:"HTTP 202 + HITL Object", subtitle:"Service \u2192 Agent",
+    desc:"Service needs a human decision. Returns HTTP 202 Accepted with a HITL object: case_id, review_url, submit_url, submit_token, and poll_url.",
+    hex:"#10B981", actors:["actor-agent","actor-service"],
+    elements:["step-1","step-2","step-3"], showMessenger:false, showReview:false, showHitlObj:true },
+  { id:4, title:"Render Inline Buttons", subtitle:"Agent \u2192 Messenger",
+    desc:"Agent forwards the review to the Human\u2019s chat channel. With v0.7 Inline Submit, native action buttons (Approve/Reject) render directly in the chat \u2014 no browser needed.",
+    hex:"#F59E0B", actors:["actor-agent"],
+    elements:["step-1","step-2","step-3","step-4"], showMessenger:true, showReview:false, showHitlObj:true },
+  { id:5, title:"Human Decides", subtitle:"Tap in Messenger",
+    desc:"Human sees inline buttons and taps their decision. Zero context switch, zero page loads \u2014 instant native interaction in the messaging app.",
+    hex:"#F59E0B", actors:["actor-human"],
+    elements:["step-1","step-2","step-3","step-4","step-5"], showMessenger:true, showReview:false, showHitlObj:true },
+  { id:6, title:"POST submit_url", subtitle:"Agent \u2192 Service",
+    desc:"Agent posts the decision to the Service\u2019s submit_url with the submit_token. SHA-256 hash validation ensures integrity. Decision recorded.",
+    hex:"#F59E0B", actors:["actor-agent","actor-service"],
+    elements:["step-1","step-2","step-3","step-4","step-5","step-6"], showMessenger:true, showReview:false, showHitlObj:true },
+  { id:7, title:"Poll Status", subtitle:"Agent \u2194 Service",
+    desc:"Agent checks poll_url for completion. Supported methods: Polling (GET with exponential backoff), Long Polling (?wait=30), SSE (Server-Sent Events for real-time push), or Webhooks (callback_url). Works for both inline and browser flows.",
+    hex:"#64748B", actors:["actor-agent","actor-service"],
+    elements:["step-1","step-2","step-3","step-4","step-5","step-6","step-7"], showMessenger:true, showReview:true, showHitlObj:true },
+  { id:8, title:"Status: Completed", subtitle:"Service \u2192 Agent",
+    desc:"Service responds with status: \"completed\" and structured result data (decision, reviewer, timestamp). Possible statuses: pending \u2192 completed | expired | error. The Agent now has the machine-readable decision.",
+    hex:"#64748B", actors:["actor-agent","actor-service"],
+    elements:["step-1","step-2","step-3","step-4","step-5","step-6","step-7","step-8"], showMessenger:true, showReview:true, showHitlObj:true },
+  { id:9, title:"Continue Execution", subtitle:"Agent \u2192 Human",
+    desc:"Agent delivers the result summary to Human and continues autonomous execution. The human-in-the-loop moment is complete.",
+    hex:"#22C55E", actors:["actor-human","actor-agent"],
+    elements:["step-1","step-2","step-3","step-4","step-5","step-6","step-7","step-8","step-9"], showMessenger:true, showReview:true, showHitlObj:true },
+];
+
+var currentStep = 0, isPlaying = false, playInterval = null, speed = 1800, packetAnimId = null;
+
+var stepListEl = document.getElementById("stepList");
+STEPS.forEach(function(s) {
+  var div = document.createElement("div");
+  div.className = "step-item"; div.id = "step-item-" + s.id;
+  div.onclick = function() { goToStep(s.id); };
+  div.innerHTML = '<div class="step-badge" style="background:' + s.hex + '">' + s.id + '</div>' +
+    '<div class="step-info"><h3>' + s.title + '</h3><p>' + s.subtitle + '</p></div>';
+  stepListEl.appendChild(div);
+});
+
+var packetEl = document.getElementById("dataPacket");
+
+function animatePacket(stepId) {
+  if (packetAnimId) { cancelAnimationFrame(packetAnimId); packetAnimId = null; }
+  var path = PACKET_PATHS[stepId];
+  if (!path) { packetEl.setAttribute("opacity","0"); return; }
+  packetEl.setAttribute("fill", path.color);
+  packetEl.setAttribute("opacity","1");
+  var startTime = null, duration = 600;
+  function tick(ts) {
+    if (!startTime) startTime = ts;
+    var p = Math.min((ts - startTime) / duration, 1);
+    var t = 1 - Math.pow(1 - p, 3);
+    var x, y;
+    if (path.cx !== undefined) {
+      var mt = 1 - t;
+      x = mt*mt*path.x1 + 2*mt*t*path.cx + t*t*path.x2;
+      y = mt*mt*path.y1 + 2*mt*t*path.cy + t*t*path.y2;
+    } else {
+      x = path.x1 + (path.x2 - path.x1)*t;
+      y = path.y1 + (path.y2 - path.y1)*t;
+    }
+    packetEl.setAttribute("cx", x); packetEl.setAttribute("cy", y);
+    var r = p > 0.8 ? 5*(1-(p-0.8)/0.2) : 5;
+    packetEl.setAttribute("r", Math.max(r,1));
+    if (p < 1) { packetAnimId = requestAnimationFrame(tick); }
+    else { packetEl.setAttribute("opacity","0"); packetAnimId = null; }
+  }
+  packetAnimId = requestAnimationFrame(tick);
+}
+
+function updateUI() {
+  document.getElementById("stepCounter").textContent = currentStep + " / " + STEPS.length;
+  document.getElementById("progress").style.width = ((currentStep / STEPS.length)*100) + "%";
+  document.getElementById("prevBtn").disabled = currentStep === 0;
+  document.getElementById("nextBtn").disabled = currentStep >= STEPS.length;
+
+  document.querySelectorAll(".step-group").forEach(function(g){ g.classList.remove("visible"); });
+  document.querySelectorAll(".actor-card").forEach(function(a){
+    a.classList.remove("glow"); a.querySelector(".card-bg").style.filter = "url(#shadowFilter)";
+  });
+  document.querySelectorAll(".state-ring").forEach(function(r){ r.classList.remove("active"); });
+  document.getElementById("messenger").classList.remove("visible");
+  document.getElementById("messengerRing").classList.remove("visible");
+  document.getElementById("messengerLink").classList.remove("visible");
+  document.getElementById("reviewPage").classList.remove("visible");
+  document.getElementById("browserHint").classList.remove("visible");
+  document.getElementById("hitlObject").classList.remove("visible");
+
+  document.querySelectorAll(".step-item").forEach(function(item, i){
+    item.classList.remove("active","completed");
+    if (i < currentStep-1) item.classList.add("completed");
+    if (i === currentStep-1) item.classList.add("active");
+  });
+
+  var descPanel = document.getElementById("descPanel");
+  if (currentStep === 0) {
+    descPanel.classList.remove("visible");
+    packetEl.setAttribute("opacity","0");
+    updateBottomText(null); return;
+  }
+
+  var step = STEPS[currentStep-1];
+  step.elements.forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.add("visible"); });
+  step.actors.forEach(function(id){
+    var a = document.getElementById(id); a.classList.add("glow");
+    a.querySelector(".card-bg").style.filter = "url(#glowFilter)";
+    var rid = ACTOR_RINGS[id]; if(rid) document.getElementById(rid).classList.add("active");
+  });
+  if (step.showMessenger) {
+    document.getElementById("messenger").classList.add("visible");
+    document.getElementById("messengerRing").classList.add("visible");
+    document.getElementById("messengerLink").classList.add("visible");
+  }
+  if (step.showReview) {
+    document.getElementById("reviewPage").classList.add("visible");
+    document.getElementById("browserHint").classList.add("visible");
+  }
+  if (step.showHitlObj) document.getElementById("hitlObject").classList.add("visible");
+
+  animatePacket(step.id);
+  descPanel.classList.add("visible");
+  document.getElementById("descTitle").textContent = "Step " + step.id + ": " + step.title;
+  document.getElementById("descTitle").style.color = step.hex;
+  document.getElementById("descText").textContent = step.desc;
+  var ai = document.getElementById("step-item-"+step.id);
+  if (ai) ai.scrollIntoView({behavior:"smooth",block:"nearest"});
+  updateBottomText(step);
+}
+
+function updateBottomText(step) {
+  var el = document.getElementById("bottomText");
+  if (!step) { el.textContent = "Press \u25b6 Play or step through the HITL Protocol v0.7 architecture."; return; }
+  var t = "Step "+step.id+"/"+STEPS.length+": "+step.title+" ("+step.subtitle+")\n"+step.desc;
+  if (currentStep===STEPS.length) t += "\n\n\u2014 Full HITL Protocol v0.7 flow complete.";
+  el.textContent = t;
+}
+
+function nextStep() { if(currentStep<STEPS.length){currentStep++;updateUI();}else if(isPlaying){togglePlay();} }
+function prevStep() { if(currentStep>0){currentStep--;updateUI();} }
+function goToStep(n) { currentStep=n; updateUI(); }
+function resetSteps() { if(isPlaying)togglePlay(); currentStep=0; updateUI(); }
+
+function togglePlay() {
+  isPlaying=!isPlaying;
+  var btn=document.getElementById("playBtn");
+  if(isPlaying){
+    btn.innerHTML="&#9646;&#9646; Pause";
+    if(currentStep>=STEPS.length) currentStep=0;
+    playInterval=setInterval(function(){if(currentStep<STEPS.length){currentStep++;updateUI();}else{togglePlay();}},speed);
+  } else { btn.innerHTML="&#9654; Play"; clearInterval(playInterval); playInterval=null; }
+}
+
+function updateSpeed() {
+  speed=parseInt(document.getElementById("speedSlider").value);
+  document.getElementById("speedLabel").textContent=(speed/1000).toFixed(1)+"s";
+  if(isPlaying){clearInterval(playInterval);playInterval=setInterval(function(){if(currentStep<STEPS.length){currentStep++;updateUI();}else{togglePlay();}},speed);}
+}
+
+function copyPrompt() {
+  var text=document.getElementById("bottomText").textContent;
+  var btn=document.getElementById("copyBtn");
+  navigator.clipboard.writeText(text).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy";},1200);});
+}
+
+// Particles
+var canvas=document.getElementById("particles"),ctx=canvas.getContext("2d"),particleList=[];
+function resizeCanvas(){canvas.width=canvas.parentElement.clientWidth;canvas.height=canvas.parentElement.clientHeight;}
+window.addEventListener("resize",resizeCanvas); resizeCanvas();
+function Particle(){this.reset();}
+Particle.prototype.reset=function(){
+  this.x=Math.random()*canvas.width;this.y=Math.random()*canvas.height;
+  this.vx=(Math.random()-.5)*.3;this.vy=(Math.random()-.5)*.3;
+  this.r=Math.random()*1.5+.5;this.a=Math.random()*.12+.03;this.hue=250+Math.random()*30;
+};
+Particle.prototype.update=function(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>canvas.width||this.y<0||this.y>canvas.height)this.reset();};
+Particle.prototype.draw=function(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle="hsla("+this.hue+",70%,70%,"+this.a+")";ctx.fill();};
+for(var i=0;i<50;i++)particleList.push(new Particle());
+function animP(){ctx.clearRect(0,0,canvas.width,canvas.height);for(var i=0;i<particleList.length;i++){particleList[i].update();particleList[i].draw();}requestAnimationFrame(animP);}
+animP();
+
+// Keyboard
+document.addEventListener("keydown",function(e){
+  if(e.key==="ArrowRight")nextStep();else if(e.key==="ArrowLeft")prevStep();
+  else if(e.key===" "){e.preventDefault();togglePlay();}else if(e.key==="r"||e.key==="R")resetSteps();
+});
+
+updateUI();
+</script>
+</body>
+</html>
