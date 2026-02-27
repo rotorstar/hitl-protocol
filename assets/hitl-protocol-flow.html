@@ -110,9 +110,10 @@
     .hdr-right {
       flex: 1;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-end;
       justify-content: flex-end;
-      gap: 16px
+      gap: 6px
     }
 
     .hdr-link {
@@ -125,6 +126,31 @@
 
     .hdr-link:hover {
       color: #0B1121
+    }
+
+    .rfc-hints {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .rfc-tag {
+      font-family: 'SF Mono', ui-monospace, monospace;
+      font-size: 10px;
+      color: #64748B;
+      background: #fff;
+      border: 1px solid var(--border2);
+      border-radius: 999px;
+      padding: 2px 7px;
+      text-decoration: none;
+      transition: .2s;
+    }
+
+    .rfc-tag:hover {
+      color: #0B1121;
+      border-color: #94A3B8;
     }
 
     .prog {
@@ -361,6 +387,13 @@
       color: #065f46
     }
 
+    .legend-rfc {
+      margin-top: 8px;
+      font-size: 10px;
+      line-height: 1.35;
+      color: var(--text4);
+    }
+
     .canvas-area {
       flex: 1;
       position: relative;
@@ -573,6 +606,14 @@
     <div class="hdr-right">
       <a class="hdr-link" href="https://github.com/rotorstar/hitl-protocol"
         target="_blank">github.com/rotorstar/hitl-protocol</a>
+      <div class="rfc-hints" aria-label="RFC alignment hints">
+        <a class="rfc-tag" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank"
+          rel="noopener noreferrer">RFC 9110</a>
+        <a class="rfc-tag" href="https://www.rfc-editor.org/rfc/rfc3339" target="_blank"
+          rel="noopener noreferrer">RFC 3339</a>
+        <a class="rfc-tag" href="https://www.rfc-editor.org/rfc/rfc6750" target="_blank"
+          rel="noopener noreferrer">RFC 6750</a>
+      </div>
     </div>
   </div>
   <div class="prog">
@@ -619,6 +660,8 @@
         </div>
         <div class="insight-box"><strong>Inline</strong> = fast, channel-native &middot; <strong>Browser</strong> = rich
           UI, optional</div>
+        <div class="legend-rfc">Aligned references: RFC 9110 (HTTP), RFC 3339 (timestamps), RFC 6750 (bearer auth),
+          RFC 2119/8174 (normative terms).</div>
       </div>
     </div>
 

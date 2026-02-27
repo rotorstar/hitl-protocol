@@ -385,6 +385,17 @@ POST /api/search
 
 See [Service Integration Guide — Enforcing HITL Choice](skills/references/service-integration.md#enforcing-hitl-choice) for validation gate implementation.
 
+## RFC Alignment
+
+This protocol and skill documentation are aligned with these core RFCs:
+
+- [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) — HTTP semantics (`202 Accepted`, conditional requests, retry behavior)
+- [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) + [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) — normative terms (`MUST`, `SHOULD`, `MAY`)
+- [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) — timestamp formats used by HITL case lifecycle fields
+- [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) — bearer token usage for review and inline submit authorization
+
+For the complete implementation matrix, see [README RFC Alignment](README.md#rfc-alignment).
+
 ## Resources
 
 - [Full Specification (v0.7)](spec/v0.7/hitl-protocol.md)

@@ -47,6 +47,9 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .header h1{font-size:clamp(32px,6vw,56px);font-weight:800;letter-spacing:-0.04em;line-height:1.1}
 .header h1 span{background:linear-gradient(135deg,var(--accent),#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .header p{color:var(--muted);font-size:14px;margin-top:8px;max-width:600px;margin-inline:auto;letter-spacing:0.01em}
+.rfc-strip{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+.rfc-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--bg3);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);text-decoration:none;letter-spacing:0.02em;transition:all .2s}
+.rfc-pill:hover{color:var(--text2);border-color:var(--border2);text-decoration:none}
 
 /* Nav — pill style with glow */
 .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
@@ -277,6 +280,12 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   <img src="../assets/logo.svg" alt="HITL Protocol Logo" style="height:64px;margin-bottom:12px">
   <h1>HITL Protocol <span>Interactive Playground</span></h1>
   <p>The Open Standard for Human Decisions in Agent Workflows &mdash; v0.7</p>
+  <div class="rfc-strip" aria-label="RFC alignment hints">
+    <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener noreferrer">RFC 9110</a>
+    <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc3339" target="_blank" rel="noopener noreferrer">RFC 3339</a>
+    <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc6750" target="_blank" rel="noopener noreferrer">RFC 6750</a>
+    <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc2119" target="_blank" rel="noopener noreferrer">RFC 2119/8174</a>
+  </div>
 </div>
 
 <nav class="nav">
@@ -315,6 +324,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       </div>
     </div>
     <div style="color:var(--muted);font-size:13px;margin-top:14px">Service returns HTTP 202 &rarr; Agent forwards URL &rarr; Human decides in browser &rarr; Agent polls result</div>
+    <div style="color:var(--dim);font-size:11px;margin-top:8px">Aligned references: RFC 9110 (HTTP), RFC 3339 (timestamps), RFC 6750 (bearer auth), RFC 2119/8174 (normative terms).</div>
   </div>
 
   <h2>Case Lifecycle</h2>
