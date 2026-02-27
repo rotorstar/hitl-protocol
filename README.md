@@ -333,7 +333,7 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 - [Agent Implementation Checklist](agents/checklist.md)
 - [Agent Skill (SKILL.md)](SKILL.md) — Teach agents the HITL Protocol
 - [SDK Design Guide](docs/sdk-guide.md) — Build a community SDK
-- [Best-Practice 2026 Fixplan + Matrix](docs/best-practice-2026-fixplan.md) — Consistency checks, flows, feature matrix, verification
+Consistency checks, flows, feature matrix, verification
 
 ---
 
