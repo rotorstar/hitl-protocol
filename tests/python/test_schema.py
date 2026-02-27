@@ -93,6 +93,34 @@ class TestHitlObjectSchema:
         }
         assert validator.is_valid(obj)
 
+    def test_rejects_non_https_for_non_local_hosts(self, hitl_schema, form_field_schema):
+        validator = make_validator(hitl_schema, form_field_schema)
+        obj = {
+            "spec_version": "0.7",
+            "case_id": "review_http",
+            "review_url": "http://example.com/review/http?token=abc",
+            "poll_url": "http://api.example.com/reviews/http/status",
+            "type": "selection",
+            "prompt": "Test",
+            "created_at": "2026-01-01T00:00:00Z",
+            "expires_at": "2026-01-02T00:00:00Z",
+        }
+        assert not validator.is_valid(obj)
+
+    def test_allows_localhost_http_for_dev(self, hitl_schema, form_field_schema):
+        validator = make_validator(hitl_schema, form_field_schema)
+        obj = {
+            "spec_version": "0.7",
+            "case_id": "review_local",
+            "review_url": "http://localhost:3456/review/local?token=abc",
+            "poll_url": "http://localhost:3456/api/reviews/local/status",
+            "type": "selection",
+            "prompt": "Test",
+            "created_at": "2026-01-01T00:00:00Z",
+            "expires_at": "2026-01-02T00:00:00Z",
+        }
+        assert validator.is_valid(obj)
+
 
 class TestPollResponseSchema:
     """Validate poll responses against poll-response.schema.json."""
@@ -127,6 +155,18 @@ class TestPollResponseSchema:
         v = Draft202012Validator(poll_schema)
         assert not v.is_valid({})
 
+    def test_rejects_completed_without_result_and_completed_at(self, poll_schema):
+        v = Draft202012Validator(poll_schema)
+        assert not v.is_valid({"status": "completed", "case_id": "r1"})
+
+    def test_rejects_expired_without_expired_at_and_default_action(self, poll_schema):
+        v = Draft202012Validator(poll_schema)
+        assert not v.is_valid({"status": "expired", "case_id": "r1"})
+
+    def test_rejects_cancelled_without_cancelled_at(self, poll_schema):
+        v = Draft202012Validator(poll_schema)
+        assert not v.is_valid({"status": "cancelled", "case_id": "r1"})
+
     def test_examples_validate(self, poll_schema, example_files):
         v = Draft202012Validator(poll_schema)
         for f in example_files:
@@ -135,6 +175,8 @@ class TestPollResponseSchema:
             data = json.loads(f.read_text())
             for step in data.get("steps", []):
                 body = step.get("response", {}).get("body", {})
-                if "status" in body and "case_id" in body and body.get("status") != "human_input_required":
+                req_url = step.get("request", {}).get("url", "")
+                is_poll_step = isinstance(req_url, str) and "/status" in req_url
+                if is_poll_step and "status" in body and "case_id" in body and body.get("status") != "human_input_required":
                     errors = list(v.iter_errors(body))
                     assert not errors, f"{f.name}: {errors}"

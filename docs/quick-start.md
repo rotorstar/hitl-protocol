@@ -230,7 +230,7 @@ app.post('/api/jobs/search', (req, res) => {
     status: 'human_input_required',
     message: '5 matching jobs found.',
     hitl: {
-      spec_version: '0.5',
+      spec_version: '0.7',
       case_id: 'review_abc123',
       review_url: `https://yourservice.com/review/abc123?token=${token}`,
       poll_url: 'https://api.yourservice.com/reviews/abc123/status',
@@ -371,10 +371,11 @@ That's it. SSE, callbacks, rate limiting, ETag — all optional enhancements.
 
 ## Next Steps
 
-- [Full Specification](../spec/v0.5/hitl-protocol.md)
+- [Full Specification](../spec/v0.7/hitl-protocol.md)
 - [JSON Schemas](../schemas/) for validation
 - [OpenAPI Spec](../schemas/openapi.yaml) for API documentation
 - [Review Page Templates](../templates/) — drop-in HTML templates
 - [Reference Implementations](../implementations/reference-service/) — working code in 4 frameworks
-- [Examples](../examples/) — 8 complete end-to-end flows
+- [Examples](../examples/) — 12 complete end-to-end flows
 - [Agent Checklist](../agents/checklist.md) — for agent implementors
+- [Best-Practice 2026 Fixplan + Matrix](./best-practice-2026-fixplan.md)

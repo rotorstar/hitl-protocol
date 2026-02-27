@@ -297,7 +297,8 @@ async def submit_response(case_id: str, request: Request, token: str = Query(def
     if is_inline_submit and allowed and action not in allowed:
         raise HTTPException(403, detail={
             "error": "action_not_inline",
-            "message": f"Action '{action}' is not allowed via inline submit. Allowed: {', '.join(allowed)}",
+            "message": f"Action '{action}' is not allowed via inline submit. Use the original hitl.review_url for full review.",
+            "case_id": rc["case_id"],
             "review_url": f"{BASE_URL}/review/{rc['case_id']}",
         })
 

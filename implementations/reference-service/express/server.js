@@ -240,7 +240,8 @@ app.post('/reviews/:caseId/respond', (req, res) => {
   if (isInlineSubmit && reviewCase.inline_actions?.length > 0 && !reviewCase.inline_actions.includes(action)) {
     return res.status(403).json({
       error: 'action_not_inline',
-      message: `Action '${action}' is not allowed via inline submit. Allowed: ${reviewCase.inline_actions.join(', ')}`,
+      message: `Action '${action}' is not allowed via inline submit. Use the original hitl.review_url for full review.`,
+      case_id: reviewCase.case_id,
       review_url: `${BASE_URL}/review/${reviewCase.case_id}`,
     });
   }

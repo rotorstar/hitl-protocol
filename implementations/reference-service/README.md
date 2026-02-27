@@ -49,8 +49,8 @@ All variants implement the same routes:
 |--------|------|:------------:|-------------|
 | POST | `/api/demo?type={type}` | 202 | Create a demo review case |
 | GET | `/review/{caseId}?token={token}` | 200, 401, 404 | Serve review page (HTML template) |
-| POST | `/reviews/{caseId}/respond?token={token}` | 200, 401, 409, 410 | Submit via review page (query token) |
-| POST | `/reviews/{caseId}/respond` + Bearer | 200, 401, 403, 409, 410 | Submit via agent inline (Bearer token) |
+| POST | `/reviews/{caseId}/respond?token={token}` | 200, 401, 409, 410 | Submit via review page (query token). Next.js variant uses `/api/reviews/{caseId}/respond?token=...`. |
+| POST | `/reviews/{caseId}/respond` + Bearer | 200, 401, 403, 409, 410 | Submit via agent inline (Bearer token). Next.js variant uses `/api/reviews/{caseId}/respond`. |
 | GET | `/api/reviews/{caseId}/status` | 200, 304, 429 | Poll status (ETag, Retry-After) |
 | GET | `/api/reviews/{caseId}/events` | 200 (SSE) | Server-Sent Events stream |
 | GET | `/.well-known/hitl.json` | 200 | Discovery endpoint |
@@ -113,7 +113,7 @@ SUBMIT_URL=$(echo "$RESPONSE" | jq -r '.hitl.submit_url')
 curl -s -X POST "$SUBMIT_URL" \
   -H "Authorization: Bearer ${SUBMIT_TOKEN}" \
   -H 'Content-Type: application/json' \
-  -d '{"action":"confirm","submitted_via":"cli"}'
+  -d '{"action":"confirm","submitted_via":"x-cli","submitted_by":{"platform":"x-cli","platform_user_id":"local-user"}}'
 ```
 
 Note: The `submit_token` is separate from the review URL token — each is scope-restricted and validated independently. See [spec Section 7.5](../../spec/v0.7/hitl-protocol.md) for security details.
@@ -126,7 +126,7 @@ Note: The `submit_token` is separate from the review URL token — each is scope
 - **ETag / If-None-Match** — Efficient polling (304 Not Modified)
 - **Rate Limiting** — 60 req/min per case, 429 with Retry-After
 - **One-Time Response** — 409 Conflict on duplicate submission
-- **403 + review_url** — Invalid inline action returns 403 with fallback URL
+- **403 + case_id fallback contract** — Invalid inline action returns 403 with `case_id` and fallback guidance to use original `hitl.review_url`
 - **SSE** — Real-time event stream with heartbeat
 - **Discovery** — `/.well-known/hitl.json` with `supports_inline_submit: true`
 - **All 5 Review Types** — With type-specific sample data and inline actions

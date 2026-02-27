@@ -111,7 +111,7 @@ describe('validateHitlObject', () => {
 
   it('rejects invalid spec_version', () => {
     const obj = {
-      spec_version: '0.7',
+      spec_version: '1.0',
       case_id: 'review_old',
       review_url: 'https://example.com/review/old?token=abc',
       poll_url: 'https://example.com/api/reviews/old/status',
@@ -121,6 +121,34 @@ describe('validateHitlObject', () => {
       expires_at: '2026-02-24T10:00:00Z',
     }
     expect(validateHitlObject(obj)).toBe(false)
+  })
+
+  it('rejects non-HTTPS URLs for non-local hosts', () => {
+    const obj = {
+      spec_version: '0.7',
+      case_id: 'review_http',
+      review_url: 'http://example.com/review/http?token=abc',
+      poll_url: 'http://api.example.com/reviews/http/status',
+      type: 'approval',
+      prompt: 'Test',
+      created_at: '2026-02-23T10:00:00Z',
+      expires_at: '2026-02-24T10:00:00Z',
+    }
+    expect(validateHitlObject(obj)).toBe(false)
+  })
+
+  it('allows http://localhost for local development', () => {
+    const obj: HitlObject = {
+      spec_version: '0.7',
+      case_id: 'review_local',
+      review_url: 'http://localhost:3456/review/local?token=abc',
+      poll_url: 'http://localhost:3456/api/reviews/local/status',
+      type: 'approval',
+      prompt: 'Test',
+      created_at: '2026-02-23T10:00:00Z',
+      expires_at: '2026-02-24T10:00:00Z',
+    }
+    expect(validateHitlObject(obj)).toBe(true)
   })
 })
 
@@ -160,6 +188,24 @@ describe('validatePollResponse', () => {
   it('rejects invalid status', () => {
     expect(
       validatePollResponse({ status: 'invalid', case_id: 'test' })
+    ).toBe(false)
+  })
+
+  it('rejects completed without result/completed_at', () => {
+    expect(
+      validatePollResponse({ status: 'completed', case_id: 'test' })
+    ).toBe(false)
+  })
+
+  it('rejects expired without default_action/expired_at', () => {
+    expect(
+      validatePollResponse({ status: 'expired', case_id: 'test' })
+    ).toBe(false)
+  })
+
+  it('rejects cancelled without cancelled_at', () => {
+    expect(
+      validatePollResponse({ status: 'cancelled', case_id: 'test' })
     ).toBe(false)
   })
 })
@@ -273,7 +319,9 @@ describe('Example files validation', () => {
       }
 
       // Validate poll responses
-      if (step.response?.body?.status && step.response?.body?.case_id) {
+      const isPollStep =
+        typeof step.request?.url === 'string' && step.request.url.includes('/status')
+      if (isPollStep && step.response?.body?.status && step.response?.body?.case_id) {
         it(`${file} — poll response in ${step.description ?? 'step'}`, () => {
           expect(validatePollResponse(step.response.body)).toBe(true)
         })

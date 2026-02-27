@@ -135,6 +135,34 @@ describe('hitl-object.schema.json', () => {
     };
     expect(validateHitl(minimal)).toBe(true);
   });
+
+  it('rejects non-HTTPS URLs for non-local hosts', () => {
+    const invalid = {
+      spec_version: '0.7',
+      case_id: 'review_http',
+      review_url: 'http://example.com/review/http?token=abc',
+      poll_url: 'http://api.example.com/reviews/http/status',
+      type: 'selection',
+      prompt: 'Test',
+      created_at: '2026-01-01T00:00:00Z',
+      expires_at: '2026-01-02T00:00:00Z',
+    };
+    expect(validateHitl(invalid)).toBe(false);
+  });
+
+  it('allows http://localhost for local development', () => {
+    const validLocal = {
+      spec_version: '0.7',
+      case_id: 'review_local',
+      review_url: 'http://localhost:3456/review/local?token=abc',
+      poll_url: 'http://localhost:3456/api/reviews/local/status',
+      type: 'selection',
+      prompt: 'Test',
+      created_at: '2026-01-01T00:00:00Z',
+      expires_at: '2026-01-02T00:00:00Z',
+    };
+    expect(validateHitl(validLocal)).toBe(true);
+  });
 });
 
 // ============================================================
@@ -212,6 +240,27 @@ describe('poll-response.schema.json', () => {
     expect(validatePoll({ status: 'pending' })).toBe(false);
   });
 
+  it('rejects completed without result/completed_at', () => {
+    expect(validatePoll({
+      status: 'completed',
+      case_id: 'review_123',
+    })).toBe(false);
+  });
+
+  it('rejects expired without expired_at/default_action', () => {
+    expect(validatePoll({
+      status: 'expired',
+      case_id: 'review_123',
+    })).toBe(false);
+  });
+
+  it('rejects cancelled without cancelled_at', () => {
+    expect(validatePoll({
+      status: 'cancelled',
+      case_id: 'review_123',
+    })).toBe(false);
+  });
+
   it('validates poll responses from examples', () => {
     const examples = [
       'examples/01-job-search-selection.json',
@@ -229,7 +278,7 @@ describe('poll-response.schema.json', () => {
     examples.forEach((file) => {
       const example = loadJson(file);
       const pollResponses = example.steps
-        .filter((s) => s.response?.body?.status && s.response.body.case_id)
+        .filter((s) => s.request?.url?.includes('/status') && s.response?.body?.status && s.response.body.case_id)
         .map((s) => s.response.body);
 
       pollResponses.forEach((resp) => {

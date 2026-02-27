@@ -230,7 +230,7 @@ components:
           properties:
             spec_version:
               type: string
-              examples: ['0.6']
+              examples: ['0.7']
             service:
               type: object
               properties:
@@ -364,7 +364,10 @@ components:
             error: case_expired
             message: This review case expired on 2026-02-23T10:00:00Z.
     ActionNotInline:
-      description: The requested action is not permitted via inline submit. The human must use the review_url.
+      description: |
+        The requested action is not permitted via inline submit.
+        The agent SHOULD use the original `hitl.review_url` from the 202 response.
+        `review_url` here is optional convenience metadata and may be token-free.
       content:
         application/json:
           schema:
@@ -372,20 +375,24 @@ components:
             required:
               - error
               - message
-              - review_url
+              - case_id
             properties:
               error:
                 type: string
                 const: action_not_inline
               message:
                 type: string
+              case_id:
+                type: string
               review_url:
                 type: string
                 format: uri
+                description: Optional review page URL hint. May not include the one-time review token.
           example:
             error: action_not_inline
-            message: "Action 'edit' is not permitted via inline submission. Use the review page."
-            review_url: "https://service.example/review/abc123?token=K7x..."
+            message: "Action 'edit' is not permitted via inline submission. Use the original hitl.review_url."
+            case_id: review_abc123
+            review_url: "https://service.example/review/abc123"
 
 # ============================================================
 # Paths
@@ -790,8 +797,6 @@ paths:
       responses:
         '200':
           description: Service HITL capabilities.
-        '404':
-          description: Service does not support HITL Protocol discovery.
           headers:
             Cache-Control:
               schema:
@@ -820,6 +825,8 @@ paths:
                   rate_limits:
                     poll_recommended_interval_seconds: 30
                     max_requests_per_minute: 60
+        '404':
+          description: Service does not support HITL Protocol discovery.
 
 # ============================================================
 # Webhooks (Callback transport — OpenAPI 3.1 feature)

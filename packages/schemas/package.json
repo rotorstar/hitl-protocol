@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "prebuild": "node scripts/copy-schemas.js",
+    "pretest": "node scripts/copy-schemas.js",
     "build": "tsup",
     "test": "vitest run"
   },

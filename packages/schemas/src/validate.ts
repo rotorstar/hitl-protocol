@@ -7,7 +7,7 @@
  * ```typescript
  * import { validateHitlObject } from '@hitl-protocol/schemas'
  *
- * const data = { spec_version: '0.6', case_id: 'review_abc', ... }
+ * const data = { spec_version: '0.7', case_id: 'review_abc', ... }
  * if (validateHitlObject(data)) {
  *   // data is valid HitlObject
  * } else {

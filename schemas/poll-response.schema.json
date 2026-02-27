@@ -157,5 +157,31 @@
       "type": "string",
       "description": "Human-readable reason for cancellation. Present when status is 'cancelled'."
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "completed" } }
+      },
+      "then": {
+        "required": ["result", "completed_at"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "expired" } }
+      },
+      "then": {
+        "required": ["expired_at", "default_action"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "cancelled" } }
+      },
+      "then": {
+        "required": ["cancelled_at"]
+      }
+    }
+  ]
 }

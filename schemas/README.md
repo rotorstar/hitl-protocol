@@ -9,6 +9,7 @@ This directory contains JSON Schema definitions for validating HITL Protocol mes
 | [`hitl-object.schema.json`](hitl-object.schema.json) | The `hitl` object within an HTTP 202 response | Service → Agent |
 | [`poll-response.schema.json`](poll-response.schema.json) | Response from the poll endpoint | Service → Agent |
 | [`form-field.schema.json`](form-field.schema.json) | Form field definition for Input-type reviews | `context.form.fields[]` |
+| [`submit-request.schema.json`](submit-request.schema.json) | Inline submit request body (`submit_url` flow) | Agent → Service |
 
 ## Usage
 
@@ -19,9 +20,13 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import hitlSchema from "./hitl-object.schema.json";
 import pollSchema from "./poll-response.schema.json";
+import formFieldSchema from "./form-field.schema.json";
 
 const ajv = new Ajv();
 addFormats(ajv);
+
+// hitl-object references form-field via $ref
+ajv.addSchema(formFieldSchema, "form-field.json");
 
 const validateHitl = ajv.compile(hitlSchema);
 const validatePoll = ajv.compile(pollSchema);
@@ -76,7 +81,7 @@ ajv validate -s hitl-object.schema.json -d example.json --spec=draft2020 -c ajv-
 
 ## Schema Version
 
-These schemas correspond to HITL Protocol **v0.5**. The `spec_version` field is constrained to `"0.5"`.
+These schemas correspond to HITL Protocol **v0.7**. The `spec_version` field is constrained to `"0.7"`.
 
 ## JSON Schema Draft
 

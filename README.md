@@ -279,9 +279,22 @@ The specification follows [Semantic Versioning](https://semver.org/). Breaking c
 
 | Version | Status | Date |
 |---------|--------|------|
-| 0.7 | Draft | 2026-02-24 |
+| 0.7 | Draft | 2026-02-23 |
 | 0.6 | Draft | 2026-02-23 |
 | 0.5 | Draft | 2026-02-22 |
+
+## RFC Alignment
+
+HITL Protocol aligns with established Internet standards where applicable:
+
+| RFC | Scope in HITL Protocol | Where Implemented |
+|-----|------------------------|-------------------|
+| **[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)** | HTTP semantics (`202 Accepted`, `304 Not Modified`, `ETag`, `If-None-Match`, `Retry-After`) | [Spec v0.7](spec/v0.7/hitl-protocol.md), [OpenAPI](schemas/openapi.yaml), reference implementations |
+| **[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)** + **[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)** | Normative requirement language (`MUST`, `SHOULD`, `MAY`) | [Spec terminology conventions](spec/v0.7/hitl-protocol.md#4-terminology) |
+| **[RFC 3339](https://www.rfc-editor.org/rfc/rfc3339)** | Timestamp formats (`created_at`, `expires_at`, status timestamps) | [JSON Schemas](schemas/), [OpenAPI](schemas/openapi.yaml) |
+| **[RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)** | Bearer token usage and security boundaries for API auth and inline submit auth | [Spec security sections](spec/v0.7/hitl-protocol.md), [OpenAPI security schemes](schemas/openapi.yaml) |
+
+See the implementation-level cross-check in [Best-Practice 2026 Fixplan + Matrix](docs/best-practice-2026-fixplan.md).
 
 ## Contributing
 
@@ -320,6 +333,7 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 - [Agent Implementation Checklist](agents/checklist.md)
 - [Agent Skill (SKILL.md)](SKILL.md) — Teach agents the HITL Protocol
 - [SDK Design Guide](docs/sdk-guide.md) — Build a community SDK
+- [Best-Practice 2026 Fixplan + Matrix](docs/best-practice-2026-fixplan.md) — Consistency checks, flows, feature matrix, verification
 
 ---
 

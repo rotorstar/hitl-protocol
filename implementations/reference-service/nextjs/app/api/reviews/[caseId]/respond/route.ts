@@ -44,7 +44,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     const base = getBaseUrl();
     return NextResponse.json({
       error: 'action_not_inline',
-      message: `Action '${action}' is not allowed via inline submit. Allowed: ${rc.inline_actions.join(', ')}`,
+      message: `Action '${action}' is not allowed via inline submit. Use the original hitl.review_url for full review.`,
+      case_id: rc.case_id,
       review_url: `${base}/review/${rc.case_id}`,
     }, { status: 403 });
   }

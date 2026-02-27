@@ -162,7 +162,8 @@ app.post('/reviews/:caseId/respond', async (c) => {
   if (isInlineSubmit && rc.inline_actions?.length > 0 && !rc.inline_actions.includes(action)) {
     return c.json({
       error: 'action_not_inline',
-      message: `Action '${action}' is not allowed via inline submit. Allowed: ${rc.inline_actions.join(', ')}`,
+      message: `Action '${action}' is not allowed via inline submit. Use the original hitl.review_url for full review.`,
+      case_id: rc.case_id,
       review_url: `${BASE_URL}/review/${rc.case_id}`,
     }, 403);
   }

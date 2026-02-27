@@ -5,6 +5,22 @@ All notable changes to the HITL Protocol specification will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-02-27
+
+### Fixed
+- Next.js reference review flow now posts to the correct respond endpoint (`/api/reviews/{caseId}/respond`)
+- Unified inline submit `403 action_not_inline` contract across all reference implementations with `case_id` and canonical fallback guidance
+- Corrected OpenAPI discovery endpoint responses: `200` now includes schema/example payload, `404` is documented as unsupported discovery
+- Fixed failing schema package test for invalid `spec_version`
+
+### Changed
+- Hardened `hitl-object.schema.json` URL validation: HTTPS required for production URLs, explicit localhost/127.0.0.1 allowance for local development
+- Hardened `poll-response.schema.json` with status-dependent requirements (`completed`, `expired`, `cancelled`)
+- Updated v0.7 spec language for inline fallback behavior, discovery example shape, and BCP14 conventions (RFC 2119 + RFC 8174)
+- Updated documentation consistency (`docs/quick-start.md`, `schemas/README.md`) to v0.7
+- Added Best-Practice 2026 fixplan and verification matrix (`docs/best-practice-2026-fixplan.md`)
+- Added RFC alignment section in `README.md`
+
 ## [0.5.1] - 2026-02-23
 
 ### Added

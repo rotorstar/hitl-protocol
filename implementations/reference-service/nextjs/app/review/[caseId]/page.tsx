@@ -38,7 +38,7 @@ export default async function ReviewPage({ params, searchParams }: {
     type: rc.type,
     status: rc.status,
     token,
-    respond_url: `${base}/reviews/${rc.case_id}/respond`,
+    respond_url: `${base}/api/reviews/${rc.case_id}/respond`,
     expires_at: rc.expires_at,
     context: rc.context,
   };

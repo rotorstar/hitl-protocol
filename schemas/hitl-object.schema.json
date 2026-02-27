@@ -28,24 +28,31 @@
     "review_url": {
       "type": "string",
       "format": "uri",
-      "description": "Fully qualified HTTPS URL to the review page. MUST include an opaque bearer token for authentication."
+      "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+      "description": "Fully qualified review URL to the review page. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
     },
     "poll_url": {
       "type": "string",
       "format": "uri",
-      "description": "Fully qualified URL to the status polling endpoint."
+      "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+      "description": "Fully qualified URL to the status polling endpoint. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
     },
     "callback_url": {
       "oneOf": [
-        { "type": "string", "format": "uri" },
+        {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)"
+        },
         { "type": "null" }
       ],
-      "description": "If the agent provided a callback URL in the original request, it is echoed here. Otherwise null."
+      "description": "If the agent provided a callback URL in the original request, it is echoed here. Otherwise null. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
     },
     "events_url": {
       "type": "string",
       "format": "uri",
-      "description": "Optional SSE endpoint for real-time status events."
+      "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+      "description": "Optional SSE endpoint for real-time status events. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
     },
     "type": {
       "type": "string",
@@ -183,7 +190,8 @@
     "submit_url": {
       "type": "string",
       "format": "uri",
-      "description": "API endpoint where the agent MAY submit simple responses on behalf of the human via native messaging buttons. MUST be HTTPS. See Section 7.5."
+      "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+      "description": "API endpoint where the agent MAY submit simple responses on behalf of the human via native messaging buttons. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed. See Section 7.5."
     },
     "submit_token": {
       "type": "string",

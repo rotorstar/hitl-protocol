@@ -99,7 +99,7 @@ The service hosts the review page and generates the UI. The agent is only a mess
 
 ### Conventions
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174).
 
 ---
 
@@ -289,7 +289,7 @@ The service generates a random token and stores only its SHA-256 hash. Verificat
 
 ### HTTPS Requirement
 
-Review URLs MUST use HTTPS. Services MUST NOT generate review URLs over plain HTTP.
+Review URLs MUST use HTTPS in production. For local development only, `http://localhost` and `http://127.0.0.1` MAY be used.
 
 ### Delivery Modes
 
@@ -391,12 +391,12 @@ Content-Type: application/json
 |--------|-----------|------|
 | `200 OK` | Response accepted. | `{"status": "completed", "case_id": "...", "completed_at": "..."}` |
 | `401 Unauthorized` | Invalid or expired `submit_token`. | `{"error": "invalid_token", "message": "..."}` |
-| `403 Forbidden` | Action not in `inline_actions`. | `{"error": "action_not_inline", "message": "Action 'edit' requires the review page.", "review_url": "https://..."}` |
+| `403 Forbidden` | Action not in `inline_actions`. | `{"error": "action_not_inline", "message": "...", "case_id": "...", "review_url": "https://..."}` |
 | `409 Conflict` | Already responded (one-time guarantee). | `{"error": "duplicate_submission", "message": "..."}` |
 | `410 Gone` | Review case expired. | `{"error": "case_expired", "message": "..."}` |
 | `429 Too Many Requests` | Rate limited. | `{"error": "rate_limited", "message": "..."}` |
 
-The 403 response SHOULD include the `review_url` so the agent can direct the human to the full review page for actions that require it.
+The 403 response SHOULD include `case_id`. It MAY include `review_url` as a convenience hint, but agents SHOULD use the original `hitl.review_url` from the initial HTTP 202 response as the canonical full-review link.
 
 ### Relationship to Existing Response Endpoint
 
@@ -422,7 +422,7 @@ When the human taps a native messaging button, the agent:
 1. Determines the `action` from the button's callback data.
 2. Sends `POST submit_url` with the action, `submitted_via`, and `submitted_by`.
 3. On `200 OK`: updates the message to show the result and removes the buttons.
-4. On `403 Forbidden`: directs the human to the `review_url` from the error response.
+4. On `403 Forbidden`: directs the human to the original `hitl.review_url` from the 202 response (optionally using `review_url` from the error as a hint).
 5. On `409 Conflict` or `410 Gone`: updates the message to show the case is closed.
 
 An agent MUST NOT submit via `submit_url` without the human explicitly triggering a button. Automated or pre-filled submissions defeat the purpose of human-in-the-loop.
@@ -1283,8 +1283,9 @@ flowchart TD
 
 #### 13.3 HTTPS Only
 
-- All URLs (review, poll, callback) MUST use HTTPS.
-- Services MUST NOT accept HTTP connections for HITL endpoints.
+- All URLs (review, poll, callback) MUST use HTTPS in production.
+- For local development only, `http://localhost` and `http://127.0.0.1` MAY be used.
+- Services MUST NOT accept plain HTTP for non-local HITL endpoints.
 
 #### 13.4 Response Integrity (CHEQ-inspired)
 
@@ -1788,6 +1789,8 @@ The `submitReview` action MUST POST to `POST /review/{caseId}/respond` with the 
 
 The following JSON Schema defines the HITL object within the HTTP 202 response. Services and agents MAY use this schema for validation.
 
+> **Source of truth:** The canonical machine-consumable schemas are the versioned files in [`/schemas`](../../schemas/) and the published `@hitl-protocol/schemas` package. If this appendix and the schema files differ, the schema files are authoritative.
+
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2017,21 +2020,27 @@ GET https://service.example.com/.well-known/hitl.json
 
 ```json
 {
-  "hitl_protocol": "0.7",
-  "service": {
-    "name": "JobBoard Pro",
-    "description": "Job search and application service",
-    "homepage": "https://jobboard.example.com"
-  },
-  "review_types": ["selection", "confirmation"],
-  "review_base_url": "https://jobboard.example.com/review",
-  "api_base_url": "https://api.jobboard.example.com/v1",
-  "surface_formats": ["json-render"],
-  "timeout_default": "24h",
-  "features": {
-    "callback": true,
-    "signed_responses": false,
-    "edit_grace_period": "5m"
+  "hitl_protocol": {
+    "spec_version": "0.7",
+    "service": {
+      "name": "JobBoard Pro",
+      "description": "Job search and application service",
+      "url": "https://jobboard.example.com"
+    },
+    "capabilities": {
+      "review_types": ["selection", "confirmation"],
+      "transports": ["polling", "sse"],
+      "default_timeout": "PT24H",
+      "supports_inline_submit": true
+    },
+    "endpoints": {
+      "reviews_base": "https://api.jobboard.example.com/v1/reviews",
+      "review_page_base": "https://jobboard.example.com/review"
+    },
+    "rate_limits": {
+      "poll_recommended_interval_seconds": 30,
+      "max_requests_per_minute": 60
+    }
   }
 }
 ```
