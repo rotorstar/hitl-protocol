@@ -24,6 +24,8 @@ Any website or API integrates HITL to become agent-ready: when human input is ne
 
 **No SDK required. No UI framework mandated. Just HTTP + URL + polling.**
 
+Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) (timestamps), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (auth), [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) (normative language).
+
 ## Who Is This For?
 
 **For Services & Websites** — Add HITL endpoints to make your service accessible to any autonomous agent. You host the review page, you control the UI, you own the data. Sensitive information stays in the browser — never passes through the agent. This repository includes [reference implementations](implementations/reference-service/) in 4 frameworks (Express, Hono, Next.js, FastAPI), [HTML templates](templates/) for all review types, an [OpenAPI spec](schemas/openapi.yaml), and [compliance tests](tests/) — everything needed to integrate.
@@ -294,7 +296,6 @@ HITL Protocol aligns with established Internet standards where applicable:
 | **[RFC 3339](https://www.rfc-editor.org/rfc/rfc3339)** | Timestamp formats (`created_at`, `expires_at`, status timestamps) | [JSON Schemas](schemas/), [OpenAPI](schemas/openapi.yaml) |
 | **[RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)** | Bearer token usage and security boundaries for API auth and inline submit auth | [Spec security sections](spec/v0.7/hitl-protocol.md), [OpenAPI security schemes](schemas/openapi.yaml) |
 
-See the implementation-level cross-check in [Best-Practice 2026 Fixplan + Matrix](docs/best-practice-2026-fixplan.md).
 
 ## Contributing
 
