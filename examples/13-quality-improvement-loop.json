@@ -1,0 +1,227 @@
+{
+  "_comment": "HITL Protocol v0.7 — Example: Quality Improvement Loop (Agent-Guided Iterative Enrichment)",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A CV creation service returns a successful 201 response with a live CV URL, a claim token, and a quality_score. Alongside the result, the service includes improvement_suggestions — structured hints for the agent to collect additional data from the human. The agent shares the primary result first, then offers up to 2 improvement cycles. Each cycle: ask questions from agent_action, re-submit with enriched data, share updated result. Stop when suggestions are empty or maxAttempts reached.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Agent POSTs CV data to the service. Service creates the CV immediately and returns 201 with the live URL, claim token, quality score, and improvement_suggestions.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.cvservice.example/api/cv",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agent_access_token"
+        },
+        "body": {
+          "skip_hitl": true,
+          "cv_data": {
+            "firstName": "Alex",
+            "lastName": "Johnson",
+            "title": "Software Engineer",
+            "email": "alex@example.com",
+            "city": "Berlin"
+          }
+        }
+      },
+      "response": {
+        "status_code": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cv_id": "cv_a1b2c3d4",
+          "url": "https://cvservice.example/pro/alex-johnson",
+          "claim_token": "claim_xyz789abc",
+          "quality_score": 35,
+          "quality_label": "basic",
+          "improvement_suggestions": [
+            {
+              "field": "experience",
+              "issue": "No work experience — CV has low ATS compatibility",
+              "agent_action": "Ask: 'What positions have you held? Part-time, freelance, and internships all count — even if just a few months.'",
+              "impact": "+25 quality points",
+              "priority": "high"
+            },
+            {
+              "field": "summary",
+              "issue": "No professional summary — the first thing recruiters read is missing",
+              "agent_action": "Ask: 'In 2–3 sentences, how would you describe yourself professionally? What are you best at and what are you looking for?'",
+              "impact": "+20 quality points",
+              "priority": "high"
+            }
+          ],
+          "next_steps": "Share url and claim_token with the human first. Then optionally improve quality by asking the questions in each agent_action field."
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Agent shares primary result with human FIRST — before any improvement loop. This step is mandatory even if improvement_suggestions are present.",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Your CV is live!\n\n🔗 View it here: https://cvservice.example/pro/alex-johnson\n🔑 Claim link (keep this safe): https://cvservice.example/claim/claim_xyz789abc\n\nCurrent score: 35/100 (basic). Want me to improve it? I can ask a few quick questions."
+      }
+    },
+    {
+      "step": 3,
+      "description": "Human agrees to improve. Agent asks the first high-priority question from improvement_suggestions (experience). Cycle 1 begins.",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "What positions have you held? Part-time, freelance, and internships all count — even if just a few months."
+      },
+      "human_response": {
+        "channel": "telegram",
+        "message": "I worked as a Junior Developer at StartupX from 2022 to 2023, and before that I did a 6-month internship at TechCorp in 2021."
+      }
+    },
+    {
+      "step": 4,
+      "description": "Agent re-submits with enriched cv_data (experience added). Service returns updated CV — new cv_id, new url, improved quality_score. One suggestion remains.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.cvservice.example/api/cv",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agent_access_token"
+        },
+        "body": {
+          "skip_hitl": true,
+          "cv_data": {
+            "firstName": "Alex",
+            "lastName": "Johnson",
+            "title": "Software Engineer",
+            "email": "alex@example.com",
+            "city": "Berlin",
+            "experience": [
+              {
+                "jobTitle": "Junior Developer",
+                "company": "StartupX",
+                "startDate": "2022-01",
+                "endDate": "2023-12",
+                "isCurrent": false
+              },
+              {
+                "jobTitle": "Intern",
+                "company": "TechCorp",
+                "startDate": "2021-06",
+                "endDate": "2021-12",
+                "isCurrent": false
+              }
+            ]
+          }
+        }
+      },
+      "response": {
+        "status_code": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cv_id": "cv_e5f6g7h8",
+          "url": "https://cvservice.example/pro/alex-johnson-2",
+          "claim_token": "claim_abc123xyz",
+          "quality_score": 60,
+          "quality_label": "good",
+          "improvement_suggestions": [
+            {
+              "field": "summary",
+              "issue": "No professional summary — the first thing recruiters read is missing",
+              "agent_action": "Ask: 'In 2–3 sentences, how would you describe yourself professionally? What are you best at and what are you looking for?'",
+              "impact": "+20 quality points",
+              "priority": "high"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": 5,
+      "description": "Agent shares updated result immediately, then asks the remaining question (summary). Cycle 2 begins.",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Updated! Your score improved to 60/100 (good).\n\n🔗 New link: https://cvservice.example/pro/alex-johnson-2\n\nOne more thing to boost it further: In 2–3 sentences, how would you describe yourself professionally? What are you best at and what are you looking for?"
+      },
+      "human_response": {
+        "channel": "telegram",
+        "message": "I'm a backend-focused software engineer with 2 years of experience in Python and Node.js. I enjoy building scalable APIs and working in agile teams. Currently looking for a mid-level role in Berlin or remote."
+      }
+    },
+    {
+      "step": 6,
+      "description": "Agent re-submits with enriched cv_data (summary added). Service returns final CV — quality_score 80, improvement_suggestions empty. maxAttempts (2) also reached. Loop ends.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.cvservice.example/api/cv",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agent_access_token"
+        },
+        "body": {
+          "skip_hitl": true,
+          "cv_data": {
+            "firstName": "Alex",
+            "lastName": "Johnson",
+            "title": "Software Engineer",
+            "email": "alex@example.com",
+            "city": "Berlin",
+            "summary": "Backend-focused software engineer with 2 years of experience in Python and Node.js. I enjoy building scalable APIs and working in agile teams. Currently looking for a mid-level role in Berlin or remote.",
+            "experience": [
+              {
+                "jobTitle": "Junior Developer",
+                "company": "StartupX",
+                "startDate": "2022-01",
+                "endDate": "2023-12",
+                "isCurrent": false
+              },
+              {
+                "jobTitle": "Intern",
+                "company": "TechCorp",
+                "startDate": "2021-06",
+                "endDate": "2021-12",
+                "isCurrent": false
+              }
+            ]
+          }
+        }
+      },
+      "response": {
+        "status_code": 201,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cv_id": "cv_i9j0k1l2",
+          "url": "https://cvservice.example/pro/alex-johnson-3",
+          "claim_token": "claim_def456uvw",
+          "quality_score": 80,
+          "quality_label": "excellent",
+          "improvement_suggestions": []
+        }
+      }
+    },
+    {
+      "step": 7,
+      "description": "improvement_suggestions is empty — loop exits cleanly. Agent shares final result. No more improvement cycles offered (would also have stopped at maxAttempts=2 regardless).",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Your CV score is now 80/100 (excellent) — all done!\n\n🔗 Final CV: https://cvservice.example/pro/alex-johnson-3\n🔑 Claim link: https://cvservice.example/claim/claim_def456uvw\n\nKeep the claim link safe — it gives full edit access and never expires."
+      }
+    }
+  ],
+  "_notes": {
+    "agent_rules": [
+      "Primary result MUST be shared after every 201 — never delay for improvement questions",
+      "Cap improvement cycles at maxAttempts (default: 2) — exit even if suggestions remain",
+      "Each re-request creates a new resource (new cv_id, new url) — share the updated URL each time",
+      "If human declines to answer improvement questions: stop the loop gracefully",
+      "improvement_suggestions is a service-level extension — not part of the HITL 202 flow"
+    ],
+    "service_rules": [
+      "Return 201 immediately — never block on improvement suggestions",
+      "improvement_suggestions are optional hints, not requirements",
+      "Each re-request is a fresh resource creation — return a new id and url",
+      "Stop returning suggestions once quality threshold is reached or no more improvements are possible"
+    ]
+  }
+}

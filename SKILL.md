@@ -385,6 +385,38 @@ POST /api/search
 
 See [Service Integration Guide — Enforcing HITL Choice](skills/references/service-integration.md#enforcing-hitl-choice) for validation gate implementation.
 
+### Optional: Quality Improvement Signal
+
+Services can include `improvement_suggestions` in successful (non-202) responses to give agents structured feedback they can act on — without requiring a new HITL flow.
+
+Declare support in your SKILL.md:
+
+```yaml
+metadata:
+  hitl:
+    supported: true
+    supports_improvement_suggestions: true
+    info: "Returns improvement_suggestions in 201 responses. Agents may offer up to 2 improvement cycles."
+```
+
+**Suggestion object schema:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `field` | string | Which data field can be improved |
+| `issue` | string | What is missing or suboptimal |
+| `agent_action` | string | Exact question/action for the agent to take |
+| `impact` | string | Human-readable benefit (e.g. `"+25 quality points"`) |
+| `priority` | `"high"` / `"medium"` / `"low"` | Order of importance |
+
+**Agent behavior:**
+- Always share the primary result first
+- Offer up to **2 improvement cycles** — one question per suggestion, re-submit with enriched data
+- Stop when `improvement_suggestions` is empty or `maxAttempts` reached
+- Never loop indefinitely
+
+See [Agent Checklist — Quality Improvement Loop](agents/checklist.md#enhanced-quality-improvement-loop) and [Example 13](examples/13-quality-improvement-loop.json).
+
 ## RFC Alignment
 
 This protocol and skill documentation are aligned with these core RFCs:

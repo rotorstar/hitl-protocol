@@ -166,6 +166,8 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
 **Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.7/hitl-protocol.md)).
 
+**Quality improvement signals:** Services can include `improvement_suggestions` in successful responses — structured hints agents act on by asking the human targeted questions and re-submitting enriched data. The agent always shares the primary result first, then optionally offers up to 2 improvement cycles. See [Agent Checklist — Quality Improvement Loop](agents/checklist.md#enhanced-quality-improvement-loop) and [Example 13](examples/13-quality-improvement-loop.json).
+
 ## Three Transport Modes
 
 | Transport | Agent needs public endpoint? | Real-time? | Complexity |
@@ -328,7 +330,7 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 - [JSON Schemas](schemas/) — HITL object, poll response, form field definitions
 - [Review Page Templates](templates/) — HTML templates for all 5 review types
 - [Reference Implementations](implementations/reference-service/) — Express, Hono, Next.js, FastAPI
-- [Examples](examples/) — 12 end-to-end flows (incl. inline confirmation, escalation, hybrid approval)
+- [Examples](examples/) — 13 end-to-end flows (incl. inline confirmation, escalation, hybrid approval, quality improvement loop)
 - [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
 - [Interactive Playground](playground/)
 - [Agent Implementation Checklist](agents/checklist.md)

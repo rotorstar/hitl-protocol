@@ -14,10 +14,15 @@ Complete end-to-end examples demonstrating every review type and transport patte
 | 6 | [`06-escalation-error.json`](06-escalation-error.json) | Escalation | Deployment failed, human decides retry with modified params |
 | 7 | [`07-well-known-hitl.json`](07-well-known-hitl.json) | Discovery | `.well-known/hitl.json` endpoint response |
 | 8 | [`08-multi-step-input.json`](08-multi-step-input.json) | Input (multi-step) | Contractor onboarding wizard with 3 steps, conditional fields, and progress tracking |
+| 9 | [`09-inline-confirmation.json`](09-inline-confirmation.json) | Confirmation (Inline) | Native messaging buttons (Telegram/Slack/Discord) — human confirms without leaving chat |
+| 10 | [`10-inline-escalation.json`](10-inline-escalation.json) | Escalation (Inline) | 3-button inline recovery (Retry / Skip / Abort) for failed deployment via Slack |
+| 11 | [`11-hybrid-approval.json`](11-hybrid-approval.json) | Approval (Hybrid) | Approve/reject inline via Discord buttons; edit requires the browser review page |
+| 12 | [`12-embedded-selection.json`](12-embedded-selection.json) | Selection (Embedded) | Selection via Telegram Mini App WebView; falls back to standard URL on other platforms |
+| 13 | [`13-quality-improvement-loop.json`](13-quality-improvement-loop.json) | Quality Loop | Service returns `improvement_suggestions`; agent shares result first, then offers up to 2 enrichment cycles |
 
 ## Structure
 
-Each example (except 07) follows this structure:
+Each example (except 07 and 13) follows this structure:
 
 ```json
 {
@@ -51,7 +56,7 @@ All HITL objects in these examples validate against the schemas in [`../schemas/
 
 ```bash
 # Validate with ajv-cli
-for f in examples/0[1-6]*.json; do
+for f in examples/0[1-689]*.json examples/1[0-2]*.json; do
   echo "Validating $f..."
   jq '.steps[] | select(.response) | .response.body.hitl' "$f" | \
     ajv validate -s schemas/hitl-object.schema.json --spec=draft2020 -c ajv-formats -d -

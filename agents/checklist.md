@@ -281,6 +281,118 @@ Re-send URLs when humans haven't responded.
 - [ ] **Handle `review.reminder` SSE event** — If using SSE, listen for reminder events
 - [ ] **Respect terminal states** — Do NOT send reminders for completed/expired/cancelled cases
 
+## Enhanced: Quality Improvement Loop
+
+For services that return `improvement_suggestions` alongside a successful (non-202) result, agents can offer targeted improvement cycles without restarting a HITL flow.
+
+### Additional Checklist
+
+- [ ] **Detect `improvement_suggestions`** — Check for this array in non-202 (success) responses
+- [ ] **Share primary result first** — Always deliver the main result (URL, ID, summary) to the human before offering improvements
+- [ ] **Offer improvement cycle** — If `improvement_suggestions` non-empty AND `attempt < maxAttempts` (default: 2): ask the human the question from `agent_action`
+- [ ] **Re-request with enriched data** — Collect answers, re-POST with enriched data
+- [ ] **Share updated result** — After each re-request, share the new result immediately
+- [ ] **Exit cleanly** — Stop when `improvement_suggestions` is empty OR `attempt >= maxAttempts`
+- [ ] **Do not loop indefinitely** — Always cap at `maxAttempts`, even if suggestions remain
+
+### Suggestion Object Schema
+
+```json
+{
+  "field": "experience",
+  "issue": "No work experience — low matching score",
+  "agent_action": "Ask: 'What positions have you held? Part-time and internships count.'",
+  "impact": "+25 quality points",
+  "priority": "high"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `field` | string | Which data field can be improved |
+| `issue` | string | What is missing or suboptimal |
+| `agent_action` | string | Exact question or action for the agent to take |
+| `impact` | string | Human-readable benefit description |
+| `priority` | enum | `"high"` / `"medium"` / `"low"` — order of importance |
+
+### Pseudocode
+
+```python
+MAX_IMPROVEMENT_CYCLES = 2
+
+def handle_success_with_improvements(result_json, send_to_human, re_request_fn):
+    # Always share primary result first — never skip this step
+    send_to_human(format_result(result_json))
+
+    suggestions = result_json.get("improvement_suggestions", [])
+    attempt = 0
+
+    while suggestions and attempt < MAX_IMPROVEMENT_CYCLES:
+        # Ask questions from suggestions
+        answers = {}
+        for s in suggestions:
+            answer = ask_human(s["agent_action"])  # e.g. "What positions have you held?"
+            if answer:
+                answers[s["field"]] = answer
+
+        if not answers:
+            break  # Human skipped all questions — stop
+
+        # Re-request with enriched data
+        attempt += 1
+        result_json = re_request_fn(answers)
+        send_to_human(format_result(result_json))  # Share updated result immediately
+        suggestions = result_json.get("improvement_suggestions", [])
+
+    # Done — primary result was already shared after every cycle
+```
+
+### Flow
+
+```
+Service returns 201/200 with improvement_suggestions
+│
+├── Share primary result to human (ALWAYS FIRST)
+│
+├── improvement_suggestions non-empty AND attempt < 2?
+│   ├── Yes → ask agent_action questions → collect answers
+│   │         re-request with enriched data
+│   │         share new result
+│   │         increment attempt
+│   │         repeat
+│   │
+│   └── No (empty OR max reached) → Done
+```
+
+See [Example 13](../examples/13-quality-improvement-loop.json) for a complete end-to-end flow.
+
+## Agent Communication
+
+Clear, consistent messaging keeps humans informed without overwhelming them.
+
+### What to say at each step
+
+| Moment | What the agent says |
+|--------|---------------------|
+| 202 received | `"{prompt}\n\nPlease review here: {review_url}"` |
+| Status `opened` | (Optional) "Review page opened — waiting for your decision." |
+| Status `in_progress` | (Optional) "Working on it." |
+| Status `completed` | Share result immediately. Do not delay. |
+| Status `expired`, `default_action=skip` | "Review timed out — proceeding with the default. {result summary}" |
+| Status `expired`, `default_action=abort` | "Review timed out. Let me know if you'd like to try again." |
+| Status `cancelled` | "Review was cancelled. {reason if available}" |
+| `improvement_suggestions` present | "Done! {result summary}. Want me to improve it? I can ask a few questions." |
+| After improvement cycle | "Updated — here's your new result: {url or summary}" |
+| After maxAttempts reached | "We've completed {N} improvement cycles. Here's the final result: {url}" |
+
+### Principles
+
+- **Result first.** Always share the primary result before offering improvements or next steps.
+- **Never expose internals.** Don't say "polling for HITL status" — say "waiting for your decision."
+- **One question at a time.** For improvement suggestions, ask one question per conversation turn.
+- **Exit gracefully.** After `maxAttempts`, stop suggesting improvements even if suggestions remain.
+- **Inline submit:** After the human taps a button, update or replace the message — don't leave buttons dangling.
+
 ## Delivery Modes
 
 Choose URL delivery based on agent environment:
@@ -329,3 +441,4 @@ def handle_hitl(hitl: dict, send_to_user) -> None:
 - **Do NOT ignore HTTP 202 + HITL.** Proceeding without human input violates the protocol.
 - **Do NOT poll too frequently.** Respect rate limits (max 60/min recommended). Check `Retry-After` header.
 - **Do NOT store review URLs long-term.** URLs contain time-limited opaque tokens. They expire.
+- **Do NOT loop indefinitely on improvement suggestions.** Cap at `maxAttempts` (2 recommended). Each re-request may create a new resource (new URL, new ID) — share it with the human each time.
