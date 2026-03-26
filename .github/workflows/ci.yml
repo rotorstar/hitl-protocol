@@ -37,10 +37,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - working-directory: tests/node
-        run: pnpm install --frozen-lockfile
-      - working-directory: tests/node
-        run: pnpm run test
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter hitl-tests-node run test
 
   compliance-python:
     name: Compliance Tests (Python)

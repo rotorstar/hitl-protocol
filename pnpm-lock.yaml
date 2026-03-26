@@ -96,6 +96,18 @@ importers:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@25.3.0)
 
+  tests/node:
+    devDependencies:
+      ajv:
+        specifier: ^8.17.0
+        version: 8.18.0
+      ajv-formats:
+        specifier: ^3.0.0
+        version: 3.0.1(ajv@8.18.0)
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@25.3.0)
+
 packages:
 
   '@babel/runtime@7.28.6':

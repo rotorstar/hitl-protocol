@@ -30,7 +30,7 @@ const files = [
 for (const file of files) {
   // Resolve symlinks so npm pack gets real files
   const src = realpathSync(join(ROOT_SCHEMAS, file))
-  cpSync(src, join(PKG_SCHEMAS, file))
+  cpSync(src, join(PKG_SCHEMAS, file), { force: true })
 }
 
 console.log(`Copied ${files.length} schema files to packages/schemas/schemas/`)

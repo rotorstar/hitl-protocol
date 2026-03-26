@@ -4,10 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r run build",
-    "test": "pnpm -r run test",
+    "test": "pnpm -r --filter \"@hitl-protocol/*\" run test",
     "changeset": "changeset",
     "version": "changeset version",
-    "publish": "pnpm -r run build && changeset publish"
+    "publish": "pnpm -r run build && changeset publish",
+    "publish:ci": "node scripts/publish-if-auth.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.0"

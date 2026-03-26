@@ -29,7 +29,7 @@ jobs:
         with:
           title: "chore: version packages"
           commit: "chore: version packages"
-          publish: pnpm run publish
+          publish: pnpm run publish:ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

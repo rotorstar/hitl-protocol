@@ -9,3 +9,6 @@ dist/
 
 # Package build artifacts (schemas are copied from root schemas/ at build time)
 packages/schemas/schemas/
+
+# Business Documentation
+Business/docs/PRD.md
