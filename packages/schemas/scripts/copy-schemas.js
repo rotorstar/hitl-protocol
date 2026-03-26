@@ -2,7 +2,7 @@
  * Copies JSON schema files from the repository root schemas/ directory
  * into packages/schemas/schemas/ for npm publishing.
  *
- * Source of truth: ../../schemas/*.schema.json (+ form-field.json for $ref)
+ * Source of truth: ../../schemas/*.schema.json (+ local ref aliases)
  */
 
 import { cpSync, mkdirSync, realpathSync } from 'node:fs'
@@ -20,6 +20,10 @@ const files = [
   'poll-response.schema.json',
   'form-field.schema.json',
   'submit-request.schema.json',
+  'discovery-response.schema.json',
+  'verification-policy.schema.json',
+  'verification-result.schema.json',
+  'submission-context.schema.json',
   'form-field.json', // $ref target for hitl-object.schema.json (symlink in source)
 ]
 

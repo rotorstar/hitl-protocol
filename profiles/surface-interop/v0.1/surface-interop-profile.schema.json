@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/profiles/surface-interop/v0.1/surface-interop-profile.json",
+  "title": "HITL Surface Interop Profile",
+  "description": "Optional wrapper for declarative embedded review surfaces. This profile sits above the HITL core and never replaces review_url fallback.",
+  "type": "object",
+  "required": [
+    "profile",
+    "case_id",
+    "surfaces"
+  ],
+  "properties": {
+    "profile": {
+      "type": "string",
+      "const": "hitl-surface-interop/v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "format",
+          "version",
+          "fallback_review_url",
+          "payload"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "catalog_id": {
+            "type": "string"
+          },
+          "fallback_review_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "payload": {}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

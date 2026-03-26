@@ -1,6 +1,6 @@
 {
   "name": "@hitl-protocol/schemas",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "JSON Schemas, TypeScript types, and validators for the HITL Protocol",
   "type": "module",
   "exports": {
@@ -11,7 +11,11 @@
     "./hitl-object.schema.json": "./schemas/hitl-object.schema.json",
     "./poll-response.schema.json": "./schemas/poll-response.schema.json",
     "./form-field.schema.json": "./schemas/form-field.schema.json",
-    "./submit-request.schema.json": "./schemas/submit-request.schema.json"
+    "./submit-request.schema.json": "./schemas/submit-request.schema.json",
+    "./discovery-response.schema.json": "./schemas/discovery-response.schema.json",
+    "./verification-policy.schema.json": "./schemas/verification-policy.schema.json",
+    "./verification-result.schema.json": "./schemas/verification-result.schema.json",
+    "./submission-context.schema.json": "./schemas/submission-context.schema.json"
   },
   "files": [
     "dist",

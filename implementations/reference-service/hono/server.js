@@ -235,12 +235,18 @@ app.get('/.well-known/hitl.json', (c) => {
         review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
         transports: ['polling', 'sse'],
         supports_inline_submit: true,  // v0.7
+        supports_surface: false,
         default_timeout: 'PT24H',
         supports_reminders: false,
         supports_multi_round: false,
         supports_signatures: false,
       },
-      endpoints: { reviews_base: `${BASE_URL}/api/reviews`, review_page_base: `${BASE_URL}/review` },
+      endpoints: {
+        reviews_base: `${BASE_URL}/api/reviews`,
+        review_page_base: `${BASE_URL}/review`,
+        events_base: `${BASE_URL}/api/reviews`,
+        well_known: `${BASE_URL}/.well-known/hitl.json`,
+      },
       rate_limits: { poll_recommended_interval_seconds: 30, max_requests_per_minute: 60 },
     }
   });

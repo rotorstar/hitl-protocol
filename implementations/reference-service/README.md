@@ -128,7 +128,7 @@ Note: The `submit_token` is separate from the review URL token — each is scope
 - **One-Time Response** — 409 Conflict on duplicate submission
 - **403 + case_id fallback contract** — Invalid inline action returns 403 with `case_id` and fallback guidance to use original `hitl.review_url`
 - **SSE** — Real-time event stream with heartbeat
-- **Discovery** — `/.well-known/hitl.json` with `supports_inline_submit: true`
+- **Discovery** — `/.well-known/hitl.json` with `supports_inline_submit: true` and explicit `supports_surface: false` for the core-only reference service
 - **All 5 Review Types** — With type-specific sample data and inline actions
 
 ## Differences Between Variants

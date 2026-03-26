@@ -8,7 +8,7 @@
   </p>
   <p align="center">
     <a href="https://github.com/rotorstar/hitl-protocol/blob/main/LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
-    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.7" src="https://img.shields.io/badge/spec-v0.7_(Draft)-orange.svg"></a>
+    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.8" src="https://img.shields.io/badge/spec-v0.8_(Draft)-orange.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/rotorstar/hitl-protocol.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
   </p>
@@ -23,6 +23,8 @@ You run a website or service, and you know that AI agents will increasingly visi
 Any website or API integrates HITL to become agent-ready: when human input is needed, return HTTP 202 with a review URL. Any autonomous agent (OpenClaw, Claude Code, Codex, Goose) handles the `hitl` response — forward the URL, poll for the result. The human opens the URL, gets a rich browser UI (not a chat wall of text), and makes an informed decision.
 
 **No SDK required. No UI framework mandated. Just HTTP + URL + polling.**
+
+HITL is deliberately **not** a frontend framework or embedded UI protocol. It standardizes the decision handoff between service, agent, and human. Optional declarative surface interoperability lives in separate profiles above the core, and `review_url` remains the required fallback.
 
 Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) (timestamps), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (auth), [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) (normative language).
 
@@ -48,7 +50,7 @@ Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/r
 
 <p align="center">
   <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">
-    <img src="assets/hitl-flow_v2.gif" alt="HITL Protocol v0.7 — Interactive Flow" width="800">
+    <img src="assets/hitl-flow_v2.gif" alt="HITL Protocol v0.8 — Interactive Flow" width="800">
   </a>
   <br>
   <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">▶ Try the Interactive Flow</a>
@@ -104,7 +106,7 @@ Return HTTP 202 with a `hitl` object when human input is needed:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "case_id": "review_abc123",
     "review_url": "https://yourservice.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.yourservice.com/v1/reviews/abc123/status",
@@ -128,11 +130,18 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # v0.7: Check for inline submit support
+    # v0.8: Check for inline submit support and optional proof preflight
     if "submit_url" in hitl and "submit_token" in hitl:
-        # Render native buttons in messaging platform (Telegram, Slack, Discord)
-        send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
-        # When human taps button → POST to submit_url (see Agent Integration Guide)
+        if (
+            "verification_policy" in hitl
+            and "inline_submit" in hitl["verification_policy"]["required_for"]
+            and not agent_can_satisfy_proof(hitl["verification_policy"])
+        ):
+            send_to_user(f"{hitl['prompt']}\n{hitl['review_url']}")
+        else:
+            # Render native buttons in messaging platform (Telegram, Slack, Discord)
+            send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
+            # When human taps button → POST to submit_url (see Agent Integration Guide)
     else:
         # Standard flow: forward URL to human
         send_to_user(f"{hitl['prompt']}\n{hitl['review_url']}")
@@ -162,9 +171,9 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 | **Confirmation** | confirm, cancel | No | No | Irreversible action gate (send emails) |
 | **Escalation** | retry, skip, abort | No | No | Error recovery (deployment failed) |
 
-**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.7/hitl-protocol.md#103-input) for details.
+**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.8/hitl-protocol.md#103-input) for details.
 
-**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.7/hitl-protocol.md)).
+**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.8/hitl-protocol.md)).
 
 **Quality improvement signals:** Services can include `improvement_suggestions` in successful responses — structured hints agents act on by asking the human targeted questions and re-submitting enriched data. The agent always shares the primary result first, then optionally offers up to 2 improvement cycles. See [Agent Checklist — Quality Improvement Loop](agents/checklist.md#enhanced-quality-improvement-loop) and [Example 13](examples/13-quality-improvement-loop.json).
 
@@ -178,11 +187,11 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
 Polling is the baseline. Every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
 
-## Channel-Native Inline Actions (v0.7)
+## Channel-Native Inline Actions (v0.8)
 
 For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
 
-**How it works:** The service includes `submit_url` + `submit_token` in the HITL object. The agent detects these fields and renders platform-native buttons. When the human taps a button, the agent POSTs the action to `submit_url`.
+**How it works:** The service includes `submit_url` + `submit_token` in the HITL object. The agent detects these fields, preflights any `verification_policy` declared for `inline_submit`, and renders platform-native buttons only if the inline path is both UI-compatible and policy-satisfiable. When the human taps a button, the agent POSTs the action to `submit_url`.
 
 | Review type | Inline possible? | Reason |
 |-------------|:----------------:|--------|
@@ -193,6 +202,26 @@ For simple decisions, agents can render **native messaging buttons** instead of 
 | **Input** | URL only | Needs form fields |
 
 Always include a URL fallback button (e.g. "Details →") linking to `review_url` — the human can always switch to the full review page. See [Agent Integration Guide](skills/references/agent-integration.md) for platform-specific rendering patterns (Telegram, Slack, Discord, WhatsApp, Teams).
+
+## Verification Evidence (v0.8)
+
+v0.8 adds an optional verification layer for Proof of Human flows:
+
+- `verification_policy` lets the service declare when proof is optional, required, or step-up-only.
+- `verification_evidence` can be relayed only on agent-authenticated `submit_url` requests.
+- `submission_context.verification_result` returns only normalized, provider-agnostic results to the polling agent.
+- Browser review remains the preferred step-up path for high-stakes actions, and browser-path verification is always service-hosted.
+
+The normative v0.8 core standardizes only `proof_of_human`. Identity, authorization, and agent binding remain separate concerns.
+
+## Agent Auth Composition
+
+HITL transport auth and external agent-auth systems solve different problems:
+
+- HITL covers `review_url`, `poll_url`, optional `submit_url`, and the human decision transport itself.
+- External agent-auth/control-plane systems cover per-agent identity, capability grants, escalation, and revocation.
+
+The current OpenAPI auth model is sufficient for HITL transport boundaries. If a service also binds cases to an agent principal or host, it should advertise that through discovery metadata such as `supports_agent_binding` and external auth/profile documentation.
 
 ## Protocol Standards Landscape
 
@@ -206,6 +235,14 @@ HITL Protocol fills a gap no existing standard addresses:
 | **AG-UI** (CopilotKit) | Agent ↔ embedded frontend | HITL serves agents with no frontend (CLI, Telegram) |
 | **OAuth 2.0** | User authentication | HITL follows the same three-party pattern |
 
+## Optional Surface Interop Profiles
+
+The HITL core stays intentionally small: service-hosted review page, signed URL, polling, optional inline submit. If a client also wants to render declarative UI inline, use an optional profile rather than extending the core `hitl` object with renderer-specific payloads.
+
+- [Surface Interop Profile v0.1](profiles/surface-interop/v0.1/README.md) defines a portable wrapper for declarative surfaces
+- [Feature Matrix](docs/feature-matrix.md) compares HITL core, `json-render`, and A2UI with evidence
+- [Flow Verification](docs/flow-verification.md) checks Mermaid flows against real HITL semantics and fallback rules
+
 ## Repository Structure
 
 ```
@@ -217,16 +254,24 @@ hitl-protocol/
 ├── CHANGELOG.md                       ← Version history
 ├── SECURITY.md                        ← Security reporting
 │
-├── spec/v0.7/
+├── spec/v0.8/
 │   └── hitl-protocol.md              ← Full specification (normative)
 │
 ├── schemas/
 │   ├── hitl-object.schema.json       ← JSON Schema: HITL object
 │   ├── poll-response.schema.json     ← JSON Schema: Poll response
 │   ├── form-field.schema.json        ← JSON Schema: Form field definitions
+│   ├── discovery-response.schema.json ← JSON Schema: discovery response
 │   └── openapi.yaml                  ← OpenAPI 3.1 spec (all endpoints)
 │
-├── examples/                          ← 12 end-to-end example flows
+├── examples/                          ← 16 end-to-end example flows
+│
+├── profiles/
+│   ├── README.md                      ← Optional interoperability profiles
+│   └── surface-interop/
+│       └── v0.1/
+│           ├── README.md              ← Surface interop profile spec
+│           └── surface-interop-profile.schema.json
 │
 ├── templates/                         ← Review page HTML templates
 │   ├── approval.html                 ← Approval review page
@@ -245,7 +290,9 @@ hitl-protocol/
 │
 ├── docs/
 │   ├── quick-start.md                ← Quick Start Guide (5 frameworks)
-│   └── sdk-guide.md                  ← SDK Design Guide
+│   ├── sdk-guide.md                  ← SDK Design Guide
+│   ├── feature-matrix.md             ← Evidence-backed comparison matrix
+│   └── flow-verification.md          ← Mermaid flow verification
 │
 ├── tests/                             ← Compliance test suites
 │   ├── node/                         ← Vitest (schema + state machine)
@@ -283,6 +330,7 @@ The specification follows [Semantic Versioning](https://semver.org/). Breaking c
 
 | Version | Status | Date |
 |---------|--------|------|
+| 0.8 | Draft | 2026-03-26 |
 | 0.7 | Draft | 2026-02-23 |
 | 0.6 | Draft | 2026-02-23 |
 | 0.5 | Draft | 2026-02-22 |
@@ -293,10 +341,10 @@ HITL Protocol aligns with established Internet standards where applicable:
 
 | RFC | Scope in HITL Protocol | Where Implemented |
 |-----|------------------------|-------------------|
-| **[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)** | HTTP semantics (`202 Accepted`, `304 Not Modified`, `ETag`, `If-None-Match`, `Retry-After`) | [Spec v0.7](spec/v0.7/hitl-protocol.md), [OpenAPI](schemas/openapi.yaml), reference implementations |
-| **[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)** + **[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)** | Normative requirement language (`MUST`, `SHOULD`, `MAY`) | [Spec terminology conventions](spec/v0.7/hitl-protocol.md#4-terminology) |
+| **[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)** | HTTP semantics (`202 Accepted`, `304 Not Modified`, `ETag`, `If-None-Match`, `Retry-After`) | [Spec v0.8](spec/v0.8/hitl-protocol.md), [OpenAPI](schemas/openapi.yaml), reference implementations |
+| **[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)** + **[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)** | Normative requirement language (`MUST`, `SHOULD`, `MAY`) | [Spec terminology conventions](spec/v0.8/hitl-protocol.md#4-terminology) |
 | **[RFC 3339](https://www.rfc-editor.org/rfc/rfc3339)** | Timestamp formats (`created_at`, `expires_at`, status timestamps) | [JSON Schemas](schemas/), [OpenAPI](schemas/openapi.yaml) |
-| **[RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)** | Bearer token usage and security boundaries for API auth and inline submit auth | [Spec security sections](spec/v0.7/hitl-protocol.md), [OpenAPI security schemes](schemas/openapi.yaml) |
+| **[RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)** | Bearer token usage and security boundaries for API auth and inline submit auth | [Spec security sections](spec/v0.8/hitl-protocol.md), [OpenAPI security schemes](schemas/openapi.yaml) |
 
 
 ## Contributing
@@ -324,19 +372,21 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Full Specification (v0.7)](spec/v0.7/hitl-protocol.md)
+- [Full Specification (v0.8)](spec/v0.8/hitl-protocol.md)
 - [Quick Start Guide](docs/quick-start.md) — Get started in 5 minutes
 - [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented
-- [JSON Schemas](schemas/) — HITL object, poll response, form field definitions
+- [JSON Schemas](schemas/) — HITL object, poll response, form field, discovery response
 - [Review Page Templates](templates/) — HTML templates for all 5 review types
 - [Reference Implementations](implementations/reference-service/) — Express, Hono, Next.js, FastAPI
-- [Examples](examples/) — 13 end-to-end flows (incl. inline confirmation, escalation, hybrid approval, quality improvement loop)
+- [Examples](examples/) — 16 end-to-end flows (including proof-of-human inline submit, step-up fallback, and browser-verified approval)
 - [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
 - [Interactive Playground](playground/)
 - [Agent Implementation Checklist](agents/checklist.md)
 - [Agent Skill (SKILL.md)](SKILL.md) — Teach agents the HITL Protocol
 - [SDK Design Guide](docs/sdk-guide.md) — Build a community SDK
-Consistency checks, flows, feature matrix, verification
+- [Surface Interop Profile](profiles/surface-interop/v0.1/README.md) — Optional declarative surface profile
+- [Feature Matrix](docs/feature-matrix.md) — Evidence-backed comparison
+- [Flow Verification](docs/flow-verification.md) — Mermaid flows checked against HITL semantics
 
 ---
 

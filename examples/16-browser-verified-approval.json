@@ -1,0 +1,130 @@
+{
+  "_comment": "HITL Protocol v0.8 — Example: Browser-Verified Approval",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A high-stakes finance workflow omits submit_url and requires proof_of_human on the service-hosted review surface. The agent only forwards review_url and the completed poll response contains normalized verification metadata.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Finance service returns HTTP 202 without submit_url and requires proof_of_human for browser_submit.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "30"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Approve the wire transfer of 48,000 EUR.",
+          "hitl": {
+            "spec_version": "0.8",
+            "case_id": "review_wire_a9b8c7d6",
+            "review_url": "https://bank.example/review/wire_a9b8c7d6?token=Z1xC3vB5nM7qW9eR1tY3uI5oP7aS9dF1gH3jK5l",
+            "poll_url": "https://api.bank.example/v1/reviews/wire_a9b8c7d6/status",
+            "verification_policy": {
+              "mode": "required",
+              "required_for": ["browser_submit"],
+              "requirements": {
+                "any_of": [
+                  {
+                    "all_of": [
+                      {
+                        "proof_type": "proof_of_human",
+                        "provider": "world_id",
+                        "min_assurance": "high"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "binding": {
+                "case_id": true,
+                "action": true,
+                "challenge": "wire-transfer-browser-proof",
+                "freshness_seconds": 300,
+                "expires_at": "2026-03-26T14:30:00Z",
+                "single_use": true
+              },
+              "fallback": {
+                "on_missing": "reject",
+                "on_invalid": "reject"
+              }
+            },
+            "type": "approval",
+            "prompt": "Approve wire transfer of 48,000 EUR to vendor account DE55 1234 5678 9012 3456 00",
+            "timeout": "30m",
+            "default_action": "reject",
+            "created_at": "2026-03-26T14:00:00Z",
+            "expires_at": "2026-03-26T14:30:00Z",
+            "context": {
+              "payment_id": "pay_88421",
+              "amount_eur": 48000,
+              "risk_tier": "high",
+              "category": "vendor_payout"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Agent forwards only the browser review URL because the high-stakes flow is service-hosted and submit_url is absent.",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Approval required for the 48,000 EUR transfer: https://bank.example/review/wire_a9b8c7d6?token=Z1xC3vB5nM7qW9eR1tY3uI5oP7aS9dF1gH3jK5l"
+      }
+    },
+    {
+      "step": 3,
+      "description": "Poll response shows the completed approval, browser_submit mode, and normalized verification outcome.",
+      "request": {
+        "method": "GET",
+        "url": "https://api.bank.example/v1/reviews/wire_a9b8c7d6/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_bank_a9b8c7d6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_wire_a9b8c7d6",
+          "created_at": "2026-03-26T14:00:00Z",
+          "opened_at": "2026-03-26T14:02:10Z",
+          "expires_at": "2026-03-26T14:30:00Z",
+          "completed_at": "2026-03-26T14:04:18Z",
+          "result": {
+            "action": "approve",
+            "data": {
+              "note": "Approved after reviewing beneficiary and invoice reference."
+            }
+          },
+          "responded_by": {
+            "name": "Torsten Heissler",
+            "email": "finance.approver@example.com"
+          },
+          "submission_context": {
+            "mode": "browser_submit",
+            "verification_result": {
+              "satisfied": true,
+              "verified_evidence": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "world_id",
+                  "assurance_level": "high",
+                  "bound_to_case": true,
+                  "bound_to_action": true,
+                  "fresh": true,
+                  "single_use_enforced": true
+                }
+              ],
+              "missing_requirements": []
+            }
+          }
+        }
+      }
+    }
+  ]
+}

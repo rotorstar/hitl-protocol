@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.7 — Example: .well-known/hitl.json Discovery Endpoint",
+  "_comment": "HITL Protocol v0.8 — Example: .well-known/hitl.json Discovery Endpoint",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "Example response from GET https://api.jobboard.example/.well-known/hitl.json — the discovery endpoint that agents and services use to determine HITL Protocol capabilities of a service.",
   "endpoint": {
@@ -14,7 +14,7 @@
     },
     "body": {
       "hitl_protocol": {
-        "spec_version": "0.7",
+        "spec_version": "0.8",
         "service": {
           "name": "JobBoard Pro",
           "description": "AI-powered job search and application platform with HITL-enabled review flows for job selection, application review, and offer negotiation.",
@@ -31,8 +31,10 @@
           "supports_multi_round": true,
           "supports_signatures": false,
           "supports_inline_submit": true,
+          "supports_agent_binding": true,
           "supports_surface": true,
-          "surface_formats": ["json-render"]
+          "surface_formats": ["json-render"],
+          "surface_profiles": ["hitl-surface-interop/v0.1"]
         },
         "endpoints": {
           "reviews_base": "https://api.jobboard.example/v1/reviews",
@@ -44,7 +46,9 @@
           "type": "bearer",
           "token_url": "https://api.jobboard.example/v1/auth/token",
           "scopes": ["reviews:read", "reviews:create"],
-          "documentation": "https://docs.jobboard.example/auth"
+          "profiles": ["agent-auth/external"],
+          "documentation": "https://docs.jobboard.example/auth",
+          "well_known": "https://api.jobboard.example/.well-known/agent-auth"
         },
         "rate_limits": {
           "poll_min_interval_seconds": 10,

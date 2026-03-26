@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.7/hitl-object.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/hitl-object.json",
   "title": "HITL Object",
-  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.7",
+  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.8",
   "type": "object",
   "required": [
     "spec_version",
@@ -17,8 +17,8 @@
   "properties": {
     "spec_version": {
       "type": "string",
-      "const": "0.7",
-      "description": "Protocol version. MUST be '0.7' for this spec."
+      "const": "0.8",
+      "description": "Protocol version. MUST be '0.8' for this spec."
     },
     "case_id": {
       "type": "string",
@@ -44,27 +44,23 @@
           "format": "uri",
           "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)"
         },
-        { "type": "null" }
+        {
+          "type": "null"
+        }
       ],
-      "description": "If the agent provided a callback URL in the original request, it is echoed here. Otherwise null. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
+      "description": "If the agent provided a callback URL in the original request, it is echoed here. Otherwise null."
     },
     "events_url": {
       "type": "string",
       "format": "uri",
       "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
-      "description": "Optional SSE endpoint for real-time status events. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
+      "description": "Optional SSE endpoint for real-time status events."
     },
     "type": {
       "type": "string",
       "anyOf": [
         {
-          "enum": [
-            "approval",
-            "selection",
-            "input",
-            "confirmation",
-            "escalation"
-          ]
+          "enum": ["approval", "selection", "input", "confirmation", "escalation"]
         },
         {
           "pattern": "^x-"
@@ -83,12 +79,7 @@
     },
     "default_action": {
       "type": "string",
-      "enum": [
-        "skip",
-        "approve",
-        "reject",
-        "abort"
-      ],
+      "enum": ["skip", "approve", "reject", "abort"],
       "description": "Action taken if the review expires without a response."
     },
     "created_at": {
@@ -111,7 +102,9 @@
           "properties": {
             "fields": {
               "type": "array",
-              "items": { "$ref": "form-field.json" },
+              "items": {
+                "$ref": "form-field.json"
+              },
               "description": "Array of form field definitions for single-step forms."
             },
             "steps": {
@@ -130,7 +123,9 @@
                   },
                   "fields": {
                     "type": "array",
-                    "items": { "$ref": "form-field.json" },
+                    "items": {
+                      "$ref": "form-field.json"
+                    },
                     "description": "Array of form field definitions for this step."
                   }
                 },
@@ -144,13 +139,17 @@
             }
           },
           "oneOf": [
-            { "required": ["fields"] },
-            { "required": ["steps"] }
+            {
+              "required": ["fields"]
+            },
+            {
+              "required": ["steps"]
+            }
           ],
           "additionalProperties": false
         }
       },
-      "description": "Arbitrary key-value pairs providing additional context about the review. Not processed by the agent — for human consumption on the review page. For Input-type reviews, MAY include a 'form' object with structured field definitions."
+      "description": "Arbitrary key-value pairs providing additional context about the review."
     },
     "reminder_at": {
       "oneOf": [
@@ -191,19 +190,23 @@
       "type": "string",
       "format": "uri",
       "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
-      "description": "API endpoint where the agent MAY submit simple responses on behalf of the human via native messaging buttons. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed. See Section 7.5."
+      "description": "API endpoint where the agent MAY submit simple responses on behalf of the human via native messaging buttons."
     },
     "submit_token": {
       "type": "string",
       "minLength": 32,
-      "description": "Opaque bearer token for authenticating agent submissions via submit_url. Service stores only SHA-256 hash. MUST be different from the review URL token."
+      "description": "Opaque bearer token for authenticating agent submissions via submit_url."
     },
     "inline_actions": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Actions permitted via submit_url without visiting review_url. When omitted and submit_url is present, ALL actions for the review type are permitted. When present, only listed actions are accepted via submit_url."
+      "description": "Actions permitted via submit_url without visiting review_url."
+    },
+    "verification_policy": {
+      "$ref": "verification-policy.json",
+      "description": "Optional service-declared verification requirements for proof_of_human evidence."
     }
   },
   "dependentRequired": {

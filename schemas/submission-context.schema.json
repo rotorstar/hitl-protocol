@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/submission-context.json",
+  "title": "Submission Context",
+  "description": "Context about how a completed HITL review was submitted in v0.8.",
+  "type": "object",
+  "required": ["mode"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["browser_submit", "inline_submit"],
+      "description": "Which submission path completed the review."
+    },
+    "submitted_via": {
+      "type": "string",
+      "description": "Audit string describing the submission channel or surface."
+    },
+    "submitted_by": {
+      "type": "object",
+      "required": ["platform", "platform_user_id"],
+      "properties": {
+        "platform": {
+          "type": "string",
+          "description": "Platform or surface identifier."
+        },
+        "platform_user_id": {
+          "type": "string",
+          "description": "Platform-specific user identifier."
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable display name if known."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Submission origin metadata for inline-path auditability."
+    },
+    "verification_result": {
+      "$ref": "verification-result.json",
+      "description": "Normalized outcome of the service-side verification flow."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "inline_submit"
+          }
+        }
+      },
+      "then": {
+        "required": ["submitted_via", "submitted_by"]
+      }
+    }
+  ],
+  "additionalProperties": false
+}

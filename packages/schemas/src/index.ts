@@ -1,7 +1,7 @@
 /**
  * @hitl-protocol/schemas
  *
- * JSON Schemas, TypeScript types, and validators for HITL Protocol v0.7.
+ * JSON Schemas, TypeScript types, and validators for HITL Protocol v0.8.
  *
  * @example
  * ```typescript
@@ -24,11 +24,31 @@ export type {
   AnyReviewType,
   ReviewStatus,
   DefaultAction,
+  ProofType,
+  AssuranceLevel,
+  VerificationMode,
+  VerificationPath,
+  SubmissionMode,
+  EvidenceFormat,
 
   // HITL Object
   HitlObject,
   HitlContext,
   Surface,
+  VerificationRequirement,
+  VerificationRequirementBranch,
+  VerificationPolicyRequirements,
+  VerificationBinding,
+  VerificationFallback,
+  VerificationPolicy,
+  DiscoveryResponse,
+  DiscoveryServiceInfo,
+  DiscoveryCapabilities,
+  DiscoveryEndpoints,
+  DiscoveryAuthentication,
+  DiscoveryRateLimits,
+  DiscoveryPolicies,
+  DiscoveryExamples,
 
   // Poll Response
   PollResponse,
@@ -36,6 +56,10 @@ export type {
   ResultSignature,
   RespondedBy,
   ReviewProgress,
+  VerificationEvidence,
+  VerifiedEvidence,
+  VerificationResult,
+  SubmissionContext,
 
   // Form Fields
   FormField,
@@ -60,6 +84,10 @@ export {
   pollResponseSchema,
   formFieldSchema,
   submitRequestSchema,
+  discoveryResponseSchema,
+  verificationPolicySchema,
+  verificationResultSchema,
+  submissionContextSchema,
 } from './schemas.js'
 
 // Validators
@@ -68,4 +96,8 @@ export {
   validatePollResponse,
   validateFormField,
   validateSubmitRequest,
+  validateDiscoveryResponse,
+  validateVerificationPolicy,
+  validateVerificationResult,
+  validateSubmissionContext,
 } from './validate.js'

@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.7 — Example: Quality Improvement Loop (Agent-Guided Iterative Enrichment)",
+  "_comment": "HITL Protocol v0.8 — Example: Quality Improvement Loop (Agent-Guided Iterative Enrichment)",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A CV creation service returns a successful 201 response with a live CV URL, a claim token, and a quality_score. Alongside the result, the service includes improvement_suggestions — structured hints for the agent to collect additional data from the human. The agent shares the primary result first, then offers up to 2 improvement cycles. Each cycle: ask questions from agent_action, re-submit with enriched data, share updated result. Stop when suggestions are empty or maxAttempts reached.",
   "steps": [

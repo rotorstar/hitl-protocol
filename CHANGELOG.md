@@ -5,6 +5,21 @@ All notable changes to the HITL Protocol specification will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-03-26
+
+### Added
+- HITL Protocol v0.8 spec in [`spec/v0.8/hitl-protocol.md`](spec/v0.8/hitl-protocol.md)
+- Optional Proof-of-Human verification layer with `verification_policy`, `verification_evidence`, `submission_context`, and `verification_result`
+- New JSON Schemas for verification policy, normalized verification result, and submission context
+- Three new v0.8 examples covering inline PoH, step-up fallback, and browser-hosted verification
+- Informative appendices for composing HITL with external Agent Auth systems and a World ID 4.x provider profile
+
+### Changed
+- Updated root schemas and OpenAPI to v0.8, including normalized poll-response verification metadata and discovery support for external auth/profile pointers
+- Tightened inline submit guidance with agent-side verification preflight and unified 403 fallback semantics for `action_not_inline`, `verification_required`, and `verification_failed`
+- Updated README, examples docs, schema docs, package docs, and tests for the new verification layer and agent-auth separation
+- Bumped `@hitl-protocol/schemas` to v0.8.0 and exported the new verification-related schemas, validators, and TypeScript types
+
 ## [0.7.1] - 2026-02-27
 
 ### Fixed

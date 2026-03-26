@@ -1,24 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.7/poll-response.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/poll-response.json",
   "title": "HITL Poll Response",
-  "description": "Response from the poll endpoint, as defined by HITL Protocol v0.7",
+  "description": "Response from the poll endpoint, as defined by HITL Protocol v0.8",
   "type": "object",
-  "required": [
-    "status",
-    "case_id"
-  ],
+  "required": ["status", "case_id"],
   "properties": {
     "status": {
       "type": "string",
-      "enum": [
-        "pending",
-        "opened",
-        "in_progress",
-        "completed",
-        "expired",
-        "cancelled"
-      ],
+      "enum": ["pending", "opened", "in_progress", "completed", "expired", "cancelled"],
       "description": "Current status of the review case."
     },
     "case_id": {
@@ -57,13 +47,11 @@
     },
     "result": {
       "type": "object",
-      "required": [
-        "action"
-      ],
+      "required": ["action"],
       "properties": {
         "action": {
           "type": "string",
-          "description": "The action taken by the human (e.g., approve, reject, select, submit, confirm, cancel, retry, skip, abort)."
+          "description": "The action taken by the human."
         },
         "data": {
           "type": "object",
@@ -92,9 +80,11 @@
               "description": "URL to the signer's JWKS endpoint."
             }
           },
-          "description": "Optional cryptographic signature for response integrity (CHEQ-inspired)."
+          "additionalProperties": false,
+          "description": "Optional cryptographic signature for response integrity."
         }
       },
+      "additionalProperties": false,
       "description": "The human's response. Present only when status is 'completed'."
     },
     "responded_by": {
@@ -110,7 +100,12 @@
           "description": "Verified email of the respondent."
         }
       },
+      "additionalProperties": false,
       "description": "Optional identity of the person who submitted the response."
+    },
+    "submission_context": {
+      "$ref": "submission-context.json",
+      "description": "Normalized information about the submission path and verification outcome."
     },
     "progress": {
       "type": "object",
@@ -137,7 +132,7 @@
         }
       },
       "additionalProperties": false,
-      "description": "Optional progress tracking for multi-step Input forms. Present only when status is 'in_progress' and the service tracks step-level interaction."
+      "description": "Optional progress tracking for multi-step Input forms."
     },
     "reminder_sent_at": {
       "type": "string",
@@ -161,7 +156,11 @@
   "allOf": [
     {
       "if": {
-        "properties": { "status": { "const": "completed" } }
+        "properties": {
+          "status": {
+            "const": "completed"
+          }
+        }
       },
       "then": {
         "required": ["result", "completed_at"]
@@ -169,7 +168,11 @@
     },
     {
       "if": {
-        "properties": { "status": { "const": "expired" } }
+        "properties": {
+          "status": {
+            "const": "expired"
+          }
+        }
       },
       "then": {
         "required": ["expired_at", "default_action"]
@@ -177,11 +180,16 @@
     },
     {
       "if": {
-        "properties": { "status": { "const": "cancelled" } }
+        "properties": {
+          "status": {
+            "const": "cancelled"
+          }
+        }
       },
       "then": {
         "required": ["cancelled_at"]
       }
     }
-  ]
+  ],
+  "additionalProperties": false
 }

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: HITL Protocol API
-  version: "0.7"
+  version: "0.8"
   description: |
     The Open Standard for Human Decisions in Agent Workflows.
 
@@ -154,6 +154,15 @@ components:
     FormField:
       $ref: './form-field.schema.json'
 
+    VerificationPolicy:
+      $ref: './verification-policy.schema.json'
+
+    VerificationResult:
+      $ref: './verification-result.schema.json'
+
+    SubmissionContext:
+      $ref: './submission-context.schema.json'
+
     Http202Response:
       type: object
       required:
@@ -219,82 +228,7 @@ components:
       $ref: './submit-request.schema.json'
 
     DiscoveryResponse:
-      type: object
-      required:
-        - hitl_protocol
-      properties:
-        hitl_protocol:
-          type: object
-          required:
-            - spec_version
-          properties:
-            spec_version:
-              type: string
-              examples: ['0.7']
-            service:
-              type: object
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                url:
-                  type: string
-                  format: uri
-                contact:
-                  type: string
-            capabilities:
-              type: object
-              properties:
-                review_types:
-                  type: array
-                  items:
-                    type: string
-                transports:
-                  type: array
-                  items:
-                    type: string
-                    enum: [polling, sse, callback]
-                max_timeout:
-                  type: string
-                default_timeout:
-                  type: string
-                supports_reminders:
-                  type: boolean
-                supports_multi_round:
-                  type: boolean
-                supports_signatures:
-                  type: boolean
-                supports_inline_submit:
-                  type: boolean
-                  description: Whether this service supports inline submit via submit_url/submit_token.
-            endpoints:
-              type: object
-              properties:
-                reviews_base:
-                  type: string
-                  format: uri
-                review_page_base:
-                  type: string
-                  format: uri
-                events_base:
-                  type: string
-                  format: uri
-            rate_limits:
-              type: object
-              properties:
-                poll_recommended_interval_seconds:
-                  type: integer
-                max_requests_per_minute:
-                  type: integer
-            policies:
-              type: object
-              properties:
-                data_retention_days:
-                  type: integer
-                privacy_policy:
-                  type: string
-                  format: uri
+      $ref: './discovery-response.schema.json'
 
     Error:
       type: object
@@ -305,7 +239,7 @@ components:
         error:
           type: string
           description: Machine-readable error code.
-          examples: ['duplicate_submission', 'rate_limited', 'invalid_token', 'case_expired']
+          examples: ['duplicate_submission', 'rate_limited', 'invalid_token', 'case_expired', 'action_not_inline', 'verification_required', 'verification_failed']
         message:
           type: string
           description: Human-readable error message.
@@ -363,9 +297,9 @@ components:
           example:
             error: case_expired
             message: This review case expired on 2026-02-23T10:00:00Z.
-    ActionNotInline:
+    InlineSubmitRejected:
       description: |
-        The requested action is not permitted via inline submit.
+        The inline submit attempt was rejected.
         The agent SHOULD use the original `hitl.review_url` from the 202 response.
         `review_url` here is optional convenience metadata and may be token-free.
       content:
@@ -379,7 +313,10 @@ components:
             properties:
               error:
                 type: string
-                const: action_not_inline
+                enum:
+                  - action_not_inline
+                  - verification_required
+                  - verification_failed
               message:
                 type: string
               case_id:
@@ -389,8 +326,8 @@ components:
                 format: uri
                 description: Optional review page URL hint. May not include the one-time review token.
           example:
-            error: action_not_inline
-            message: "Action 'edit' is not permitted via inline submission. Use the original hitl.review_url."
+            error: verification_required
+            message: "Inline submit requires proof_of_human. Use the original hitl.review_url."
             case_id: review_abc123
             review_url: "https://service.example/review/abc123"
 
@@ -463,7 +400,7 @@ paths:
                     status: human_input_required
                     message: "5 matching jobs found. Please select which ones to apply for."
                     hitl:
-                      spec_version: "0.7"
+                      spec_version: "0.8"
                       case_id: review_abc123
                       review_url: "https://service.example/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC6dE8fG0hI2jK4lM6n"
                       poll_url: "https://api.service.example/v1/reviews/abc123/status"
@@ -479,7 +416,7 @@ paths:
                     status: human_input_required
                     message: "Production deployment requires approval."
                     hitl:
-                      spec_version: "0.7"
+                      spec_version: "0.8"
                       case_id: review_deploy_789
                       review_url: "https://service.example/review/deploy_789?token=X9yZ1aB3cD5eF7gH9iJ1kL3mN5oP7qR9sT1uV3wX5y"
                       poll_url: "https://api.service.example/v1/reviews/deploy_789/status"
@@ -563,6 +500,23 @@ paths:
                     responded_by:
                       name: Alex Mueller
                       email: alex@example.com
+                    submission_context:
+                      mode: inline_submit
+                      submitted_via: telegram_inline_button
+                      submitted_by:
+                        platform: telegram
+                        platform_user_id: "123456789"
+                        display_name: Alex Mueller
+                      verification_result:
+                        satisfied: true
+                        verified_evidence:
+                          - proof_type: proof_of_human
+                            provider: world_id
+                            assurance_level: high
+                            bound_to_case: true
+                            bound_to_action: true
+                            fresh: true
+                            single_use_enforced: true
                 expired:
                   summary: Case expired without response
                   value:
@@ -596,6 +550,10 @@ paths:
 
         **One-time response:** Each case accepts exactly one response. Subsequent submissions
         return HTTP 409 Conflict. A RECOMMENDED 5-minute grace period allows edits.
+
+        If `verification_policy.required_for` contains `browser_submit`, the service performs
+        verification on the service-hosted review surface. The agent is not expected to transport
+        raw verification evidence for browser-based paths.
       operationId: submitReviewResponse
       security:
         - ReviewToken: []
@@ -665,15 +623,18 @@ paths:
   /reviews/{caseId}/submit:
     post:
       tags: [Agent API]
-      summary: Inline submit via agent (v0.7)
+      summary: Inline submit via agent (v0.8)
       description: |
         Agent submits a response on behalf of the human after the human explicitly triggered
         a native messaging button (Telegram inline button, Slack action, Discord component, etc.).
 
         Authenticated via the submit_token from the HITL object (not the review URL token).
         Only actions listed in `inline_actions` are accepted (if specified).
+        If the service declares `verification_policy` for `inline_submit`, the agent SHOULD
+        either relay verification evidence from a human-controlled proof flow or immediately
+        fall back to `review_url`.
 
-        See Section 7.5 of the HITL Protocol specification.
+        See Sections 7.5 and 7.6 of the HITL Protocol specification.
       operationId: inlineSubmitResponse
       security:
         - SubmitToken: []
@@ -706,6 +667,26 @@ paths:
                     platform: slack
                     platform_user_id: U0123456789
                     display_name: Alex M.
+              verify_and_confirm:
+                summary: Confirm with proof_of_human evidence
+                value:
+                  action: confirm
+                  data: {}
+                  submitted_via: telegram_inline_button
+                  submitted_by:
+                    platform: telegram
+                    platform_user_id: "123456789"
+                    display_name: Alex Mueller
+                  verification_evidence:
+                    - proof_type: proof_of_human
+                      provider: world_id
+                      format: provider_opaque
+                      presentation:
+                        proof: "<opaque-provider-payload>"
+                      binding:
+                        case_id: review_confirm_s5t6u7v8
+                        action: confirm
+                        challenge: base64url-opaque-nonce
       responses:
         '200':
           description: Response accepted.
@@ -720,7 +701,7 @@ paths:
         '401':
           $ref: '#/components/responses/InvalidToken'
         '403':
-          $ref: '#/components/responses/ActionNotInline'
+          $ref: '#/components/responses/InlineSubmitRejected'
         '409':
           $ref: '#/components/responses/Conflict'
         '410':
@@ -808,7 +789,7 @@ paths:
                 $ref: '#/components/schemas/DiscoveryResponse'
               example:
                 hitl_protocol:
-                  spec_version: "0.7"
+                  spec_version: "0.8"
                   service:
                     name: Example Service
                     description: HITL-enabled service
@@ -819,9 +800,14 @@ paths:
                     default_timeout: PT24H
                     supports_reminders: true
                     supports_multi_round: true
+                    supports_agent_binding: true
                   endpoints:
                     reviews_base: https://api.service.example/v1/reviews
                     review_page_base: https://service.example/review
+                  authentication:
+                    type: oauth2
+                    documentation: https://service.example/docs/agent-auth
+                    well_known: https://service.example/.well-known/agent-auth
                   rate_limits:
                     poll_recommended_interval_seconds: 30
                     max_requests_per_minute: 60

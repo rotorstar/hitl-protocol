@@ -637,7 +637,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 <!-- TAB 7: Compare -->
 <div class="section" id="tab-7">
   <h2>Comparison Matrix</h2>
-  <p class="subtitle" style="margin-bottom:16px">How HITL Protocol compares to existing standards for human interaction in agent workflows.</p>
+  <p class="subtitle" style="margin-bottom:16px">How HITL core compares to adjacent standards and optional declarative UI companions. The browser review URL remains the canonical fallback.</p>
 
   <div class="card" style="overflow-x:auto;margin-bottom:28px;padding:0;border-radius:var(--radius)">
     <table class="heatmap">
@@ -654,8 +654,10 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       </thead>
       <tbody>
         <tr><td>URL-based delivery</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td></tr>
+        <tr><td>Browser fallback is core</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td></tr>
         <tr><td>Async (hours/days)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
         <tr><td>Rich forms</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="no">No</td><td class="partial">Partial</td></tr>
+        <tr><td>State/data separation</td><td class="partial">Minimal</td><td class="partial">Embedded</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
         <tr><td>No platform lock-in</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="no">No</td></tr>
         <tr><td>Open standard</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td></tr>
         <tr><td>CLI agent support</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="yes">Yes</td><td class="no">No</td></tr>
@@ -668,15 +670,15 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
     </table>
   </div>
 
-  <h2>What HITL Borrows</h2>
+  <h2>Profiles And Adjacent Standards</h2>
   <div class="grid-2" style="margin-bottom:28px">
     <div class="card anim-card" style="border-left:4px solid var(--green)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
         <span style="font-weight:800;font-size:15px;color:var(--text)">json-render</span>
       </div>
-      <div class="badge badge-green" style="margin-bottom:10px">Recommended UI</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">39 shadcn components, catalog-constrained (no XSS), state binding + actions, AI-generatable JSON specs. The default review surface format.</div>
+      <div class="badge badge-green" style="margin-bottom:10px">Optional Profile</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Catalog-constrained declarative UI that pairs well with HITL review pages. It belongs in an optional interop layer, not in the HITL core object.</div>
     </div>
     <div class="card anim-card" style="border-left:4px solid var(--blue)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -689,10 +691,10 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
     <div class="card anim-card" style="border-left:4px solid var(--purple)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span style="font-weight:800;font-size:15px;color:var(--text)">CHEQ (IETF)</span>
+        <span style="font-weight:800;font-size:15px;color:var(--text)">A2UI / CHEQ</span>
       </div>
-      <div class="badge badge-purple" style="margin-bottom:10px">Response Signing</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">Cryptographic proof that the human actually made the decision. RS256 signed responses for high-stakes financial/legal/compliance workflows.</div>
+      <div class="badge badge-purple" style="margin-bottom:10px">Embedded UI + Integrity</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">A2UI informs optional embedded surfaces; CHEQ-inspired signing informs response integrity. Neither replaces the required review URL fallback.</div>
     </div>
     <div class="card anim-card" style="border-left:4px solid var(--accent)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -717,7 +719,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       </div>
       <div>
         <div style="font-weight:800;color:var(--accent);margin-bottom:6px;font-size:15px">HITL Protocol</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6">Agent has NO app. Runs in terminal/Telegram. Gets human decisions from EXTERNAL services via URL.</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Agent has NO app. Runs in terminal or messenger, forwards review URLs, and may optionally use surface profiles without losing the browser fallback.</div>
       </div>
     </div>
   </div>

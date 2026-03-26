@@ -1,0 +1,201 @@
+{
+  "_comment": "HITL Protocol v0.8 — Example: Inline Confirmation with Proof of Human",
+  "_spec": "https://github.com/rotorstar/hitl-protocol",
+  "scenario": "A low-risk newsletter workflow allows inline confirmation in Telegram, but the service requires proof_of_human for inline_submit. The agent relays World ID evidence from a human-controlled proof flow and the service returns a normalized verification_result in the poll response.",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Service returns HTTP 202 with inline submit and a verification_policy requiring proof_of_human for inline_submit.",
+      "response": {
+        "status": 202,
+        "headers": {
+          "Content-Type": "application/json",
+          "Retry-After": "15"
+        },
+        "body": {
+          "status": "human_input_required",
+          "message": "Confirm sending the newsletter to 2,438 subscribers.",
+          "hitl": {
+            "spec_version": "0.8",
+            "case_id": "review_newsletter_c1d2e3f4",
+            "review_url": "https://mailer.example/review/newsletter_c1d2e3f4?token=Q1wE3rT5yU7iO9pA2sD4fG6hJ8kL0zX2cV4bN6m",
+            "poll_url": "https://api.mailer.example/v1/reviews/newsletter_c1d2e3f4/status",
+            "submit_url": "https://api.mailer.example/v1/reviews/newsletter_c1d2e3f4/submit",
+            "submit_token": "agt_S1dF3gH5jK7lZ9xC1vB3nM5qW7eR9tY1uI3oP5a",
+            "inline_actions": ["confirm", "cancel"],
+            "verification_policy": {
+              "mode": "required",
+              "required_for": ["inline_submit"],
+              "requirements": {
+                "any_of": [
+                  {
+                    "all_of": [
+                      {
+                        "proof_type": "proof_of_human",
+                        "provider": "world_id",
+                        "min_assurance": "high"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "binding": {
+                "case_id": true,
+                "action": true,
+                "challenge": "newsletter-inline-opaque-challenge",
+                "freshness_seconds": 300,
+                "expires_at": "2026-03-26T12:05:00Z",
+                "single_use": true
+              },
+              "fallback": {
+                "on_missing": "browser_review",
+                "on_invalid": "browser_review"
+              }
+            },
+            "type": "confirmation",
+            "prompt": "Confirm sending the March product newsletter",
+            "timeout": "30m",
+            "default_action": "abort",
+            "created_at": "2026-03-26T11:35:00Z",
+            "expires_at": "2026-03-26T12:05:00Z",
+            "context": {
+              "campaign_id": "cmp_2026_03_launch",
+              "recipient_count": 2438,
+              "risk_tier": "low"
+            }
+          }
+        }
+      }
+    },
+    {
+      "step": 2,
+      "description": "Agent renders inline buttons and obtains proof_of_human from a human-controlled flow before submitting the confirmation.",
+      "agent_action": {
+        "channel": "telegram",
+        "message": "Newsletter ready to send to 2,438 subscribers.",
+        "inline_buttons": {
+          "row_1": [
+            {
+              "label": "Confirm",
+              "action": "confirm"
+            },
+            {
+              "label": "Cancel",
+              "action": "cancel"
+            },
+            {
+              "label": "Review",
+              "type": "url",
+              "url": "https://mailer.example/review/newsletter_c1d2e3f4?token=Q1wE3rT5yU7iO9pA2sD4fG6hJ8kL0zX2cV4bN6m"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": 3,
+      "description": "Human taps Confirm. Agent submits the action with verification_evidence.",
+      "request": {
+        "method": "POST",
+        "url": "https://api.mailer.example/v1/reviews/newsletter_c1d2e3f4/submit",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer agt_S1dF3gH5jK7lZ9xC1vB3nM5qW7eR9tY1uI3oP5a"
+        },
+        "body": {
+          "action": "confirm",
+          "data": {},
+          "submitted_via": "telegram_inline_button",
+          "submitted_by": {
+            "platform": "telegram",
+            "platform_user_id": "123456789",
+            "display_name": "Alex Mueller"
+          },
+          "verification_evidence": [
+            {
+              "proof_type": "proof_of_human",
+              "provider": "world_id",
+              "format": "provider_opaque",
+              "presentation": {
+                "proof": "<opaque-provider-payload>"
+              },
+              "binding": {
+                "case_id": "review_newsletter_c1d2e3f4",
+                "action": "confirm",
+                "challenge": "newsletter-inline-opaque-challenge"
+              }
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_newsletter_c1d2e3f4",
+          "completed_at": "2026-03-26T11:36:12Z"
+        }
+      }
+    },
+    {
+      "step": 4,
+      "description": "Poll response returns normalized submission_context and verification_result.",
+      "request": {
+        "method": "GET",
+        "url": "https://api.mailer.example/v1/reviews/newsletter_c1d2e3f4/status",
+        "headers": {
+          "Authorization": "Bearer sk_agent_mailer_c1d2e3f4"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "completed",
+          "case_id": "review_newsletter_c1d2e3f4",
+          "created_at": "2026-03-26T11:35:00Z",
+          "opened_at": "2026-03-26T11:35:20Z",
+          "expires_at": "2026-03-26T12:05:00Z",
+          "completed_at": "2026-03-26T11:36:12Z",
+          "result": {
+            "action": "confirm",
+            "data": {}
+          },
+          "responded_by": {
+            "name": "Alex Mueller",
+            "email": "alex.mueller@example.com"
+          },
+          "submission_context": {
+            "mode": "inline_submit",
+            "submitted_via": "telegram_inline_button",
+            "submitted_by": {
+              "platform": "telegram",
+              "platform_user_id": "123456789",
+              "display_name": "Alex Mueller"
+            },
+            "verification_result": {
+              "satisfied": true,
+              "verified_evidence": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "world_id",
+                  "assurance_level": "high",
+                  "bound_to_case": true,
+                  "bound_to_action": true,
+                  "fresh": true,
+                  "single_use_enforced": true
+                }
+              ],
+              "missing_requirements": []
+            }
+          }
+        }
+      }
+    }
+  ]
+}

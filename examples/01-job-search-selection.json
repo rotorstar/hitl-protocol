@@ -1,5 +1,5 @@
 {
-  "_comment": "HITL Protocol v0.7 — Example: Job Search Selection",
+  "_comment": "HITL Protocol v0.8 — Example: Job Search Selection",
   "_spec": "https://github.com/rotorstar/hitl-protocol",
   "scenario": "A job board API returns 5 matching positions for a search query. The agent forwards the review URL to the human, who opens it in a browser and selects 2 positions to apply for. The agent polls until the result is available.",
   "steps": [
@@ -87,7 +87,7 @@
             ]
           },
           "hitl": {
-            "spec_version": "0.7",
+            "spec_version": "0.8",
             "case_id": "review_jbs_a1b2c3d4e5",
             "review_url": "https://jobboard.example/review/jbs_a1b2c3d4e5?token=K7xR2mN4pQ8sT1vW3xY5zA9bC2dE4fG6hI8jK0l",
             "poll_url": "https://api.jobboard.example/v1/reviews/jbs_a1b2c3d4e5/status",

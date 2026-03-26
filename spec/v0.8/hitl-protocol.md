@@ -1,4 +1,4 @@
-# HITL Protocol Specification v0.7
+# HITL Protocol Specification v0.8
 
 **The Open Standard for Human Decisions in Agent Workflows**
 
@@ -16,8 +16,8 @@ HITL Protocol is to human decisions what OAuth is to authentication: a standardi
 
 | Field | Value |
 |-------|-------|
-| **Version** | 0.7 (Draft) |
-| **Date** | 2026-02-23 |
+| **Version** | 0.8 (Draft) |
+| **Date** | 2026-03-26 |
 | **Authors** | Torsten Heissler (@rotorstar) |
 | **License** | Apache 2.0 |
 | **Status** | Draft — open for community feedback |
@@ -31,6 +31,7 @@ This specification follows Semantic Versioning. Breaking changes increment the m
 
 | Version | Date | Summary |
 |---------|------|---------|
+| 0.8 | 2026-03-26 | Optional Verification Evidence extension (`verification_policy`, `verification_evidence`, `submission_context`, `verification_result`), PoH-first provider-agnostic core, Agent Auth composition appendix, World ID 4.x appendix. |
 | 0.7 | 2026-02-23 | Inline Submit extension (`submit_url`, `submit_token`, `inline_actions`), Channel-Native Rendering guidance, Inline Submit Security considerations. |
 | 0.5 | 2026-02-22 | Initial public draft. HTTP 202 flow, 5 review types, poll/SSE/callback, signed URLs, SKILL.md extension, json-render recommendation. |
 
@@ -175,7 +176,7 @@ A service MUST NOT return HTTP 202 for:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "case_id": "review_abc123def456",
     "review_url": "https://service.example.com/review/abc123def456?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.service.example.com/v1/reviews/abc123def456/status",
@@ -206,7 +207,7 @@ A service MUST NOT return HTTP 202 for:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `spec_version` | string | REQUIRED | Protocol version. MUST be `"0.7"` for this spec. |
+| `spec_version` | string | REQUIRED | Protocol version. MUST be `"0.8"` for this spec. |
 | `case_id` | string | REQUIRED | Unique identifier for this review case. MUST be URL-safe. RECOMMENDED format: `review_{random}` |
 | `review_url` | string (URL) | REQUIRED | Fully qualified URL to the review page. MUST include a signed token for authentication. |
 | `poll_url` | string (URL) | REQUIRED | Fully qualified URL to the status polling endpoint. |
@@ -224,6 +225,7 @@ A service MUST NOT return HTTP 202 for:
 | `submit_url` | string (URL) | OPTIONAL | API endpoint where the agent MAY submit simple responses on behalf of the human, without requiring them to visit the `review_url`. See Section 7.5. MUST be HTTPS. |
 | `submit_token` | string | OPTIONAL | Opaque bearer token for authenticating agent submissions via `submit_url`. MUST be present when `submit_url` is present. Service stores only the SHA-256 hash. Separate from the review URL token. |
 | `inline_actions` | string[] | OPTIONAL | Actions that may be submitted via `submit_url` without the human visiting the `review_url`. When omitted and `submit_url` is present, ALL actions for the review type are permitted. When present, only listed actions are accepted; others return HTTP 403. |
+| `verification_policy` | object | OPTIONAL | Service-declared verification requirements for proof_of_human evidence. See Section 7.6. |
 
 ### Agent Behavior on HTTP 202
 
@@ -232,6 +234,8 @@ When an agent receives HTTP 202 with a `hitl` object, it MUST:
 1. Extract `hitl.review_url`
 2. Send `hitl.review_url` to the requestor via their messaging channel, along with `hitl.prompt` or `message` as context
 3. Begin polling `hitl.poll_url` (see Section 8) or register `hitl.callback_url` if supported
+
+If `hitl.verification_policy` is present and `inline_submit` is listed in `required_for`, the agent SHOULD determine whether it can satisfy any declared requirement branch before attempting inline submit. If it cannot, it SHOULD direct the human to `review_url`.
 
 An agent MUST NOT:
 - Attempt to render the review UI itself
@@ -328,7 +332,7 @@ When a service supports inline submit, it includes three additional fields in th
 ```json
 {
   "hitl": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "case_id": "review_confirm_s5t6u7v8",
     "review_url": "https://mailcraft.example/review/confirm_s5t6u7v8?token=S6tU8v...",
     "poll_url": "https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status",
@@ -384,6 +388,7 @@ Content-Type: application/json
 | `submitted_by.platform` | string | REQUIRED | Platform identifier: `telegram`, `slack`, `discord`, `whatsapp`, `teams`, or custom with `x-` prefix. |
 | `submitted_by.platform_user_id` | string | REQUIRED | Platform-specific user identifier (e.g., Telegram user ID, Slack member ID). |
 | `submitted_by.display_name` | string | OPTIONAL | Human-readable display name. |
+| `verification_evidence` | array | OPTIONAL | Opaque verification evidence relayed from a human-controlled proof flow. See Section 7.6. Agents MUST NOT generate or mutate it. |
 
 **Responses:**
 
@@ -391,7 +396,7 @@ Content-Type: application/json
 |--------|-----------|------|
 | `200 OK` | Response accepted. | `{"status": "completed", "case_id": "...", "completed_at": "..."}` |
 | `401 Unauthorized` | Invalid or expired `submit_token`. | `{"error": "invalid_token", "message": "..."}` |
-| `403 Forbidden` | Action not in `inline_actions`. | `{"error": "action_not_inline", "message": "...", "case_id": "...", "review_url": "https://..."}` |
+| `403 Forbidden` | Action not in `inline_actions`, evidence missing, or evidence invalid. | `{"error": "action_not_inline"\|"verification_required"\|"verification_failed", "message": "...", "case_id": "...", "review_url": "https://..."}` |
 | `409 Conflict` | Already responded (one-time guarantee). | `{"error": "duplicate_submission", "message": "..."}` |
 | `410 Gone` | Review case expired. | `{"error": "case_expired", "message": "..."}` |
 | `429 Too Many Requests` | Rate limited. | `{"error": "rate_limited", "message": "..."}` |
@@ -407,29 +412,179 @@ Services implementing dual-auth on the respond endpoint:
 | Authentication | Caller | Notes |
 |---------------|--------|-------|
 | `?token={review_token}` | Human's browser | Existing v0.5 behavior |
-| `Authorization: Bearer {submit_token}` | Agent (on behalf of human) | New v0.7 inline submit |
+| `Authorization: Bearer {submit_token}` | Agent (on behalf of human) | New v0.8 inline submit |
 
 ### Agent Behavior with Inline Submit
 
 When an agent receives an HTTP 202 with `submit_url` present, it SHOULD:
 
 1. Evaluate whether the review type and available `inline_actions` can be handled with native messaging buttons.
-2. If yes: render native buttons for the inline actions AND include a URL button to `review_url` for the full review page.
-3. If no (e.g., `selection` type requiring rich content, or `input` type requiring form fields): render only a URL button to `review_url`.
+2. If inline submit is allowed by review type, evaluate whether any declared `verification_policy` for `inline_submit` can be satisfied.
+3. If yes: render native buttons for the inline actions AND include a URL button to `review_url` for the full review page.
+4. If no (e.g., `selection` type requiring rich content, required proof unavailable, or `input` type requiring form fields): render only a URL button to `review_url`.
 
 When the human taps a native messaging button, the agent:
 
 1. Determines the `action` from the button's callback data.
-2. Sends `POST submit_url` with the action, `submitted_via`, and `submitted_by`.
-3. On `200 OK`: updates the message to show the result and removes the buttons.
-4. On `403 Forbidden`: directs the human to the original `hitl.review_url` from the 202 response (optionally using `review_url` from the error as a hint).
-5. On `409 Conflict` or `410 Gone`: updates the message to show the case is closed.
+2. If required by policy and available from a human-controlled proof flow, attaches `verification_evidence`.
+3. Sends `POST submit_url` with the action, `submitted_via`, `submitted_by`, and optional `verification_evidence`.
+4. On `200 OK`: updates the message to show the result and removes the buttons.
+5. On `403 Forbidden`: directs the human to the original `hitl.review_url` from the 202 response (optionally using `review_url` from the error as a hint).
+6. On `409 Conflict` or `410 Gone`: updates the message to show the case is closed.
 
 An agent MUST NOT submit via `submit_url` without the human explicitly triggering a button. Automated or pre-filled submissions defeat the purpose of human-in-the-loop.
 
 ---
 
-## 7.6 Channel-Native Rendering
+## 7.6 Verification Evidence Extension (Optional)
+
+### Scope
+
+This extension allows a service to declare that a completed review response MAY or MUST be accompanied by verification evidence. In v0.8, the normative core standardizes only `proof_of_human`.
+
+The HITL core protocol MUST NOT require a specific verification provider. Services MAY integrate third-party or first-party proof systems, but provider verification MUST be performed by the service.
+
+### Verification Policy
+
+A service MAY include `verification_policy` in the HITL object:
+
+```json
+{
+  "verification_policy": {
+    "mode": "required",
+    "required_for": ["inline_submit"],
+    "requirements": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "proof_type": "proof_of_human",
+              "provider": "world_id",
+              "min_assurance": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "binding": {
+      "case_id": true,
+      "action": true,
+      "challenge": "base64url-opaque-nonce",
+      "freshness_seconds": 300,
+      "expires_at": "2026-03-26T12:00:00Z",
+      "single_use": true
+    },
+    "fallback": {
+      "on_missing": "browser_review",
+      "on_invalid": "browser_review"
+    }
+  }
+}
+```
+
+Normative rules:
+
+- `mode` values:
+  - `optional`: evidence MAY be presented and MAY affect downstream policy.
+  - `required`: evidence MUST be present and valid for every path listed in `required_for`.
+  - `step_up`: evidence is not initially required, but the service MAY require a stronger path before accepting the response.
+- `requirements.any_of[]` expresses OR-of-AND policy logic. Each `any_of` branch MAY satisfy the policy if all `all_of` entries in that branch are satisfied.
+- If `required_for` contains `browser_submit`, the service MUST perform verification on the service-hosted review surface and MUST NOT expect the agent to transport raw browser-path evidence.
+- If `binding.case_id` is true, the service MUST verify that accepted evidence is bound to the HITL `case_id`.
+- If `binding.action` is true, the service MUST verify that accepted evidence is bound to the submitted action.
+- If `binding.single_use` is true, the service MUST reject re-use of equivalent evidence for the same case/action binding.
+
+### Verification Evidence On Inline Submit
+
+When using inline submit, the agent MAY include a `verification_evidence` array:
+
+```json
+{
+  "action": "confirm",
+  "data": {},
+  "submitted_via": "telegram_inline_button",
+  "submitted_by": {
+    "platform": "telegram",
+    "platform_user_id": "123456789",
+    "display_name": "Alex Mueller"
+  },
+  "verification_evidence": [
+    {
+      "proof_type": "proof_of_human",
+      "provider": "world_id",
+      "format": "provider_opaque",
+      "presentation": {
+        "proof": "<opaque-provider-payload>"
+      },
+      "binding": {
+        "case_id": "review_confirm_s5t6u7v8",
+        "action": "confirm",
+        "challenge": "base64url-opaque-nonce"
+      }
+    }
+  ]
+}
+```
+
+Normative rules:
+
+- Agents MUST treat verification evidence as opaque unless they explicitly implement the provider-specific flow.
+- Agents MUST NOT generate, alter, or synthesize verification evidence.
+- Agents MAY only relay evidence obtained from a human-controlled verification flow or authenticator.
+- The service MUST perform provider-specific verification server-side before accepting the evidence as valid.
+
+### Submission Context And Verification Result
+
+When verification was required or presented, the completed poll response SHOULD include `submission_context.verification_result`:
+
+```json
+{
+  "submission_context": {
+    "mode": "inline_submit",
+    "submitted_via": "telegram_inline_button",
+    "submitted_by": {
+      "platform": "telegram",
+      "platform_user_id": "123456789",
+      "display_name": "Alex Mueller"
+    },
+    "verification_result": {
+      "satisfied": true,
+      "verified_evidence": [
+        {
+          "proof_type": "proof_of_human",
+          "provider": "world_id",
+          "assurance_level": "high",
+          "bound_to_case": true,
+          "bound_to_action": true,
+          "fresh": true,
+          "single_use_enforced": true
+        }
+      ],
+      "missing_requirements": []
+    }
+  }
+}
+```
+
+Normative rules:
+
+- `verification_result` MUST be normalized and provider-agnostic.
+- Poll responses MUST NOT expose raw provider proof payloads, secrets, biometric material, or opaque proof blobs by default.
+- If verification was required by policy or evidence was presented on inline submit, the completed poll result MUST include `submission_context.verification_result`.
+
+### Step-Up Errors
+
+If an inline submission path does not satisfy the declared verification policy, the service SHOULD return HTTP 403 with one of these error codes:
+
+- `verification_required`
+- `verification_failed`
+- `action_not_inline`
+
+The error body SHOULD include `case_id` and MAY include `review_url`. Agents receiving `verification_required` or `verification_failed` SHOULD fall back to `review_url` rather than retrying the same inline path.
+
+---
+
+## 7.7 Channel-Native Rendering
 
 ### Overview
 
@@ -545,6 +700,30 @@ Indicates the human is actively interacting with the review page (e.g., filling 
   "responded_by": {
     "name": "Torsten H.",
     "email": "torsten@example.com"
+  },
+  "submission_context": {
+    "mode": "inline_submit",
+    "submitted_via": "telegram_inline_button",
+    "submitted_by": {
+      "platform": "telegram",
+      "platform_user_id": "123456789",
+      "display_name": "Torsten H."
+    },
+    "verification_result": {
+      "satisfied": true,
+      "verified_evidence": [
+        {
+          "proof_type": "proof_of_human",
+          "provider": "world_id",
+          "assurance_level": "high",
+          "bound_to_case": true,
+          "bound_to_action": true,
+          "fresh": true,
+          "single_use_enforced": true
+        }
+      ],
+      "missing_requirements": []
+    }
   }
 }
 ```
@@ -610,6 +789,11 @@ All terminal states (`completed`, `expired`, `cancelled`) are final. A case MUST
 | `responded_by` | object | When completed | OPTIONAL. Identity of the person who submitted the response. See Section 13.7. |
 | `responded_by.name` | string | When completed | Display name of the respondent |
 | `responded_by.email` | string | When completed | Verified email of the respondent (if service collected it) |
+| `submission_context` | object | When completed | OPTIONAL. How the response was submitted and whether verification policy was satisfied. |
+| `submission_context.mode` | string | When completed | `browser_submit` or `inline_submit` |
+| `submission_context.submitted_via` | string | When completed | OPTIONAL. Submission surface or messaging channel, primarily for inline auditability |
+| `submission_context.submitted_by` | object | When completed | OPTIONAL. Platform-origin metadata for inline submissions |
+| `submission_context.verification_result` | object | When completed | OPTIONAL. Normalized provider-agnostic verification outcome |
 | `reminder_sent_at` | string (ISO 8601) | When pending/opened | When the last reminder was sent (by service or triggered by `reminder_at`) |
 | `next_case_id` | string | When completed | If the service created a follow-up case (e.g., a revision request), this links to the next case in the chain |
 | `default_action` | string | When expired | The default action declared when the case was created |
@@ -1359,6 +1543,31 @@ Inline submit introduces a new submission path with a different security profile
 
 **Recommendation for high-stakes services:** Omit `submit_url` entirely and require the full browser-based review experience. For medium-stakes services, include `submit_url` with a restrictive `inline_actions` list. For low-stakes services (e.g., simple confirmations, non-destructive actions), allow all actions inline.
 
+#### 13.9 Verification Evidence Security
+
+Verification evidence strengthens HITL but does not replace authorization policy.
+
+A valid `proof_of_human` proves, at most, that a real and possibly unique human was involved according to the provider's semantics. It does NOT by itself prove:
+
+- named identity
+- organizational role
+- business authorization
+- legal authority
+- correctness of human intent
+
+Services MUST NOT treat `proof_of_human` alone as sufficient authorization for high-stakes enterprise actions unless that is explicitly the service's policy.
+
+Services SHOULD bind accepted evidence to:
+
+- `case_id`
+- `action`
+- a freshness window
+- single-use semantics where supported
+
+Agents MUST NOT be trusted to self-attest human verification. Provider-backed or service-verified evidence is REQUIRED whenever verification is claimed as satisfied.
+
+For high-stakes decisions, services SHOULD prefer browser review or another service-controlled verification surface over chat-native inline submit.
+
 ---
 
 ## 14. Compatibility
@@ -1406,7 +1615,7 @@ A2UI defines a declarative component model for rendering UI within AI clients. H
 - **HITL Protocol** = transport + delivery (HTTP 202, poll, signed URLs, browser fallback)
 - **A2UI** = embedded rendering within AI clients
 
-The v0.7 core does **not** define an `a2ui_surface` field inside the `hitl` object. Services that want to offer A2UI alongside HITL SHOULD publish it through an optional surface interoperability profile and MUST preserve `review_url` as the canonical full-review link and authorization boundary.
+The v0.8 core does **not** define an `a2ui_surface` field inside the `hitl` object. Services that want to offer A2UI alongside HITL SHOULD publish it through an optional surface interoperability profile and MUST preserve `review_url` as the canonical full-review link and authorization boundary.
 
 AI clients that support A2UI can render an optional profile payload inline. All other agents fall back to the URL-based HITL flow.
 
@@ -1468,7 +1677,7 @@ Content-Type: application/json
   "status": "human_input_required",
   "message": "Found 5 matching positions. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "case_id": "review_job_sel_7f3a9b",
     "review_url": "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
@@ -1536,7 +1745,7 @@ The agent now prepares applications for the two selected positions, potentially 
   "status": "human_input_required",
   "message": "Build v2.1.0 passed all tests. Approve deployment to production?",
   "hitl": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "case_id": "review_deploy_v210",
     "review_url": "https://ci.company.example.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://ci.company.example.com/api/reviews/deploy_v210/status",
@@ -1754,7 +1963,7 @@ The `submitReview` action MUST POST to `POST /review/{caseId}/respond` with the 
 | **Async (hours/days)** | Yes (poll/SSE) | No (real-time session) | No (session) | No | No | No (blocks) | Yes |
 | **Crypto signing** | Optional (CHEQ-inspired) | No | No | No | No | No | Yes (core) |
 | **Streaming** | SSE + json-render | SSE (core) | Yes | No | No | No | No |
-| **Maturity** | Draft (v0.7) | Stable (v1.0) | Draft (v0.9) | Stable (v1.6) | Stable | Stable | Draft |
+| **Maturity** | Draft (v0.8) | Stable (v1.0) | Draft (v0.9) | Stable (v1.6) | Stable | Stable | Draft |
 | **Agent adoption** | New | CopilotKit ecosystem | New | Low (agent context) | Low (Slack only) | Growing | None |
 | **Autonomous CLI agents** | Yes (core use case) | No (needs frontend) | No (needs client) | Possible | No | Yes | Possible |
 
@@ -1783,15 +1992,15 @@ The following JSON Schema defines the HITL object within the HTTP 202 response. 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.7/hitl-object.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/hitl-object.json",
   "title": "HITL Object",
-  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.7",
+  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.8",
   "type": "object",
   "required": ["spec_version", "case_id", "review_url", "poll_url", "type", "prompt", "created_at", "expires_at"],
   "properties": {
     "spec_version": {
       "type": "string",
-      "const": "0.7",
+      "const": "0.8",
       "description": "Protocol version"
     },
     "case_id": {
@@ -1900,7 +2109,7 @@ The following JSON Schema defines the HITL object within the HTTP 202 response. 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.7/poll-response.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/poll-response.json",
   "title": "HITL Poll Response",
   "description": "Response from the poll endpoint",
   "type": "object",
@@ -2010,7 +2219,7 @@ GET https://service.example.com/.well-known/hitl.json
 ```json
 {
   "hitl_protocol": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "service": {
       "name": "JobBoard Pro",
       "description": "Job search and application service",
@@ -2021,6 +2230,7 @@ GET https://service.example.com/.well-known/hitl.json
       "transports": ["polling", "sse"],
       "default_timeout": "PT24H",
       "supports_inline_submit": true,
+      "supports_agent_binding": true,
       "supports_surface": true,
       "surface_formats": ["json-render"],
       "surface_profiles": ["hitl-surface-interop/v0.1"]
@@ -2028,6 +2238,11 @@ GET https://service.example.com/.well-known/hitl.json
     "endpoints": {
       "reviews_base": "https://api.jobboard.example.com/v1/reviews",
       "review_page_base": "https://jobboard.example.com/review"
+    },
+    "authentication": {
+      "type": "oauth2",
+      "documentation": "https://jobboard.example.com/docs/agent-auth",
+      "well_known": "https://jobboard.example.com/.well-known/agent-auth"
     },
     "rate_limits": {
       "poll_recommended_interval_seconds": 30,
@@ -2068,6 +2283,8 @@ A minimal agent implementation requires only two capabilities:
 - [ ] All of the above (Minimum)
 - [ ] Expose a public webhook endpoint
 - [ ] Include `hitl_callback_url` in API requests
+- [ ] If `verification_policy.required_for` includes `inline_submit`, preflight whether any requirement branch can be satisfied before rendering inline actions
+- [ ] On `verification_required` or `verification_failed`, fall back to `review_url`
 - [ ] Verify `X-HITL-Signature` on incoming callbacks
 - [ ] Handle callback events: `review.completed`, `review.expired`, `review.cancelled`
 
@@ -2189,6 +2406,74 @@ All three protocols share foundational design patterns:
 - **Timeout / TTL** mechanisms with configurable default actions
 
 These shared principles make the protocols naturally interoperable without requiring a shared SDK or schema dependency.
+
+---
+
+## Appendix G: Composing HITL With Agent Auth
+
+This appendix is informative and non-normative.
+
+HITL and external agent-auth systems solve different problems:
+
+- HITL standardizes human decision transport: `review_url`, `poll_url`, optional `submit_url`, and structured review results.
+- Agent-auth systems standardize agent principal identity, capability grants, approval, host registration, and revocation.
+
+HITL's built-in authentication surfaces are transport-boundary mechanisms:
+
+- agent-to-service API authentication
+- review URL bearer-token authentication for the browser path
+- submit token authentication for inline submit
+- callback signature verification
+
+These mechanisms are sufficient for HITL transport boundaries, but they do not model runtime agent identity lifecycle, capability escalation, or per-agent revocation.
+
+Services that need first-class agent principals SHOULD compose HITL with an external agent-auth or control-plane profile. Discovery MAY point to that profile through `.well-known/hitl.json.authentication.documentation`, `.well-known/hitl.json.authentication.well_known`, or other service-defined documentation.
+
+The HITL core MUST remain provider-agnostic and MUST NOT require any specific agent-auth protocol.
+
+---
+
+## Appendix H: Example Provider Profile — World ID 4.x
+
+This appendix is informative and non-normative.
+
+When using World ID as a `proof_of_human` provider:
+
+- HITL `proof_type` maps to `proof_of_human`
+- HITL provider maps to `world_id`
+- service verification is performed server-side after receiving provider output from a human-controlled flow
+
+Current World ID 4.x integrations require RP-signed request context and backend verification:
+
+- `rp_id`
+- `nonce`
+- `created_at`
+- `expires_at`
+- `signature`
+
+Services SHOULD generate the provider request context on their backend and MUST NOT expose RP signing secrets to the client.
+
+Services SHOULD bind HITL state to provider inputs as follows:
+
+- provider action := `hitl:{case_id}:{action}`
+- provider signal := hash(`case_id | action | challenge`)
+- replay prevention := provider result + service-side single-use tracking
+
+Services SHOULD verify the provider result through World's verification API:
+
+`POST https://developer.world.org/api/v4/verify/{rp_id}`
+
+The normalized HITL `verification_result` MUST contain only provider-agnostic output such as:
+
+- `proof_type`
+- `provider`
+- `assurance_level`
+- `bound_to_case`
+- `bound_to_action`
+- `fresh`
+- `single_use_enforced`
+
+World ID proof-of-human is not named identity, enterprise authorization, or role approval. Legacy "Sign in with World ID" was shut down on January 31, 2026 and MUST NOT be used as the identity basis for this profile.
 
 ---
 

@@ -6,7 +6,8 @@ Test suites for validating HITL Protocol compliance. Available in Node.js (Vites
 
 | Category | What It Tests | Node.js | Python |
 |----------|--------------|:-------:|:------:|
-| **Schema** | All 12 examples validate against JSON Schema | `schema.test.js` | `test_schema.py` |
+| **Schema** | HITL example suite validates against JSON Schema | `schema.test.js` | `test_schema.py` |
+| **Discovery** | `.well-known/hitl.json` validates against discovery schema | `schema.test.js` | `test_schema.py` |
 | **State Machine** | All 6 states, valid/invalid transitions, terminal states | `state-machine.test.js` | `test_state_machine.py` |
 
 ## Running Tests
@@ -33,6 +34,9 @@ pytest -v
 
 - Validates all example HITL objects against `hitl-object.schema.json`
 - Validates all poll responses against `poll-response.schema.json`
+- Validates inline submit request bodies against `submit-request.schema.json`
+- Validates `.well-known/hitl.json` responses against `discovery-response.schema.json`
+- Covers v0.8 verification payloads (`verification_policy`, `verification_evidence`, `submission_context`, `verification_result`)
 - Tests for rejection of invalid payloads (missing fields, wrong types, invalid enums)
 - Tests custom review types with `x-` prefix
 - Tests minimal valid objects

@@ -1,18 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.7/submit-request.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/submit-request.json",
   "title": "Inline Submit Request",
-  "description": "Request body for agent-submitted responses via submit_url, as defined by HITL Protocol v0.7",
+  "description": "Request body for agent-submitted responses via submit_url, as defined by HITL Protocol v0.8",
   "type": "object",
-  "required": [
-    "action",
-    "submitted_via",
-    "submitted_by"
-  ],
+  "required": ["action", "submitted_via", "submitted_by"],
   "properties": {
     "action": {
       "type": "string",
-      "description": "The action taken by the human via a native messaging button. MUST be a valid action for the review type AND listed in inline_actions (if specified).",
+      "description": "The action taken by the human via a native messaging button. MUST be a valid action for the review type and listed in inline_actions if specified.",
       "examples": ["confirm", "cancel", "approve", "reject", "retry", "skip", "abort"]
     },
     "data": {
@@ -57,11 +53,83 @@
         },
         "platform_user_id": {
           "type": "string",
-          "description": "Platform-specific user identifier (e.g., Telegram user ID, Slack member ID, Discord user ID)."
+          "description": "Platform-specific user identifier."
         },
         "display_name": {
           "type": "string",
           "description": "Human-readable display name of the user who triggered the action."
+        }
+      },
+      "additionalProperties": false
+    },
+    "verification_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/verificationEvidence"
+      },
+      "description": "Optional opaque verification evidence relayed from a human-controlled proof flow. Services must verify it server-side."
+    }
+  },
+  "$defs": {
+    "verificationEvidence": {
+      "type": "object",
+      "required": ["proof_type", "provider", "format", "presentation", "binding"],
+      "properties": {
+        "proof_type": {
+          "type": "string",
+          "anyOf": [
+            {
+              "enum": ["proof_of_human"]
+            },
+            {
+              "pattern": "^x-"
+            }
+          ],
+          "description": "Normative core value in v0.8 is proof_of_human."
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider identifier for the proof presentation."
+        },
+        "format": {
+          "type": "string",
+          "anyOf": [
+            {
+              "enum": ["provider_opaque", "jwt", "zkp", "attestation"]
+            },
+            {
+              "pattern": "^x-"
+            }
+          ],
+          "description": "Presentation format used by the provider evidence."
+        },
+        "presentation": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "additionalProperties": true
+            }
+          ],
+          "description": "Opaque provider payload. Agents must treat this as opaque."
+        },
+        "binding": {
+          "type": "object",
+          "properties": {
+            "case_id": {
+              "type": "string"
+            },
+            "action": {
+              "type": "string"
+            },
+            "challenge": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true,
+          "description": "Provider-agnostic binding hints relayed to the service."
         }
       },
       "additionalProperties": false
