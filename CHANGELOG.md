@@ -5,6 +5,16 @@ All notable changes to the HITL Protocol specification will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Informative [MCP Elicitation Binding](docs/mcp-elicitation-binding.md): delivering HITL cases via MCP URL mode elicitation (`elicitation/create`, `mode: "url"`) with `notifications/elicitation/complete` instead of agent-side polling
+- Approval-mechanism landscape table in [`docs/feature-matrix.md`](docs/feature-matrix.md) covering OpenClaw approvals, Hermes Agent, LangGraph `interrupt()`, OpenAI Agents SDK, MCP elicitation (both modes), and HumanLayer
+
+### Changed
+- Updated spec §14.2 and README for MCP spec revision 2025-11-25: distinguishes form mode from URL mode elicitation; positions HITL as the layer that defines what happens at the elicitation URL
+- README: new positioning section distinguishing framework-internal approvals (agent gates its own actions) from HITL (service-initiated structured decisions)
+
 ## [0.8.0] - 2026-03-26
 
 ### Added

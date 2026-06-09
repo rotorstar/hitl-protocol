@@ -1,6 +1,6 @@
 ---
 name: hitl-protocol
-description: "HITL Protocol — the open standard for human decisions in autonomous agent workflows. When a website or API needs human input, it returns HTTP 202 with a review URL. Autonomous agents like OpenClaw, Claude, Codex, or Goose forward the URL, poll for the structured result, and continue. Use this skill to make any website agent-ready, or to handle human-in-the-loop responses in your agent. Covers approval, selection, input forms, confirmation, and escalation review types. Supports polling, SSE, webhook transports, channel-native inline buttons (Telegram, Slack, Discord, WhatsApp, Teams), opaque token security, multi-step form wizards, and multi-round edit cycles."
+description: "HITL Protocol — the open standard for human decisions in autonomous agent workflows. When a website or API needs human input, it returns HTTP 202 with a review URL. Autonomous agents like OpenClaw, Claude, Codex, or Goose forward the URL, poll for the structured result, and continue. Use this skill to make any website agent-ready, or to handle human-in-the-loop responses in your agent. Covers approval, selection, input forms, confirmation, and escalation review types. Supports polling, SSE, webhook transports, channel-native inline buttons (Telegram, Slack, Discord, WhatsApp, Teams), opaque token security, multi-step form wizards, multi-round edit cycles, optional proof-of-human verification (v0.8), and delivery via MCP URL mode elicitation."
 license: Apache-2.0
 compatibility:
   - claude
@@ -10,8 +10,8 @@ compatibility:
   - goose
   - copilot
 metadata:
-  version: "0.7"
-  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.7/hitl-protocol.md"
+  version: "0.8"
+  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.8/hitl-protocol.md"
   hitl:
     supported: true
     types: [approval, selection, input, confirmation, escalation]
@@ -100,7 +100,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
   "status": "human_input_required",
   "message": "5 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.7",
+    "spec_version": "0.8",
     "case_id": "review_abc123",
     "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ...",
     "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -122,7 +122,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `spec_version` | `"0.7"` | Protocol version |
+| `spec_version` | `"0.8"` | Protocol version |
 | `case_id` | string | Unique, URL-safe identifier (pattern: `review_{random}`) |
 | `review_url` | URL | HTTPS URL to review page with opaque bearer token |
 | `poll_url` | URL | Status polling endpoint |
@@ -222,7 +222,7 @@ app.post('/api/search', async (req, res) => {
     status: 'human_input_required',
     message: `${results.length} jobs found. Please select which ones to apply for.`,
     hitl: {
-      spec_version: '0.6',
+      spec_version: '0.8',
       case_id: caseId,
       review_url: `https://yourservice.com/review/${caseId}?token=${token}`,
       poll_url: `https://api.yourservice.com/v1/reviews/${caseId}/status`,
@@ -305,6 +305,21 @@ For simple decisions, agents can render **native messaging buttons** instead of 
 
 **Platform requirements:** The agent must be a platform bot (Telegram Bot via BotFather, Slack App, Discord Bot, WhatsApp Business API, Teams Bot) to send native buttons. See [Agent Integration Guide](skills/references/agent-integration.md) for platform-specific rendering patterns.
 
+## Proof of Human (v0.8)
+
+v0.8 adds an optional verification layer for decisions where the service needs evidence that a human (not the agent) decided:
+
+- `verification_policy` declares when proof is `optional`, `required`, or step-up-only — and for which paths (`inline_submit`, `browser`).
+- Before rendering inline buttons, agents MUST preflight the policy: if `inline_submit` requires verification the agent cannot satisfy, fall back to `review_url`.
+- `submission_context.verification_result` in poll responses returns normalized, provider-agnostic results. Agents MUST NOT self-attest human verification.
+- Browser review is the preferred step-up path — verification happens on the service-hosted page.
+
+See [spec Section 13](spec/v0.8/hitl-protocol.md) and Examples 14–16.
+
+## Delivery via MCP (URL Mode Elicitation)
+
+If your service is exposed through an MCP server, deliver the `review_url` as a URL mode elicitation (`elicitation/create`, `mode: "url"`) and signal completion via `notifications/elicitation/complete` instead of agent-side polling. MCP standardizes how the URL reaches the user; HITL defines what happens at the URL. See the [MCP Elicitation Binding](docs/mcp-elicitation-binding.md) and the runnable [MCP server demo](implementations/mcp-server/).
+
 ## Non-Goals
 
 - **Does NOT render review UI** — the service hosts and renders the review page. The agent is a messenger.
@@ -327,7 +342,7 @@ metadata:
     info: "May ask user to select preferred jobs or confirm applications."
 ```
 
-See [spec Section 12](spec/v0.7/hitl-protocol.md) for the full field reference.
+See [spec Section 12](spec/v0.8/hitl-protocol.md) for the full field reference.
 
 ### Best Practice: Enforce HITL Choice
 
@@ -430,12 +445,15 @@ For the complete implementation matrix, see [README RFC Alignment](README.md#rfc
 
 ## Resources
 
-- [Full Specification (v0.7)](spec/v0.7/hitl-protocol.md)
+- [Full Specification (v0.8)](spec/v0.8/hitl-protocol.md)
 - [OpenAPI 3.1 Spec](schemas/openapi.yaml) — all endpoints documented
-- [JSON Schemas](schemas/) — HITL object, poll response, form field, submit request definitions
+- [JSON Schemas](schemas/) — HITL object, poll response, form field, verification, submit request definitions
 - [Reference Implementations](implementations/reference-service/) — Express 5, Hono, Next.js, FastAPI
+- [MCP Server Demo](implementations/mcp-server/) — HITL via MCP URL mode elicitation
 - [Review Page Templates](templates/) — HTML templates for all 5 review types
-- [Examples](examples/) — 12 end-to-end flows (incl. inline confirmation, escalation, hybrid approval)
+- [Examples](examples/) — 16 end-to-end flows (incl. inline confirmation, escalation, hybrid approval, proof-of-human)
 - [Agent Implementation Checklist](agents/checklist.md) — detailed agent guide with pseudocode
 - [Interactive Playground](playground/)
 - [SDK Design Guide](docs/sdk-guide.md) — build a community SDK
+
+Found this useful? Star and contribute at [github.com/rotorstar/hitl-protocol](https://github.com/rotorstar/hitl-protocol) — implementation reports get listed in the README.

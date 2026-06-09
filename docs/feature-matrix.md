@@ -1,6 +1,30 @@
-# HITL Surface Feature Matrix
+# HITL Feature Matrix
 
-This matrix is the evidence-backed comparison source of truth for HITL core, `json-render`, and A2UI.
+This document is the evidence-backed comparison source of truth. It covers two distinct questions:
+
+1. **Approval-mechanism landscape** — how HITL relates to framework-internal approvals and adjacent protocols (MCP elicitation, LangGraph, OpenAI Agents SDK, HumanLayer).
+2. **Surface comparison** — how HITL core relates to declarative UI layers (`json-render`, A2UI).
+
+## Approval-Mechanism Landscape
+
+The key distinction is **who initiates the human decision**: the agent gating its *own* tool calls, or an *external service* requesting a structured decision from the human behind the agent.
+
+| Mechanism | Initiator | Scope | UI for the human | Structured result back | Cross-agent portable | Notes |
+|-----------|-----------|-------|------------------|------------------------|:---:|-------|
+| **HITL Protocol** | External service | Service → agent → human | Service-hosted review page + inline buttons | Yes (typed, schema-validated) | Yes (plain HTTP) | The only mechanism in this table where the *service* defines the decision |
+| OpenClaw approvals | Agent runtime | Agent's own tool calls | Chat prompt / allowlist | Approve/deny only | No (OpenClaw-internal) | Safety interlock on top of tool policy; prompt-based instructions can be lost to context compaction |
+| Hermes Agent `/approve` `/deny` | Agent runtime | Agent's own dangerous commands | Chat commands, native keyboards (Telegram/Discord) | Approve/deny only | No (Hermes-internal) | Defense-in-depth alongside sandboxing |
+| LangGraph `interrupt()` | Orchestration graph | A node in the developer's own graph | Developer-built | Developer-defined | No (LangGraph-internal) | Natural integration point: an interrupt node can relay a HITL case |
+| OpenAI Agents SDK HITL | Agent runtime | Agent's own tool calls | Developer-built | Approve/reject + resume | No (SDK-internal) | Pause/resume around tool execution |
+| MCP form mode elicitation | MCP server | MCP server ↔ MCP client | Client-rendered flat form | Yes (primitives only) | MCP clients only | Flat objects, primitive types by design |
+| MCP URL mode elicitation | MCP server | MCP server ↔ MCP client | Whatever is at the URL (opaque to MCP) | No (out-of-band) | MCP clients only | Transports a URL + completion signal; HITL defines the page — see [MCP Elicitation Binding](mcp-elicitation-binding.md) |
+| HumanLayer (commercial) | Developer SDK | Tool-call layer in own app | Slack/email routing | Yes | SDK required | Hosted product, not an open standard; focus shifted to CodeLayer |
+
+**Conclusion:** framework-internal approvals and HITL are complementary layers. An agent SHOULD gate its own dangerous actions with its runtime's approval mechanism *and* relay HITL cases when services it calls return HTTP 202. A HITL case is protocol state on the service side — it cannot be lost to prompt drift or context compaction.
+
+## Surface Comparison
+
+This matrix compares HITL core, `json-render`, and A2UI.
 
 ## Scope
 

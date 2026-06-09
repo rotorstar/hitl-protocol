@@ -12,3 +12,6 @@ packages/schemas/schemas/
 
 # Business Documentation
 Business/docs/PRD.md
+
+# Launch material (local only)
+launch/

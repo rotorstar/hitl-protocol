@@ -46,6 +46,24 @@ Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/r
 
 **HITL Protocol closes this gap** with one standardized flow that works across all services, all agents, and all messaging channels.
 
+## "Don't agents already have approvals?"
+
+Yes — for **their own actions**. OpenClaw asks before running a dangerous command. Hermes Agent has `/approve` and `/deny`. LangGraph has `interrupt()`. OpenAI's Agents SDK can pause a tool call. All of these gate what the *agent itself* is about to do, inside that one framework.
+
+HITL Protocol answers a different question: **how does a service the agent calls request a structured decision from the human?** A job board that found 5 matches. A bank that needs explicit confirmation. A deployment service that wants a plan reviewed. None of the framework-internal mechanisms reach that far — and none of them are portable across agents.
+
+| | Framework approvals (OpenClaw, Hermes, LangGraph, …) | HITL Protocol |
+|---|---|---|
+| **Who asks?** | The agent, about its own tool call | The service, about its own domain decision |
+| **Decision shape** | Approve / deny | 5 typed review flows with structured, validated results |
+| **UI** | Chat prompt | Service-hosted review page + native buttons |
+| **Portability** | Locked to one framework | Any agent, plain HTTP |
+| **Where the state lives** | Agent context / prompt | Service-side protocol state |
+
+That last row matters more than it looks. In February 2026, a Meta director watched an agent delete 200+ emails after her *"don't action until I tell you"* instruction was silently lost to context compaction. Prompt-based approvals can be compacted, drowned out, or forgotten. A HITL case is protocol state on the service side — the action does not happen until a structured decision arrives, no matter what the agent's context window does.
+
+Use both: let your agent runtime gate its own dangerous actions, and let services request human decisions via HITL. See the [approval-mechanism landscape](docs/feature-matrix.md#approval-mechanism-landscape) for the full comparison.
+
 ## The Solution
 
 <p align="center">
@@ -231,7 +249,7 @@ HITL Protocol fills a gap no existing standard addresses:
 |----------|---------------|---------------------|
 | **SKILL.md** | How agents discover skills | HITL extends SKILL.md metadata |
 | **A2A** (agent.json) | Agent-to-agent communication | HITL complements A2A's `input-required` |
-| **MCP** | Agent tool/resource access | HITL handles complex UI that MCP Elicitation can't |
+| **MCP** | Agent tool/resource access | Form-mode elicitation covers primitive input; URL-mode elicitation can deliver a HITL `review_url` — HITL defines what happens at that URL ([binding](docs/mcp-elicitation-binding.md)) |
 | **AG-UI** (CopilotKit) | Agent ↔ embedded frontend | HITL serves agents with no frontend (CLI, Telegram) |
 | **OAuth 2.0** | User authentication | HITL follows the same three-party pattern |
 
@@ -282,6 +300,7 @@ hitl-protocol/
 │
 ├── implementations/
 │   ├── README.md                     ← Known implementations
+│   ├── mcp-server/                   ← MCP URL mode elicitation demo
 │   └── reference-service/            ← Reference implementations
 │       ├── express/                  ← Express 5 (Node.js)
 │       ├── hono/                     ← Hono (Edge/Deno/Bun)
@@ -291,6 +310,7 @@ hitl-protocol/
 ├── docs/
 │   ├── quick-start.md                ← Quick Start Guide (5 frameworks)
 │   ├── sdk-guide.md                  ← SDK Design Guide
+│   ├── mcp-elicitation-binding.md    ← HITL via MCP URL mode elicitation
 │   ├── feature-matrix.md             ← Evidence-backed comparison matrix
 │   └── flow-verification.md          ← Mermaid flow verification
 │
@@ -358,13 +378,16 @@ We welcome contributions from anyone building autonomous agent systems. See [CON
 - Build reference implementations in new languages
 - Report ambiguities or edge cases
 
-## Adopters
+## Adopters & Ecosystem
+
+The [HITL Protocol skill on ClawHub](https://clawhub.ai/skills/hitl-protocol) (`openclaw skills install hitl-protocol`) teaches OpenClaw agents the protocol — **850+ installs and counting**.
 
 Building with HITL Protocol? [Open an issue](https://github.com/rotorstar/hitl-protocol/issues/new?template=implementation-report.md) to be listed here.
 
-| Implementation | Language | Transport | Status |
-|----------------|----------|-----------|--------|
-| — | — | — | *Be the first to add your implementation!* |
+| Implementation | Role | Spec | Review Types | Transport |
+|----------------|------|:----:|--------------|-----------|
+| [Etienne](https://github.com/bullorosso/etienne) — agent harness integration layer (Claude Agent SDK, OpenCode, Codex) | Agent harness | 0.8 | Approval, Selection, Input, Confirmation | Polling |
+| *Your implementation here* | | | | |
 
 ## License
 
@@ -378,6 +401,8 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 - [JSON Schemas](schemas/) — HITL object, poll response, form field, discovery response
 - [Review Page Templates](templates/) — HTML templates for all 5 review types
 - [Reference Implementations](implementations/reference-service/) — Express, Hono, Next.js, FastAPI
+- [MCP Server Demo](implementations/mcp-server/) — HITL via MCP URL mode elicitation (works in Claude Code)
+- [MCP Elicitation Binding](docs/mcp-elicitation-binding.md) — Informative binding for MCP delivery
 - [Examples](examples/) — 16 end-to-end flows (including proof-of-human inline submit, step-up fallback, and browser-verified approval)
 - [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
 - [Interactive Playground](playground/)
