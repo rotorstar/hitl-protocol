@@ -15,6 +15,11 @@
  *
  * Requires an MCP client with elicitation support (e.g. Claude Code >= 2.1.76).
  *
+ * MCP revision note: implements Binding A (MCP 2025-11-25, current stable).
+ * The 2026-07-28 revision removes elicitationId + notifications/elicitation/complete
+ * (replaced by MRTR / Tasks extension) — see docs/mcp-elicitation-binding.md,
+ * Bindings B/C. Migration planned once the final spec + SDK support land.
+ *
  * Usage:
  *   pnpm install
  *   claude mcp add hitl-demo -- node /absolute/path/to/server.js

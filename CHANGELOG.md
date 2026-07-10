@@ -9,11 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Informative [MCP Elicitation Binding](docs/mcp-elicitation-binding.md): delivering HITL cases via MCP URL mode elicitation (`elicitation/create`, `mode: "url"`) with `notifications/elicitation/complete` instead of agent-side polling
-- Approval-mechanism landscape table in [`docs/feature-matrix.md`](docs/feature-matrix.md) covering OpenClaw approvals, Hermes Agent, LangGraph `interrupt()`, OpenAI Agents SDK, MCP elicitation (both modes), and HumanLayer
+- MCP 2026-07-28 release-candidate coverage in the binding: Binding B (MRTR — `input_required` results + `requestState` re-issue, replacing `elicitationId`/completion notification) and Binding C (Tasks extension `io.modelcontextprotocol/tasks` for long-lived cases)
+- Approval-mechanism landscape table in [`docs/feature-matrix.md`](docs/feature-matrix.md) covering OpenClaw approvals, Hermes Agent, LangGraph `interrupt()`, OpenAI Agents SDK, MCP elicitation (both modes), MCP Tasks extension, CHEQ (IETF), and HumanLayer
+- Adjacent Standards Landscape (July 2026) in [`docs/feature-matrix.md`](docs/feature-matrix.md): A2A v1.0, MCP 2026-07-28 RC, AP2 (FIDO), ACP (OpenAI/Stripe/Meta), x402, WebMCP, CHEQ, HumanLayer/gotoHuman — with sources and dates
+- README: CHEQ and AP2/ACP/x402 rows in the Protocol Standards Landscape; EU AI Act Article 14 (human oversight for high-risk systems, applying from 2026-08) as a demand driver in The Gap
 
 ### Changed
 - Updated spec §14.2 and README for MCP spec revision 2025-11-25: distinguishes form mode from URL mode elicitation; positions HITL as the layer that defines what happens at the elicitation URL
+- Updated spec §14.2, README, and SKILL.md for the MCP 2026-07-28 release candidate: sharpened positioning — MCP adds human-review plumbing inside the MCP triangle (MRTR, Tasks `input_required`); HITL standardizes the same handoff at the open HTTP layer and defines the typed decision behind the URL
 - README: new positioning section distinguishing framework-internal approvals (agent gates its own actions) from HITL (service-initiated structured decisions)
+- MCP server demo: documented revision compatibility (implements the 2025-11-25 binding; MRTR/Tasks migration planned once the final 2026-07-28 spec and SDK support land)
 
 ## [0.8.0] - 2026-03-26
 

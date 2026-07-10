@@ -44,6 +44,8 @@ Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/r
 
 **For humans:** You're either excluded from agent workflows entirely, or squeezed through text-only channels.
 
+**For regulated workflows:** The EU AI Act's human-oversight requirements for high-risk systems ([Article 14](https://artificialintelligenceact.eu/article/14/)) apply from August 2026 — oversight has to be demonstrable, not promised. A HITL case is auditable protocol state: who decided what, when, with a structured, validated result.
+
 **HITL Protocol closes this gap** with one standardized flow that works across all services, all agents, and all messaging channels.
 
 ## "Don't agents already have approvals?"
@@ -61,6 +63,8 @@ HITL Protocol answers a different question: **how does a service the agent calls
 | **Where the state lives** | Agent context / prompt | Service-side protocol state |
 
 That last row matters more than it looks. In February 2026, a Meta director watched an agent delete 200+ emails after her *"don't action until I tell you"* instruction was silently lost to context compaction. Prompt-based approvals can be compacted, drowned out, or forgotten. A HITL case is protocol state on the service side — the action does not happen until a structured decision arrives, no matter what the agent's context window does.
+
+The same applies to MCP's newer plumbing: URL-mode elicitation and the 2026-07-28 Tasks extension (`input_required` + polling) standardize how an *MCP server* hands a pending decision to *its* client — inside one MCP session. HITL standardizes that moment at the open HTTP layer, for any agent with or without MCP, and defines the typed decision behind the URL.
 
 Use both: let your agent runtime gate its own dangerous actions, and let services request human decisions via HITL. See the [approval-mechanism landscape](docs/feature-matrix.md#approval-mechanism-landscape) for the full comparison.
 
@@ -248,9 +252,11 @@ HITL Protocol fills a gap no existing standard addresses:
 | Standard | What it solves | HITL Protocol's role |
 |----------|---------------|---------------------|
 | **SKILL.md** | How agents discover skills | HITL extends SKILL.md metadata |
-| **A2A** (agent.json) | Agent-to-agent communication | HITL complements A2A's `input-required` |
-| **MCP** | Agent tool/resource access | Form-mode elicitation covers primitive input; URL-mode elicitation can deliver a HITL `review_url` — HITL defines what happens at that URL ([binding](docs/mcp-elicitation-binding.md)) |
+| **A2A** (v1.0, Linux Foundation) | Agent-to-agent communication | HITL complements A2A's `input-required` — A2A signals *that* input is needed, HITL defines the review page and typed result |
+| **MCP** | Agent tool/resource access | URL-mode elicitation delivers a HITL `review_url`; the 2026-07-28 revision adds async human-approval plumbing *inside* MCP (MRTR, Tasks `input_required`) — HITL standardizes the same handoff on the open HTTP layer, for any agent, and defines the typed decision at the URL ([binding](docs/mcp-elicitation-binding.md)) |
 | **AG-UI** (CopilotKit) | Agent ↔ embedded frontend | HITL serves agents with no frontend (CLI, Telegram) |
+| **AP2 / ACP / x402** | Payment authorization & agentic checkout | Domain-locked to commerce; HITL covers the same "human authorizes the critical action" moment for **any** domain, with the service hosting the review UI |
+| **CHEQ** (IETF drafts, expired) | Human confirmation of agent decisions | Closest prior art: `draft-rosenberg-cheq-00` (07/2025) used 202 + URI package + polling; its successor pivoted to signed objects carried over MCP/A2A and both drafts expired without WG adoption — HITL is the active standard for this pattern at the HTTP layer ([details](docs/feature-matrix.md#adjacent-standards-landscape-july-2026)) |
 | **OAuth 2.0** | User authentication | HITL follows the same three-party pattern |
 
 ## Optional Surface Interop Profiles
