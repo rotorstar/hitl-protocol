@@ -318,7 +318,12 @@ See [spec Section 13](spec/v0.8/hitl-protocol.md) and Examples 14–16.
 
 ## Delivery via MCP (URL Mode Elicitation)
 
-If your service is exposed through an MCP server, deliver the `review_url` as a URL mode elicitation (`elicitation/create`, `mode: "url"`) and signal completion via `notifications/elicitation/complete` instead of agent-side polling. MCP standardizes how the URL reaches the user; HITL defines what happens at the URL. See the [MCP Elicitation Binding](docs/mcp-elicitation-binding.md) and the runnable [MCP server demo](implementations/mcp-server/).
+If your service is exposed through an MCP server, deliver the `review_url` as a URL mode elicitation. MCP standardizes how the handoff reaches the user; HITL defines what happens at the URL and the shape of the structured result. The mechanism depends on the client's MCP revision:
+
+- **MCP 2025-11-25 (current stable):** send `elicitation/create` (`mode: "url"`) and signal completion via `notifications/elicitation/complete` instead of agent-side polling.
+- **MCP 2026-07-28 (release candidate):** server-initiated elicitation is removed — return `resultType: "input_required"` with the URL-mode payload (MRTR pattern) and resolve when the client re-issues the call; for long-lived cases use the Tasks extension (`io.modelcontextprotocol/tasks`, status `input_required`, `tasks/get` polling).
+
+`poll_url` remains the universal fallback in both revisions. See the [MCP Elicitation Binding](docs/mcp-elicitation-binding.md) for per-revision mappings and the runnable [MCP server demo](implementations/mcp-server/) (implements the 2025-11-25 binding).
 
 ## Non-Goals
 

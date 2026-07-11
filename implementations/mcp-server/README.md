@@ -34,3 +34,7 @@ You'll get a consent prompt showing the review URL, the browser opens the servic
 - The review token is generated, SHA-256-hashed, and verified with the [`@hitl-protocol/core`](../../packages/core) helpers, exactly like the [reference services](../reference-service/).
 - The `elicitationId` is correlated with the HITL `case_id`; the completion notification replaces agent-side polling, while `poll_url` remains available as the universal fallback.
 - Everything is in-memory and `localhost` — this is a teaching demo, not a production service. For production guidance see the [spec](../../spec/v0.8/hitl-protocol.md) and [service integration guide](../../skills/references/service-integration.md).
+
+## MCP revision compatibility
+
+This demo implements **Binding A (MCP 2025-11-25, current stable)** and works against clients on that revision. The **2026-07-28 revision** (release candidate; final targeted 2026-07-28) removes `elicitationId` and `notifications/elicitation/complete` — server-initiated elicitation is replaced by the MRTR pattern (`resultType: "input_required"` + `requestState` re-issue), and long-running approval gates move to the Tasks extension (`io.modelcontextprotocol/tasks`). See [Bindings B and C](../../docs/mcp-elicitation-binding.md#binding-b--mcp-2026-07-28-release-candidate-mrtr) for the mappings. A migration of this demo is planned once the final spec and SDK support land; the form-mode/no-elicitation fallback path (`poll_review`) is revision-independent and keeps working either way.

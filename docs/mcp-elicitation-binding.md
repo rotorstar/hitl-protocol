@@ -1,17 +1,17 @@
 # MCP Elicitation Binding (Informative)
 
-> Status: Informative, non-normative. Applies to HITL Protocol v0.8 and MCP spec revision 2025-11-25 or later (URL mode elicitation).
+> Status: Informative, non-normative. Applies to HITL Protocol v0.8. Covers two MCP revisions: **2025-11-25** (current stable) and the **2026-07-28 release candidate** (locked 2026-05-21, final publication targeted 2026-07-28 — verify field-level details against the final spec before shipping). Last reviewed: 2026-07-11.
 
-MCP's [URL mode elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation) standardizes how an MCP server hands a URL to the user — consent, display rules, and an optional completion notification. It deliberately leaves the page behind that URL undefined.
+MCP standardizes how an out-of-band, URL-based human interaction is handed to the user inside an MCP session — consent, display rules, and a completion/continuation mechanism. It deliberately leaves the page behind that URL undefined.
 
 HITL Protocol defines exactly that layer: review types, service-hosted UI, structured results, case lifecycle. The two compose cleanly:
 
 ```
-MCP URL mode  = how the URL reaches the human (inside an MCP session)
+MCP           = how the handoff reaches the human (inside an MCP session)
 HITL Protocol = what happens at the URL, and how the structured result returns
 ```
 
-This document describes how an MCP server that fronts a HITL-compliant service maps HITL cases onto MCP elicitation messages.
+Since the 2026-07-28 revision, MCP also standardizes *asynchronous* semantics around that handoff — the [MRTR pattern](https://modelcontextprotocol.io/specification/draft/basic/patterns/mrtr) (SEP-2322) and the [Tasks extension](https://tasks.extensions.modelcontextprotocol.io/) (`io.modelcontextprotocol/tasks`, SEP-2663) with a native `input_required` status and polling. Inside the MCP client/server triangle these overlap with HITL's `poll_url` mechanics. They still do not define the review page, the decision types, or the structured result schema — and they only exist when the service is fronted by an MCP server. When the agent calls a service directly over HTTP, the HITL core flow (202 + `poll_url`) is unchanged and this document does not apply.
 
 ## When to use this binding
 
@@ -20,10 +20,17 @@ Use it when the agent talks to your service **through MCP** (e.g. Claude Code, o
 | Situation | Flow |
 |---|---|
 | Agent calls your REST API | HTTP 202 + `hitl` object, agent polls (HITL core) |
-| Agent calls your MCP server tool | This binding: `elicitation/create` with `mode: "url"` |
+| Agent calls your MCP server tool (client on 2025-11-25) | Binding A: `elicitation/create` with `mode: "url"` |
+| Agent calls your MCP server tool (client on 2026-07-28) | Binding B (MRTR) for short-lived cases, Binding C (Tasks) for long-lived cases |
 | Simple primitive input, no review page needed | MCP form mode elicitation (no HITL case necessary) |
 
-## Mapping
+---
+
+## Binding A — MCP 2025-11-25 (current stable)
+
+[URL mode elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation) in this revision is a server-initiated request with an `elicitationId` and an optional completion notification.
+
+### Mapping
 
 | HITL concept | MCP elicitation concept |
 |---|---|
@@ -35,7 +42,7 @@ Use it when the agent talks to your service **through MCP** (e.g. Claude Code, o
 | `poll` result (`status`, `result`) | Returned as the MCP tool result after completion |
 | Human declines on review page | Tool result conveys the terminal HITL status; the elicitation `decline`/`cancel` actions only cover the consent step, not the review outcome |
 
-## Flow
+### Flow
 
 ```mermaid
 sequenceDiagram
@@ -65,7 +72,7 @@ Notes:
 - `review_url` (including its review token) is shown to the user by design — the token authorizes exactly one case, scoped and time-limited per HITL §security. This matches MCP's rule that elicitation URLs must not be pre-authenticated for anything beyond the interaction itself.
 - If the MCP client lacks URL mode support (`elicitation.url` capability absent), fall back to returning the HITL object in the tool result text so the agent can relay `review_url` manually — the standard HITL flow.
 
-## Example
+### Example
 
 Tool call hits a decision point; the MCP server has received HTTP 202 from the HITL service and sends:
 
@@ -93,9 +100,59 @@ After the human submits on the review page and the case completes:
 
 The MCP server then resolves the pending tool call with the structured HITL result (e.g. selected job IDs).
 
+---
+
+## Binding B — MCP 2026-07-28 (Release Candidate): MRTR
+
+The 2026-07-28 revision removes server-initiated requests. Elicitation payloads now ride in the **result** of the client's own call (Multi Round-Trip Requests, [SEP-2322](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2322)). Consequences for this binding:
+
+- `elicitation/create` is no longer sent as a standalone request.
+- **`elicitationId` and `notifications/elicitation/complete` are removed.**
+- A `tools/call` that hits a human decision point returns `resultType: "input_required"` with an `inputRequests` map carrying the elicitation payload (URL mode included) and an opaque, server-minted **`requestState`** blob.
+- The client performs the interaction, then **re-issues the original `tools/call`** (new JSON-RPC id) with `inputResponses` plus the unchanged `requestState`. The server correlates via `requestState`.
+
+### Mapping
+
+| HITL concept | MCP 2026-07-28 (MRTR) concept |
+|---|---|
+| `hitl.review_url` | URL-mode entry in `inputRequests` |
+| `hitl.case_id` | carried inside the server's `requestState` (opaque to the client; MUST be integrity-protected, e.g. AEAD/HMAC, and MUST NOT contain the HITL bearer token in recoverable form) |
+| `hitl.prompt` / `message` | elicitation `message` in the input request |
+| Agent polls `poll_url` | the client's re-issued call replaces the completion notification; the MCP server checks the HITL case state when the re-issue arrives |
+| Case still `pending` on re-issue | server returns `input_required` again — or hands the case over to a Task (Binding C) |
+| Case terminal (`completed`, `expired`, `cancelled`) | server resolves the re-issued call with the structured HITL result / terminal status |
+
+### Fit
+
+MRTR assumes the client re-issues reasonably soon after the human consents. A HITL browser decision can take minutes to days. Recommendation:
+
+- **Short-lived cases** (confirmation while the user is present): MRTR is sufficient.
+- **Long-lived cases** (approval queues, multi-round reviews): use the **Tasks binding** below — it has explicit `input_required` + polling semantics designed for exactly this.
+
+> Field names above follow the RC draft ([MRTR pattern](https://modelcontextprotocol.io/specification/draft/basic/patterns/mrtr)). Verify against the final 2026-07-28 spec before shipping.
+
+---
+
+## Binding C — Tasks extension (`io.modelcontextprotocol/tasks`)
+
+The [Tasks extension](https://tasks.extensions.modelcontextprotocol.io/) (SEP-2663, official extension in the 2026-07-28 RC) gives MCP a durable async primitive — explicitly including "human approval gates". It is the closest MCP analog to HITL's core flow, and the natural carrier for long-lived HITL cases:
+
+| HITL concept | Tasks extension concept |
+|---|---|
+| HTTP 202 + `hitl` object | `tools/call` returns `resultType: "task"` (durable task handle) |
+| `poll_url` + `Retry-After` | `tasks/get` + server-supplied `pollIntervalMs` |
+| `status: "pending"` | task status `input_required`, with the URL-mode input request (→ `review_url`) attached |
+| Human decides on review page | MCP server observes the terminal HITL state service-side; task moves to `completed` with the structured result |
+| `expired` / `cancelled` | task `failed` / `cancelled` |
+| Inline submit (`submit_url`) | `tasks/update` with the input response |
+
+The layering is unchanged: the task transports lifecycle and polling **inside MCP**; the review page, decision types, and result schema remain HITL's. The MCP server still holds the `poll_url` bearer token and never exposes it through task state.
+
+---
+
 ## Security alignment
 
-MCP URL mode requirements and HITL's token model reinforce each other:
+MCP URL mode requirements and HITL's token model reinforce each other (all revisions):
 
 | MCP requirement (client/server) | HITL property |
 |---|---|
@@ -104,11 +161,12 @@ MCP URL mode requirements and HITL's token model reinforce each other:
 | Client MUST NOT pre-fetch the URL | HITL services SHOULD treat first GET as human arrival; single-use submit semantics limit damage from crawlers |
 | Client MUST show the full URL / highlight domain | Service-hosted review page: the domain *is* the service the user already trusts |
 | Sensitive data never transits the MCP client | Identical HITL principle: decisions happen in the browser; the agent only sees the structured result |
+| `requestState` is opaque and echoed by the client (2026-07-28) | MUST be integrity-protected; MUST NOT embed HITL bearer tokens recoverably — the client round-trips it verbatim |
 
-For proof-of-human flows (HITL v0.8 `verification_policy`), the browser review path is the verification surface — unchanged under this binding.
+For proof-of-human flows (HITL v0.8 `verification_policy`), the browser review path is the verification surface — unchanged under all bindings.
 
 ## What this binding does not do
 
 - It does not make HITL depend on MCP. HITL core remains plain HTTP.
 - It does not tunnel HITL form definitions through MCP form mode. Form mode is limited to flat primitive schemas; HITL review pages stay service-hosted.
-- It does not replace `poll_url`. Polling remains the universal fallback whenever the completion notification never arrives (MCP clients are required to offer manual retry/cancel controls for exactly this case).
+- It does not replace `poll_url`. Polling remains the universal fallback: under 2025-11-25 whenever the completion notification never arrives, under 2026-07-28 whenever the re-issue or `tasks/get` path stalls (MCP clients are required to offer manual retry/cancel controls for exactly this case).

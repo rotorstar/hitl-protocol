@@ -1597,26 +1597,28 @@ A service implementing both A2A and HITL can use A2A's `input-required` state to
 
 ### 14.2 MCP (Model Context Protocol)
 
-MCP's Elicitation feature exists in two modes (spec revision 2025-11-25 and later):
+MCP's Elicitation feature exists in two modes (since spec revision 2025-11-25):
 
 - **Form mode** lets a server request flat, primitive-typed input (string, number, boolean, enum) rendered inline by the MCP client.
-- **URL mode** lets a server direct the user to an external URL for an out-of-band interaction, with an optional `notifications/elicitation/complete` notification when the interaction finishes.
+- **URL mode** lets a server direct the user to an external URL for an out-of-band interaction.
 
-HITL Protocol is complementary to both modes — and URL mode is a natural delivery channel for HITL cases:
+The delivery mechanism differs by MCP revision. In **2025-11-25** (current stable), elicitation is a server-initiated request (`elicitation/create`) with an `elicitationId` and an optional `notifications/elicitation/complete` notification. The **2026-07-28** revision (release candidate at the time of writing) removes server-initiated requests: elicitation payloads ride in the *result* of the client's own call (`resultType: "input_required"`, Multi Round-Trip Requests / SEP-2322), the client re-issues the original call with an opaque `requestState`, and long-running work — explicitly including human approval gates — moves to the official **Tasks extension** (`io.modelcontextprotocol/tasks`, SEP-2663) with a native `input_required` status and `tasks/get` polling.
 
-| Aspect | MCP Form Mode | MCP URL Mode | HITL Protocol |
-|--------|---------------|--------------|---------------|
-| **What is standardized** | Inline schema + client-rendered form | Transport of a URL + consent + completion signal | What happens *at* the URL: review types, forms, structured results, lifecycle |
-| **UI complexity** | Primitive types, flat objects only | Unspecified (page is opaque to MCP) | Rich forms, cards, previews, multi-step wizards |
-| **Result data** | Returned inline to the client | Not exposed to the client | Structured result via `poll_url` (service → agent) |
-| **Scope** | MCP server ↔ MCP client | MCP server ↔ MCP client | Any HTTP service ↔ any agent ↔ human |
-| **Async** | Synchronous (blocks request) | Out-of-band, completion notification | Asynchronous (minutes to days, agent polls) |
+HITL Protocol is complementary to all of these — and URL mode remains the natural delivery channel for HITL cases inside MCP:
 
-**Key relationship:** MCP URL mode elicitation standardizes *how a URL reaches the user* within an MCP session. It deliberately does not define what the page at that URL looks like, which decision types exist, or how a structured result gets back to the workflow. HITL Protocol defines exactly that layer. An MCP server that wraps a HITL-compliant service can deliver `review_url` as a URL mode elicitation (`elicitation/create`, `mode: "url"`) and signal completion via `notifications/elicitation/complete` instead of requiring the agent to poll — see the informative [MCP Elicitation Binding](../../docs/mcp-elicitation-binding.md).
+| Aspect | MCP Form Mode | MCP URL Mode | MCP Tasks (2026-07-28 ext.) | HITL Protocol |
+|--------|---------------|--------------|------------------------------|---------------|
+| **What is standardized** | Inline schema + client-rendered form | Transport of a URL + consent + completion/continuation | Async lifecycle: task handle, `input_required`, polling | What happens *at* the URL: review types, forms, structured results, lifecycle |
+| **UI complexity** | Primitive types, flat objects only | Unspecified (page is opaque to MCP) | None (carries elicitation payloads) | Rich forms, cards, previews, multi-step wizards |
+| **Result data** | Returned inline to the client | Not exposed to the client | Task result after completion | Structured result via `poll_url` (service → agent) |
+| **Scope** | MCP server ↔ MCP client | MCP server ↔ MCP client | MCP server ↔ MCP client | Any HTTP service ↔ any agent ↔ human |
+| **Async** | Synchronous (blocks request) | Out-of-band | `tasks/get` + `pollIntervalMs` | Asynchronous (minutes to days, agent polls) |
+
+**Key relationship:** MCP standardizes *how the handoff reaches the user* within an MCP session — since 2026-07-28 including async plumbing (`input_required`, task polling) that mirrors HITL's `poll_url` semantics inside the MCP triangle. It deliberately does not define what the page at that URL looks like, which decision types exist, or how a structured result is shaped. HITL Protocol defines exactly that layer — and does so on the open HTTP layer, for any agent, MCP or not. An MCP server that wraps a HITL-compliant service maps HITL cases onto the mechanism of the client's revision — see the informative [MCP Elicitation Binding](../../docs/mcp-elicitation-binding.md) for per-revision mappings (2025-11-25 elicitation, 2026-07-28 MRTR, Tasks extension).
 
 MCP URL mode security requirements (no pre-fetching, explicit user consent, full URL display, server-side verification of the user who opens the URL) are compatible with HITL's signed-URL token model: the HITL review token authorizes exactly one case, and the service-hosted review page remains the verification surface.
 
-Services MAY offer both: MCP form mode elicitation for simple primitive input, HITL Protocol for structured human decisions — delivered via plain HTTP 202 outside MCP, or via URL mode elicitation inside MCP.
+Services MAY offer both: MCP form mode elicitation for simple primitive input, HITL Protocol for structured human decisions — delivered via plain HTTP 202 outside MCP, or via URL mode elicitation / Tasks inside MCP.
 
 ### 14.3 A2UI (Google)
 
