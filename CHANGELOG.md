@@ -7,20 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Informative [MCP Elicitation Binding](docs/mcp-elicitation-binding.md): delivering HITL cases via MCP URL mode elicitation (`elicitation/create`, `mode: "url"`) with `notifications/elicitation/complete` instead of agent-side polling
-- MCP 2026-07-28 release-candidate coverage in the binding: Binding B (MRTR — `input_required` results + `requestState` re-issue, replacing `elicitationId`/completion notification) and Binding C (Tasks extension `io.modelcontextprotocol/tasks` for long-lived cases)
-- Approval-mechanism landscape table in [`docs/feature-matrix.md`](docs/feature-matrix.md) covering OpenClaw approvals, Hermes Agent, LangGraph `interrupt()`, OpenAI Agents SDK, MCP elicitation (both modes), MCP Tasks extension, CHEQ (IETF), and HumanLayer
-- Adjacent Standards Landscape (July 2026) in [`docs/feature-matrix.md`](docs/feature-matrix.md): A2A v1.0, MCP 2026-07-28 RC, AP2 (FIDO), ACP (OpenAI/Stripe/Meta), x402, WebMCP, CHEQ, HumanLayer/gotoHuman — with sources and dates
-- README: CHEQ and AP2/ACP/x402 rows in the Protocol Standards Landscape; EU AI Act Article 14 (human oversight for high-risk systems, applying from 2026-08) as a demand driver in The Gap
+## [0.8.0] - 2026-07-11
 
-### Changed
-- Updated spec §14.2 and README for MCP spec revision 2025-11-25: distinguishes form mode from URL mode elicitation; positions HITL as the layer that defines what happens at the elicitation URL
-- Updated spec §14.2, README, and SKILL.md for the MCP 2026-07-28 release candidate: sharpened positioning — MCP adds human-review plumbing inside the MCP triangle (MRTR, Tasks `input_required`); HITL standardizes the same handoff at the open HTTP layer and defines the typed decision behind the URL
-- README: new positioning section distinguishing framework-internal approvals (agent gates its own actions) from HITL (service-initiated structured decisions)
-- MCP server demo: documented revision compatibility (implements the 2025-11-25 binding; MRTR/Tasks migration planned once the final 2026-07-28 spec and SDK support land)
-
-## [0.8.0] - 2026-03-26
+The v0.8 spec draft landed 2026-03-26; this release also includes the MCP binding and standards-landscape updates from June/July 2026.
 
 ### Added
 - HITL Protocol v0.8 spec in [`spec/v0.8/hitl-protocol.md`](spec/v0.8/hitl-protocol.md)
@@ -28,12 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New JSON Schemas for verification policy, normalized verification result, and submission context
 - Three new v0.8 examples covering inline PoH, step-up fallback, and browser-hosted verification
 - Informative appendices for composing HITL with external Agent Auth systems and a World ID 4.x provider profile
+- Informative [MCP Elicitation Binding](docs/mcp-elicitation-binding.md): delivering HITL cases via MCP URL mode elicitation (`elicitation/create`, `mode: "url"`) with `notifications/elicitation/complete` instead of agent-side polling
+- MCP 2026-07-28 release-candidate coverage in the binding: Binding B (MRTR — `input_required` results + `requestState` re-issue, replacing `elicitationId`/completion notification) and Binding C (Tasks extension `io.modelcontextprotocol/tasks` for long-lived cases)
+- Runnable MCP URL mode elicitation demo ([`implementations/mcp-server/`](implementations/mcp-server/)), works in Claude Code
+- Approval-mechanism landscape table in [`docs/feature-matrix.md`](docs/feature-matrix.md) covering OpenClaw approvals, Hermes Agent, LangGraph `interrupt()`, OpenAI Agents SDK, MCP elicitation (both modes), MCP Tasks extension, CHEQ (IETF), and HumanLayer
+- Adjacent Standards Landscape (July 2026) in [`docs/feature-matrix.md`](docs/feature-matrix.md): A2A v1.0, MCP 2026-07-28 RC, AP2 (FIDO), ACP (OpenAI/Stripe/Meta), x402, WebMCP, CHEQ, HumanLayer/gotoHuman — with sources and dates
+- README: CHEQ and AP2/ACP/x402 rows in the Protocol Standards Landscape; EU AI Act Article 14 (human oversight for high-risk systems, applying from 2026-08) as a demand driver in The Gap
 
 ### Changed
 - Updated root schemas and OpenAPI to v0.8, including normalized poll-response verification metadata and discovery support for external auth/profile pointers
 - Tightened inline submit guidance with agent-side verification preflight and unified 403 fallback semantics for `action_not_inline`, `verification_required`, and `verification_failed`
 - Updated README, examples docs, schema docs, package docs, and tests for the new verification layer and agent-auth separation
 - Bumped `@hitl-protocol/schemas` to v0.8.0 and exported the new verification-related schemas, validators, and TypeScript types
+- Updated spec §14.2 and README for MCP spec revision 2025-11-25: distinguishes form mode from URL mode elicitation; positions HITL as the layer that defines what happens at the elicitation URL
+- Updated spec §14.2, README, and SKILL.md for the MCP 2026-07-28 release candidate: sharpened positioning — MCP adds human-review plumbing inside the MCP triangle (MRTR, Tasks `input_required`); HITL standardizes the same handoff at the open HTTP layer and defines the typed decision behind the URL
+- README: new positioning section distinguishing framework-internal approvals (agent gates its own actions) from HITL (service-initiated structured decisions)
+- MCP server demo: documented revision compatibility (implements the 2025-11-25 binding; MRTR/Tasks migration planned once the final 2026-07-28 spec and SDK support land)
 
 ## [0.7.1] - 2026-02-27
 
