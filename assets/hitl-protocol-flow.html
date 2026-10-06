@@ -1,1249 +1,999 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HITL Protocol v0.7 — Interactive Architecture</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5f1">
+  <meta name="description" content="Explore HITL Protocol v0.9: service-hosted human review, optional inline decisions and the Agent Access prepare–review–commit flow.">
+  <title>HITL Protocol v0.9 — The Human Decision Layer</title>
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
-    }
-
     :root {
-      --human: #2563EB;
-      --human-g: #3B82F6;
-      --human-l: #DBEAFE;
-      --agent: #7C3AED;
-      --agent-g: #8B5CF6;
-      --agent-l: #EDE9FE;
-      --service: #059669;
-      --service-g: #10B981;
-      --service-l: #D1FAE5;
-      --inline: #D97706;
-      --inline-g: #F59E0B;
-      --inline-l: #FEF3C7;
-      --review: #DC2626;
-      --review-g: #EF4444;
-      --review-l: #FEE2E2;
-      --poll: #475569;
-      --poll-g: #64748B;
-      --ok: #16A34A;
-      --ok-g: #22C55E;
-      --bg: #f8fafc;
-      --bg2: #ffffff;
-      --bg3: #f1f5f9;
-      --bg4: #e2e8f0;
-      --text: #0f172a;
-      --text2: #334155;
-      --text3: #475569;
-      --text4: #64748b;
-      --border: #e2e8f0;
-      --border2: #cbd5e1;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .hdr {
-      padding: 16px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #E2E8F0;
-      background: #F8FAFC;
-      position: relative;
-      z-index: 10;
-    }
-
-    .hdr::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #FF5C00, var(--agent-g), transparent);
-    }
-
-    .hdr-left {
-      flex: 1
-    }
-
-    .hdr-center {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%)
-    }
-
-    .hdr-logo {
-      height: 50px;
-      width: auto;
-      margin: 10px 0
-    }
-
-    .hdr .ver {
-      font-family: 'SF Mono', ui-monospace, 'Cascadia Code', monospace;
-      font-size: 11px;
-      background: var(--agent);
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 600;
-      letter-spacing: .5px;
-    }
-
-    .hdr-right {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      justify-content: flex-end;
-      gap: 6px
-    }
-
-    .hdr-link {
-      font-size: 12px;
-      color: #475569;
-      text-decoration: none;
-      font-family: 'SF Mono', ui-monospace, monospace;
-      transition: .2s;
-    }
-
-    .hdr-link:hover {
-      color: #0B1121
-    }
-
-    .rfc-hints {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .rfc-tag {
-      font-family: 'SF Mono', ui-monospace, monospace;
-      font-size: 10px;
-      color: #64748B;
-      background: #fff;
-      border: 1px solid var(--border2);
-      border-radius: 999px;
-      padding: 2px 7px;
-      text-decoration: none;
-      transition: .2s;
-    }
-
-    .rfc-tag:hover {
-      color: #0B1121;
-      border-color: #94A3B8;
-    }
-
-    .prog {
-      height: 2px;
-      background: var(--bg3)
-    }
-
-    .prog-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--human-g), var(--agent-g), var(--ok-g));
-      transition: width .5s ease;
-      border-radius: 0 1px 1px 0
-    }
-
-    .main {
-      display: flex;
-      flex: 1;
-      overflow: hidden
-    }
-
-    .sidebar {
-      width: 300px;
-      min-width: 300px;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      background: var(--bg2);
-    }
-
-    .controls {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border)
-    }
-
-    .controls-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      justify-content: center
-    }
-
-    .btn {
-      background: var(--bg3);
-      border: 1px solid var(--border2);
-      color: var(--text);
-      padding: 7px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: system-ui, sans-serif;
-      transition: .15s;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn:hover {
-      background: var(--bg4);
-      border-color: var(--text4)
-    }
-
-    .btn:active {
-      transform: scale(.96)
-    }
-
-    .btn.primary {
-      background: var(--agent);
-      border-color: var(--agent)
-    }
-
-    .btn.primary:hover {
-      background: #6D28D9
-    }
-
-    .btn:disabled {
-      opacity: .25;
-      cursor: not-allowed;
-      pointer-events: none
-    }
-
-    .step-counter {
-      font-family: 'SF Mono', ui-monospace, monospace;
-      font-size: 12px;
-      color: var(--text4);
-      min-width: 56px;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .speed-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-      justify-content: center
-    }
-
-    .speed-row label {
-      font-size: 11px;
-      color: var(--text4)
-    }
-
-    .speed-row input[type=range] {
-      width: 90px;
-      accent-color: var(--agent-g)
-    }
-
-    .speed-row span {
-      font-family: 'SF Mono', ui-monospace, monospace;
-      font-size: 10px;
-      color: var(--text4);
-      min-width: 30px
-    }
-
-    .step-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px 12px
-    }
-
-    .step-list::-webkit-scrollbar {
-      width: 4px
-    }
-
-    .step-list::-webkit-scrollbar-thumb {
-      background: var(--bg4);
-      border-radius: 2px
-    }
-
-    .step-item {
-      display: flex;
-      gap: 10px;
-      padding: 9px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: .25s;
-      border: 1px solid transparent;
-      opacity: .3;
-      margin-bottom: 4px;
-    }
-
-    .step-item:hover {
-      background: var(--bg3);
-      opacity: .6
-    }
-
-    .step-item.completed {
-      opacity: .55
-    }
-
-    .step-item.active {
-      opacity: 1;
-      border-color: var(--border2);
-      background: var(--bg3)
-    }
-
-    .step-badge {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      flex-shrink: 0;
-    }
-
-    .step-info h3 {
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.3
-    }
-
-    .step-info p {
-      font-size: 10px;
-      color: var(--text4);
-      margin-top: 1px
-    }
-
-    .legend {
-      padding: 12px 14px;
-      border-top: 1px solid var(--border)
-    }
-
-    .legend-title {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text4);
-      font-weight: 700;
-      margin-bottom: 8px
-    }
-
-    .legend-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 10px;
-      color: var(--text4)
-    }
-
-    .legend-line {
-      width: 20px;
-      height: 3px;
-      border-radius: 2px
-    }
-
-    .legend-line.dashed {
-      background: repeating-linear-gradient(90deg, var(--review-g) 0, var(--review-g) 5px, transparent 5px, transparent 9px)
-    }
-
-    .insight-box {
-      margin-top: 8px;
-      padding: 7px 10px;
-      background: rgba(5, 150, 105, .1);
-      border: 1px solid rgba(5, 150, 105, .2);
-      border-radius: 6px;
-      font-size: 10px;
-      color: #047857;
-      text-align: center;
-      line-height: 1.5;
-    }
-
-    .insight-box strong {
-      color: #065f46
-    }
-
-    .legend-rfc {
-      margin-top: 8px;
-      font-size: 10px;
-      line-height: 1.35;
-      color: var(--text4);
-    }
-
-    .canvas-area {
-      flex: 1;
-      position: relative;
-      overflow: hidden
-    }
-
-    .canvas-area canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none
-    }
-
-    .canvas-area svg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%
-    }
-
-    .desc-panel {
-      position: absolute;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 255, 255, .92);
-      border: 1px solid var(--border2);
-      border-radius: 10px;
-      padding: 12px 20px;
-      max-width: 560px;
-      width: 90%;
-      text-align: center;
-      opacity: 0;
-      transition: .4s;
-      pointer-events: none;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-
-    .desc-panel.visible {
-      opacity: 1
-    }
-
-    .desc-panel h3 {
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 3px
-    }
-
-    .desc-panel p {
-      font-size: 11px;
-      color: var(--text3);
-      line-height: 1.5
-    }
-
-    .bottom-bar {
-      border-top: 1px solid var(--border);
-      padding: 10px 20px;
-      background: var(--bg2);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .bottom-text {
-      flex: 1;
-      font-family: 'SF Mono', ui-monospace, 'Cascadia Code', monospace;
-      font-size: 11px;
-      color: var(--text4);
-      line-height: 1.5;
-      white-space: pre-wrap;
-      min-height: 32px;
-    }
-
-    .copy-btn {
-      background: var(--bg3);
-      border: 1px solid var(--border2);
-      color: var(--text2);
-      padding: 5px 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 11px;
-      font-weight: 600;
-      font-family: system-ui, sans-serif;
-      transition: .2s;
-      flex-shrink: 0;
-    }
-
-    .copy-btn:hover {
-      background: var(--bg4)
-    }
-
-    .actor-card {
-      transition: all .4s ease
-    }
-
-    .actor-card rect.card-bg {
-      transition: all .4s ease
-    }
-
-    .actor-card.glow rect.card-bg {
-      filter: url(#glowFilter)
-    }
-
-    .step-group {
-      opacity: 0;
-      transition: opacity .5s ease
-    }
-
-    .step-group.visible {
-      opacity: 1
-    }
-
-    .messenger-group {
-      opacity: 0;
-      transition: opacity .5s ease
-    }
-
-    .messenger-group.visible {
-      opacity: 1
-    }
-
-    .review-group {
-      opacity: .1;
-      transition: opacity .5s ease
-    }
-
-    .review-group.visible {
-      opacity: 1
-    }
-
-    .browser-hint {
-      opacity: .08;
-      transition: opacity .5s ease
-    }
-
-    .browser-hint.visible {
-      opacity: .35
-    }
-
-    .hitl-object {
-      opacity: 0;
-      transition: opacity .6s ease
-    }
-
-    .hitl-object.visible {
-      opacity: 1
-    }
-
-    .state-ring {
-      opacity: 0;
-      transition: opacity .3s
-    }
-
-    .state-ring.active {
-      opacity: 1
-    }
-
-    @keyframes dashFlow {
-      to {
-        stroke-dashoffset: -16
+      color-scheme: light;
+      --bg: #f6f5f1; --surface: #fff; --soft: #f0efeb; --ink: #20231f;
+      --muted: #62665d; --line: #ddded6; --accent: #b43b0f; --accent-soft: #fff0e7;
+      --human: #b43b0f; --human-soft: #fff0e7; --agent: #5b4d9b; --agent-soft: #f0edf9;
+      --service: #286454; --service-soft: #eaf4ee; --danger: #ac303b; --danger-soft: #fcecef;
+      --code-bg: #202820; --code-ink: #ebeee6; --code-muted: #b5bfaf;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #161b17; --surface: #202720; --soft: #293129; --ink: #f0f1e9;
+      --muted: #b2bcac; --line: #414a3e; --accent: #ffab7a; --accent-soft: #3d2b20;
+      --human: #ffab7a; --human-soft: #3d2b20; --agent: #c3b3f3; --agent-soft: #302b40;
+      --service: #97d6b4; --service-soft: #213d2e; --danger: #ffa4ac; --danger-soft: #41272d;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --bg: #161b17; --surface: #202720; --soft: #293129; --ink: #f0f1e9;
+        --muted: #b2bcac; --line: #414a3e; --accent: #ffab7a; --accent-soft: #3d2b20;
+        --human: #ffab7a; --human-soft: #3d2b20; --agent: #c3b3f3; --agent-soft: #302b40;
+        --service: #97d6b4; --service-soft: #213d2e; --danger: #ffa4ac; --danger-soft: #41272d;
       }
     }
-
-    .anim-dash {
-      animation: dashFlow .6s linear infinite
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 var(--sans); }
+    button, select, input { font: inherit; }
+    button, select, summary, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    button, select, summary { cursor: pointer; }
+    button { color: inherit; }
+    a { color: inherit; text-underline-offset: 4px; }
+    a:hover { color: var(--accent); }
+    button, a, select, input, summary, [tabindex] { scroll-margin-block: 24px; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    button:disabled { cursor: default; opacity: .45; }
+    button:not(:disabled):active { transform: translateY(1px); }
+    h1, h2, h3, p { margin: 0; }
+    h1, h2, h3 { text-wrap: balance; }
+    h2 { font-size: 28px; line-height: 1.2; font-weight: 600; letter-spacing: -.035em; }
+    h3 { font-size: 17px; font-weight: 600; line-height: 1.4; }
+    code, pre, .mono { font-family: var(--mono); }
+    code { font-size: .88em; overflow-wrap: anywhere; }
+    svg { display: block; flex-shrink: 0; }
+    [hidden] { display: none !important; }
+    .wrap { width: min(1320px, calc(100% - 80px)); margin-inline: auto; }
+    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    .skip { position: absolute; top: 12px; left: 16px; z-index: 20; padding: 12px 20px; background: var(--surface); transform: translateY(-160%); }
+    .skip:focus { transform: translateY(0); }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 24px; min-height: 90px; border-bottom: 1px solid var(--line); }
+    .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; font-size: 20px; letter-spacing: -.04em; }
+    .brand strong { font-weight: 750; }
+    .brand-mark { width: 38px; height: 38px; }
+    .topnav { display: flex; gap: 24px; align-items: center; font-size: 13px; }
+    .topnav a { text-decoration: none; padding-block: 12px; }
+    .theme-control { border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-height: 44px; background: var(--surface); color: var(--muted); font-size: 12px; }
+    .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 48px; padding: 44px 0 38px; }
+    .eyebrow { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: var(--muted); font: 11px/1.6 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    .version { color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 3px 8px; letter-spacing: .04em; }
+    h1 { margin-top: 16px; font-size: clamp(38px, 4.4vw, 66px); line-height: 1.07; letter-spacing: -.055em; font-weight: 600; }
+    h1 em { color: var(--accent); font-family: Georgia, "Times New Roman", serif; font-weight: 400; letter-spacing: -.055em; }
+    .hero-copy { max-width: 370px; padding-bottom: 3px; color: var(--muted); font-size: 15px; }
+    .hero-copy strong { color: var(--ink); font-weight: 500; }
+    .edition { display: block; margin-top: 14px; font: 11px var(--mono); }
+    .explorer { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 8px 32px #20231f06; overflow: clip; }
+    .flowbar { padding: 17px 22px; display: flex; gap: 20px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    .flow-switch { display: flex; gap: 4px; flex-wrap: wrap; }
+    .flow-switch button { border: 1px solid transparent; border-radius: 7px; background: transparent; padding: 10px 14px; min-height: 44px; font-size: 13px; font-weight: 600; transition: background-color .18s, color .18s; }
+    .flow-switch button:hover { background: var(--soft); }
+    .flow-switch button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+    .optional { font: 10px var(--mono); margin-left: 6px; opacity: .78; }
+    .outcome-control { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+    select { max-width: 100%; }
+    #outcome { border: 1px solid var(--line); border-radius: 7px; min-height: 44px; padding: 8px 30px 8px 10px; background: var(--surface); color: var(--ink); font-size: 12px; }
+    .explorer-body { display: grid; grid-template-columns: 238px minmax(0, 1fr); }
+    .timeline { padding: 23px 16px 16px; border-right: 1px solid var(--line); }
+    .timeline .eyebrow { padding-inline: 9px; font-size: 10px; }
+    .flow-desc { color: var(--muted); font-size: 12px; padding: 8px 9px 18px; line-height: 1.55; min-height: 66px; }
+    .steps { list-style: none; padding: 0; margin: 0; }
+    .step { display: flex; align-items: center; width: 100%; text-align: left; gap: 11px; border: 1px solid transparent; background: transparent; border-radius: 7px; padding: 10px 9px; min-height: 47px; margin-bottom: 3px; font-size: 12px; color: var(--muted); transition: background-color .18s, color .18s; }
+    .step:hover { background: var(--soft); color: var(--ink); }
+    .step[aria-current="step"] { background: var(--accent-soft); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 23%, transparent); font-weight: 600; }
+    .step-number { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 50%; font: 10px var(--mono); flex-shrink: 0; }
+    .step[aria-current] .step-number { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+    .timeline-note { margin: 20px 9px 0; padding-top: 15px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); }
+    .stage { min-width: 0; padding: 25px 26px 0; }
+    .stage-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 23px; }
+    .stage-header .eyebrow { font-size: 10px; }
+    .status { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--soft); border-radius: 50px; padding: 4px 10px; font: 11px/1.6 var(--mono); white-space: nowrap; }
+    .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+    .status[data-status="completed"] { color: var(--service); background: var(--service-soft); }
+    .status[data-status="completed"]::before { background: var(--service); }
+    .status[data-status="expired"], .status[data-status="cancelled"] { color: var(--danger); background: var(--danger-soft); }
+    .status[data-status="expired"]::before, .status[data-status="cancelled"]::before { background: var(--danger); }
+    .actors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+    .actor { display: flex; gap: 12px; align-items: center; padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; transition: border-color .2s, background-color .2s; }
+    .actor[data-active="true"] { border-color: var(--actor-color); background: var(--actor-soft); }
+    .actor[data-actor="human"] { --actor-color: var(--human); --actor-soft: var(--human-soft); }
+    .actor[data-actor="agent"] { --actor-color: var(--agent); --actor-soft: var(--agent-soft); }
+    .actor[data-actor="service"] { --actor-color: var(--service); --actor-soft: var(--service-soft); }
+    .actor-icon { width: 30px; height: 30px; color: var(--actor-color); }
+    .actor-name { font-size: 14px; font-weight: 600; }
+    .actor-role { color: var(--muted); font-size: 10px; }
+    .transfer { width: 100%; height: 63px; overflow: visible; }
+    .transfer-path { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+    .transfer-base { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 6; }
+    .packet { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+    .transfer-label { font: 11px var(--mono); fill: var(--muted); text-anchor: middle; }
+    .scene-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .95fr); gap: 18px; }
+    .scene-card { border: 1px solid var(--line); background: var(--bg); border-radius: 11px; min-height: 302px; overflow: clip; }
+    .scene-top { display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); padding: 10px 14px; color: var(--muted); font: 10px var(--mono); min-height: 40px; }
+    .window-dots { display: flex; gap: 4px; margin-right: 6px; }
+    .window-dots i { width: 5px; height: 5px; border: 1px solid var(--muted); border-radius: 50%; }
+    .scene-content { padding: 20px; }
+    .scene-label { color: var(--accent); font: 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .scene-content h3 { margin: 10px 0 7px; font-size: 21px; letter-spacing: -.03em; }
+    .scene-content p { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .bubble { border: 1px solid var(--line); border-radius: 10px 10px 10px 2px; background: var(--surface); padding: 16px; margin: 12px 0; font-size: 16px; line-height: 1.5; }
+    .mini-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .mini-row:last-child { border-bottom: 0; }
+    .mini-row span { color: var(--muted); }
+    .mini-row strong { font-weight: 500; text-align: right; }
+    .demo-choice { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; margin-top: 8px; font-size: 12px; background: var(--surface); }
+    .demo-choice.chosen { border-color: var(--service); background: var(--service-soft); }
+    .check { width: 16px; height: 16px; border: 1px solid var(--muted); border-radius: 3px; flex-shrink: 0; display: grid; place-items: center; font-size: 11px; }
+    .chosen .check { color: var(--service); border-color: var(--service); }
+    .demo-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 15px; margin-bottom: 12px; }
+    .demo-action { border: 1px solid var(--line); border-radius: 6px; padding: 7px 13px; font-size: 11px; background: var(--surface); }
+    .demo-action.selected { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .demo-action.link { text-decoration: underline; text-underline-offset: 3px; }
+    .seal { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid var(--service); color: var(--service); background: var(--service-soft); border-radius: 50%; margin-bottom: 14px; }
+    .seal.error { color: var(--danger); background: var(--danger-soft); border-color: var(--danger); }
+    .seal svg { width: 23px; height: 23px; }
+    .digest { margin-top: 14px; border: 1px dashed var(--line); border-radius: 6px; padding: 9px; font: 10px/1.6 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+    .code-panel { border-radius: 11px; background: var(--code-bg); color: var(--code-ink); min-width: 0; overflow: clip; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 10px 4px 16px; min-height: 44px; border-bottom: 1px solid #ffffff1a; gap: 12px; }
+    .code-header span { font: 10px var(--mono); color: var(--code-muted); }
+    .copy { color: var(--code-ink); background: transparent; border: 1px solid transparent; border-radius: 5px; min-height: 44px; padding: 4px 8px; font: 11px var(--mono); }
+    .copy:hover { border-color: var(--code-muted); }
+    .code-panel pre { margin: 0; padding: 15px 16px; font-size: 11px; line-height: 1.8; height: 256px; overflow: auto; tab-size: 2; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-color: #71816d var(--code-bg); }
+    .code-panel code { font-size: inherit; }
+    .json-key { color: #e7b992; }
+    .json-string { color: #bcd9b0; }
+    .json-value { color: #c8bbf2; }
+    .annotation { padding: 21px 0 20px; min-height: 129px; }
+    .annotation-title { display: flex; align-items: baseline; gap: 12px; }
+    .annotation-title .mono { font-size: 11px; color: var(--accent); }
+    .annotation p { margin-top: 7px; font-size: 13px; color: var(--muted); max-width: 80ch; }
+    .boundary-note { padding: 11px 14px; margin-bottom: 22px; border-left: 2px solid var(--accent); background: var(--accent-soft); color: var(--ink); font-size: 11px; line-height: 1.65; }
+    .player { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px 22px; border-top: 1px solid var(--line); background: var(--bg); flex-wrap: wrap; }
+    .player-main, .player-options { display: flex; align-items: center; gap: 8px; }
+    .control { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); min-width: 44px; min-height: 44px; padding: 9px 13px; border-radius: 7px; font-size: 12px; transition: background-color .18s; }
+    .control:hover:not(:disabled) { background: var(--soft); }
+    .control.primary { border-color: var(--ink); color: var(--bg); background: var(--ink); min-width: 124px; }
+    .control.primary:hover { background: var(--muted); }
+    .control svg { width: 15px; height: 15px; }
+    .counter { color: var(--muted); font: 11px var(--mono); margin: 0 4px; min-width: 60px; text-align: center; font-variant-numeric: tabular-nums; }
+    .speed-label { color: var(--muted); font-size: 11px; }
+    #speed { padding: 10px; min-height: 44px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font-size: 12px; }
+    .motion-label { display: flex; align-items: center; gap: 6px; padding: 8px; min-height: 44px; color: var(--muted); font-size: 11px; cursor: pointer; }
+    .motion-label input { accent-color: var(--accent); width: 15px; height: 15px; }
+    .progress { height: 3px; background: var(--line); }
+    .progress-fill { height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); transition: transform .22s ease; }
+    .explorer-caption { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 11px; padding: 12px 3px; }
+    .footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; padding: 32px 0; margin-top: 24px; color: var(--muted); font-size: 11px; }
+    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    noscript { display: block; padding: 25px; border: 1px solid var(--line); background: var(--surface); }
+    @media (max-width: 1100px) {
+      .wrap { width: calc(100% - 48px); }
+      .explorer-body { grid-template-columns: 205px minmax(0, 1fr); }
+      .stage { padding-inline: 20px; }
+      .actors { gap: 12px; }
+      .actor { gap: 8px; padding: 12px 10px; }
+      .actor-role { font-size: 9px; }
+      .actor-icon { width: 23px; height: 23px; }
+      .scene-grid { gap: 12px; }
+      .scene-content { padding: 16px; }
     }
-
-    @keyframes softPulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .65
-      }
+    @media (max-width: 850px) {
+      .hero { align-items: flex-start; flex-direction: column; gap: 24px; }
+      .hero-copy { max-width: 560px; }
+      .edition { margin-top: 10px; }
+      .explorer-body { display: block; }
+      .timeline { padding: 15px 20px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .timeline .eyebrow, .timeline-note { display: none; }
+      .flow-desc { min-height: 0; padding: 0 0 10px; }
+      .steps { display: flex; flex-wrap: wrap; gap: 7px; }
+      .steps li { flex: 0 0 auto; }
+      .step { width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0; justify-content: center; }
+      .step .step-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+      .step-number { border: 0; }
+      .stage { padding-top: 20px; }
     }
-
-    .pulse {
-      animation: softPulse 2s ease-in-out infinite
+    @media (max-width: 580px) {
+      body { font-size: 16px; }
+      .wrap { width: calc(100% - 32px); }
+      .topbar { min-height: 76px; gap: 12px; }
+      .brand { font-size: 17px; gap: 8px; }
+      .brand-mark { width: 30px; height: 30px; }
+      .topnav { gap: 12px; }
+      .topnav .repo-link { display: none; }
+      .topnav a { font-size: 12px; }
+      .theme-control { width: 72px; padding-inline: 5px; }
+      .hero { padding: 30px 0; gap: 18px; }
+      .hero-copy { font-size: 14px; }
+      .eyebrow { font-size: 10px; }
+      .flowbar { padding: 12px; gap: 12px; }
+      .flow-switch { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
+      .flow-switch button { padding: 8px 5px; font-size: 11px; }
+      .optional { display: block; margin: 0; font-size: 9px; }
+      .outcome-control { width: 100%; justify-content: space-between; }
+      #outcome { flex: 1; margin-left: 12px; }
+      .timeline { padding: 12px; }
+      .steps { gap: 3px; }
+      .step { width: 44px; min-width: 44px; height: 44px; }
+      .stage { padding: 18px 12px 0; }
+      .stage-header { margin-bottom: 18px; }
+      .actors { gap: 6px; }
+      .actor { flex-direction: column; text-align: center; padding: 10px 4px; gap: 6px; }
+      .actor-name { font-size: 12px; }
+      .actor-role { font-size: 9px; }
+      .transfer { height: 52px; }
+      .transfer-label { font-size: 17px; }
+      .scene-grid { grid-template-columns: minmax(0, 1fr); }
+      .scene-card { min-height: 280px; }
+      .code-panel pre { height: 235px; }
+      .annotation { padding: 19px 2px; min-height: 0; }
+      .annotation-title { gap: 9px; }
+      .annotation h3 { font-size: 16px; }
+      .annotation p { font-size: 13px; }
+      .boundary-note { margin-bottom: 18px; }
+      .player { padding: 12px; gap: 12px; }
+      .player-main { width: 100%; justify-content: space-between; gap: 5px; }
+      .control { padding-inline: 9px; }
+      .control.primary { min-width: 109px; }
+      .counter { min-width: 46px; margin: 0; font-size: 10px; }
+      .player-options { width: 100%; justify-content: space-between; gap: 4px; }
+      .motion-label { padding-inline: 0; }
+      #share { margin-left: auto; }
+      .explorer-caption { font-size: 10px; }
+      h2 { font-size: 25px; }
+      .footer { align-items: flex-start; flex-direction: column; gap: 14px; }
     }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+    :root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after { animation: none !important; transition: none !important; }
+    @media (forced-colors: active) {
+      .flow-switch button[aria-pressed="true"], .step[aria-current], .type-button[aria-pressed="true"], .actor[data-active="true"] { outline: 2px solid Highlight; outline-offset: -3px; }
+      .progress-fill { background: Highlight; }
+    }
+    /* The architecture is the primary surface; details stay in an optional inspector. */
+    :root { --human: #2563eb; --human-soft: #eaf1ff; --agent: #7546cf; --agent-soft: #f2ecff; --service: #087660; --service-soft: #e7f6ee; --signal: var(--accent); }
+    :root[data-theme="dark"] { --human: #93baff; --human-soft: #20314e; --agent: #c8adff; --agent-soft: #302541; --service: #8ee4be; --service-soft: #203d33; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --human: #93baff; --human-soft: #20314e; --agent: #c8adff; --agent-soft: #302541; --service: #8ee4be; --service-soft: #203d33; } }
+    .topbar { min-height: 76px; }
+    .hero { padding: 24px 0 26px; align-items: center; gap: 28px; }
+    h1 { font-size: clamp(28px, 3vw, 43px); margin-top: 9px; line-height: 1.15; }
+    h1 br { display: none; }
+    h1 em { margin-left: .12em; }
+    .hero-copy { font-size: 12px; max-width: 360px; }
+    .edition { margin-top: 7px; font-size: 10px; }
+    .explorer-body { grid-template-columns: 244px minmax(0, 1fr); }
+    .timeline { padding: 17px 14px; }
+    .timeline .eyebrow { margin-top: 23px; }
+    .flow-desc { min-height: 0; padding-bottom: 14px; }
+    .timeline-note { margin-top: 16px; }
+    .timeline .player-main { display: grid; grid-template-columns: 44px 1fr 44px; grid-template-areas: "previous play next" "reset counter counter"; gap: 6px; padding: 0 6px 17px; border-bottom: 1px solid var(--line); }
+    .timeline #previous { grid-area: previous; }
+    .timeline #play { grid-area: play; min-width: 0; }
+    .timeline #next { grid-area: next; }
+    .timeline #reset { grid-area: reset; }
+    .timeline #counter { grid-area: counter; text-align: right; padding-right: 8px; }
+    .stage { padding: 18px 22px 0; }
+    .stage-header { margin-bottom: 0; }
+    .stage-tools { display: flex; align-items: center; gap: 10px; }
+    .inspect-toggle { padding: 8px 11px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font: 11px var(--mono); min-height: 44px; }
+    .inspect-toggle:hover, .inspect-toggle[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+    .annotation { min-height: 88px; padding: 12px 0 15px; }
+    .annotation p { font-size: 12px; max-width: 100ch; margin-top: 5px; }
+    .architecture { position: relative; height: 650px; margin: 0 -10px; border: 1px solid var(--line); border-radius: 14px; background-color: var(--bg); background-image: radial-gradient(var(--line) .75px, transparent .75px); background-size: 18px 18px; isolation: isolate; }
+    .domain { position: absolute; inset: 13px 12px 12px 70%; border: 1px dashed color-mix(in srgb, var(--service) 35%, transparent); border-radius: 16px; background: color-mix(in srgb, var(--service-soft) 45%, transparent); }
+    .domain > span { position: absolute; top: -8px; right: 12px; background: var(--bg); color: var(--service); font: 8px var(--mono); padding: 0 6px; letter-spacing: .04em; }
+    .architecture .actor { position: absolute; display: flex; flex-direction: column; gap: 0; padding: 11px 8px 8px; width: 22%; border: 1px solid transparent; background: transparent; text-align: center; border-radius: 15px; z-index: 2; transition: border-color .22s, background-color .22s, box-shadow .22s; }
+    .architecture .actor[data-active="true"] { border-color: color-mix(in srgb, var(--actor-color) 45%, transparent); background: color-mix(in srgb, var(--surface) 75%, transparent); box-shadow: 0 5px 30px color-mix(in srgb, var(--actor-color) 12%, transparent); }
+    .architecture .actor[data-actor="human"] { left: 2%; top: 30%; }
+    .architecture .actor[data-actor="agent"] { left: 35%; top: 2%; }
+    .architecture .actor[data-actor="service"] { left: 75%; top: 2%; }
+    .actor-heading { display: flex; align-items: center; justify-content: center; gap: 7px; color: var(--actor-color); font: 10px var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    .actor-heading::before { content: ""; width: 5px; height: 5px; background: var(--actor-color); border-radius: 50%; }
+    .actor-art { width: 100%; aspect-ratio: 1; background-image: url('protocol-actors-v0.9.png'); background-size: 300% 100%; background-repeat: no-repeat; }
+    [data-actor="human"] .actor-art { background-position: 0 50%; }
+    [data-actor="agent"] .actor-art { background-position: 50% 50%; }
+    [data-actor="service"] .actor-art { background-position: 100% 50%; }
+    .architecture .actor-role { font-size: 10px; color: var(--muted); margin-top: -7px; }
+    .architecture .transfer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+    .route-base { fill: none; stroke: color-mix(in srgb, var(--muted) 30%, transparent); stroke-width: 1.5; stroke-dasharray: 4 6; }
+    .route-base[data-visited="true"] { stroke: var(--route-color); stroke-dasharray: none; opacity: .45; }
+    .transfer-path { stroke: var(--signal); stroke-width: 2.8; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--signal) 25%, transparent)); }
+    .packet { fill: var(--signal); stroke: var(--surface); stroke-width: 2; }
+    .route-name { position: absolute; font: 9px var(--mono); background: var(--bg); color: var(--muted); padding: 3px 6px; border-radius: 4px; z-index: 2; }
+    .route-request { left: 58%; top: 16%; }
+    .route-review { left: 84%; top: 46%; }
+    .route-delivery { left: 38%; top: 52%; }
+    .route-result { left: 53%; top: 37%; }
+    .case-hub { position: absolute; left: 57%; top: 38%; width: 13%; display: flex; align-items: center; flex-direction: column; z-index: 3; text-align: center; }
+    .hub-symbol { position: relative; display: grid; place-items: center; width: 78px; height: 78px; border: 1px solid var(--accent); border-radius: 22px; color: var(--accent); background: var(--surface); box-shadow: 0 8px 35px color-mix(in srgb, var(--accent) 15%, transparent); }
+    .hub-symbol svg { width: 38px; height: 38px; }
+    .hub-orbit { position: absolute; inset: -8px; border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 28px; }
+    .hub-label { margin-top: 15px; color: var(--accent); font: 9px var(--mono); white-space: nowrap; }
+    .hub-status { font: 9px var(--mono); color: var(--muted); margin-top: 3px; }
+    .graph-channel { position: absolute; left: 32%; top: 65%; width: 27%; z-index: 3; border: 1px solid color-mix(in srgb, var(--agent) 35%, var(--line)); border-radius: 12px; background: var(--surface); box-shadow: 0 8px 30px #20231f08; overflow: clip; }
+    .channel-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--agent-soft); font: 10px var(--mono); color: var(--agent); }
+    .channel-head span:last-child { font-size: 8px; }
+    .channel-body { padding: 12px; }
+    .channel-body .bubble { font-size: 12px; padding: 10px; margin: 0; background: var(--bg); }
+    .channel-button { width: 100%; border: 0; cursor: pointer; margin-top: 9px; padding: 9px 6px; text-align: center; background: var(--human); color: var(--surface); font: 600 11px var(--sans); border-radius: 6px; }
+    .channel-link { padding: 8px 1px 0; color: var(--human); font: 9px/1.6 var(--mono); overflow-wrap: anywhere; }
+    .graph-channel .demo-actions { gap: 5px; margin: 9px 0 0; }
+    .graph-channel .demo-action { cursor: pointer; padding: 8px; font-size: 10px; flex: 1; text-align: center; }
+    .graph-review { position: absolute; left: 73%; top: 52%; width: 25%; min-height: 0; z-index: 3; box-shadow: 0 8px 30px #20231f08; background: var(--surface); border-color: color-mix(in srgb, var(--service) 35%, var(--line)); }
+    .graph-review .scene-top { font-size: 8px; padding: 8px 10px; min-height: 32px; background: var(--service-soft); color: var(--service); }
+    .graph-review .scene-content { padding: 11px; }
+    .graph-review .scene-content h3 { font-size: 15px; margin: 4px 0 7px; }
+    .graph-review .scene-content p { font-size: 10px; line-height: 1.6; }
+    .graph-review .scene-label { font-size: 8px; }
+    .graph-review .demo-choice { font-size: 9px; padding: 7px; gap: 7px; margin-top: 5px; }
+    .graph-review .check { width: 13px; height: 13px; font-size: 9px; }
+    .graph-review .demo-actions { margin: 8px 0 0; }
+    .graph-review .demo-action { padding: 5px 10px; font-size: 9px; }
+    .graph-review .mini-row { font-size: 10px; padding: 6px 0; gap: 8px; }
+    .execution-gate { position: absolute; top: 43%; left: 74%; width: 23%; z-index: 3; text-align: center; border: 1px solid var(--line); background: var(--surface); padding: 8px; border-radius: 8px; font: 9px/1.5 var(--mono); color: var(--muted); }
+    .execution-gate[data-ready="true"] { color: var(--service); border-color: var(--service); background: var(--service-soft); }
+    .signal-caption { position: absolute; bottom: 15px; left: 17px; display: flex; flex-direction: column; gap: 5px; z-index: 3; }
+    .signal-caption strong { font: 9px/1.6 var(--mono); color: var(--signal); max-width: 170px; overflow-wrap: anywhere; }
+    .signal-caption span { color: var(--muted); font-size: 9px; max-width: 165px; }
+    .graph-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: 17px; padding: 12px 0; color: var(--muted); font: 9px var(--mono); }
+    .graph-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .graph-legend i { display: inline-block; width: 17px; border-top: 2px solid var(--legend-color); }
+    .inspector { margin: 0 0 15px; }
+    .inspector pre { height: 230px; font-size: 12px; }
+    .boundary-note { margin-bottom: 15px; font-size: 10px; }
+    .player { padding: 11px 18px; justify-content: flex-end; }
+    .player-options { width: auto; }
+    .actor-art { transition: transform .22s ease; }
+    .architecture .actor:hover .actor-art { transform: translateY(-4px); }
+    body[data-focus="true"] .topbar, body[data-focus="true"] .hero, body[data-focus="true"] .footer, body[data-focus="true"] .explorer-caption { display: none; }
+    body[data-focus="true"] main.wrap { width: calc(100% - 32px); max-width: 1700px; padding-block: 16px; }
+    body[data-focus="true"] .architecture { height: max(650px, calc(100dvh - 340px)); }
+    body[data-focus="true"] .actor-art { max-height: 230px; }
+    @media (max-width: 1100px) {
+      .explorer-body { grid-template-columns: 210px minmax(0, 1fr); }
+      .stage { padding-inline: 16px; }
+      .architecture { height: 650px; }
+      .hub-symbol { width: 62px; height: 62px; border-radius: 17px; }
+      .hub-orbit { border-radius: 22px; }
+      .actor-role { max-width: 130px; }
+      .route-request { left: 57%; }
+      .signal-caption { left: 10px; bottom: 12px; }
+    }
+    @media (max-width: 850px) {
+      .hero { flex-direction: row; align-items: flex-start; }
+      .hero-copy { max-width: 250px; }
+      h1 br { display: block; }
+      h1 em { margin-left: 0; }
+      .explorer-body { display: block; }
+      .timeline { padding: 12px 17px; }
+      .timeline .player-main { display: flex; padding: 0 0 12px; border: 0; width: auto; justify-content: flex-start; }
+      .timeline #play { min-width: 110px; }
+      .timeline #counter { margin-left: auto; }
+      .flow-desc { padding-bottom: 10px; }
+      .architecture { height: 650px; }
+      .architecture .actor-art { max-width: 175px; }
+    }
+    @media (max-width: 580px) {
+      .hero { flex-direction: column; gap: 13px; padding: 23px 0; }
+      .hero-copy { max-width: none; font-size: 12px; }
+      h1 { font-size: 31px; }
+      h1 br { display: none; }
+      h1 em { margin-left: .12em; }
+      .stage { padding: 12px 10px 0; }
+      .stage-tools { gap: 5px; }
+      .stage-header .eyebrow { font-size: 8px; max-width: 150px; }
+      .status { font-size: 9px; padding: 3px 7px; }
+      .inspect-toggle { padding: 6px; font-size: 9px; }
+      .annotation { min-height: 0; padding: 13px 0; }
+      .annotation p { font-size: 12px; }
+      .architecture { height: 880px; margin-inline: -3px; }
+      .domain { inset: 12px 7px; clip-path: polygon(67% 0,100% 0,100% 100%,0 100%,0 64%,67% 64%); }
+      .domain > span { font-size: 6px; right: 4px; padding: 0 2px; }
+      .architecture .actor { width: 31%; padding: 6px 1px; }
+      .architecture .actor[data-actor="human"] { left: 1%; top: 25%; }
+      .architecture .actor[data-actor="agent"] { left: 32%; top: 5%; }
+      .architecture .actor[data-actor="service"] { left: 67%; top: 5%; }
+      .actor-heading { font-size: 8px; letter-spacing: .04em; }
+      .architecture .actor-role { font-size: 8px; margin-top: -3px; }
+      .hub-symbol { width: 45px; height: 45px; border-radius: 12px; }
+      .hub-symbol svg { width: 25px; height: 25px; }
+      .hub-orbit { inset: -5px; border-radius: 16px; }
+      .case-hub { left: 51%; top: 38%; width: 17%; }
+      .hub-label, .hub-status { font-size: 7px; }
+      .hub-status { display: none; }
+      .hub-label { margin-top: 9px; }
+      .route-name { font-size: 7px; padding: 2px; }
+      .route-request { left: 53%; top: 28%; }
+      .route-delivery { left: 65%; top: 52%; }
+      .route-result { left: 38%; top: 32%; }
+      .route-review { left: 77%; top: 46%; }
+      .graph-channel { left: 2%; top: 46%; width: 60%; }
+      .graph-review { left: 3%; top: 64%; width: 94%; }
+      .channel-head { padding: 8px; font-size: 8px; }
+      .channel-head span:last-child { font-size: 7px; }
+      .channel-body { padding: 8px; }
+      .channel-body .bubble { font-size: 10px; padding: 8px; }
+      .channel-link { font-size: 8px; }
+      .channel-button { font-size: 9px; padding: 7px 4px; }
+      .graph-channel .demo-action { font-size: 8px; padding: 6px 4px; }
+      .graph-review .scene-top { padding: 8px 6px; font-size: 7px; }
+      .graph-review .scene-content { padding: 8px; }
+      .graph-review .scene-content h3 { font-size: 13px; }
+      .graph-review .demo-choice { font-size: 8px; padding: 6px 4px; gap: 4px; }
+      .graph-review .scene-content p { font-size: 9px; }
+      .graph-review .mini-row { font-size: 9px; }
+      .execution-gate { top: 36%; left: 72%; width: 25%; padding: 6px 3px; font-size: 7px; }
+      .signal-caption { display: none; }
+      .signal-caption strong { font-size: 8px; max-width: 110px; }
+      .signal-caption span { font-size: 8px; max-width: 110px; }
+      .graph-legend { font-size: 8px; gap: 10px; padding: 10px 2px; }
+      .player-options { width: 100%; }
+      .boundary-note { font-size: 10px; padding: 10px; }
+      .scene-content { overflow-wrap: anywhere; }
+      .focus-toggle { display: none; }
+    }
+    .storybar { padding: 16px 22px; border-bottom: 1px solid var(--line); background: var(--bg); }
+    .story-tabs { display: flex; gap: 10px; }
+    .story-tab { display: inline-flex; align-items: center; justify-content: center; gap: 9px; position: relative; min-height: 48px; padding: 10px 20px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 600; transition: background-color .18s, border-color .18s, color .18s; }
+    .story-tab svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .story-tab:hover { background: var(--soft); color: var(--ink); }
+    .story-tab[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+    .story-tab[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 18px 0; height: 3px; background: currentColor; border-radius: 3px 3px 0 0; }
+    .story-intro { padding: 12px 22px 0; color: var(--muted); font-size: 12px; }
+    [data-story-panel]:focus-visible { outline-offset: -3px; }
+    .graph-review button.demo-choice { width: 100%; text-align: left; cursor: pointer; color: var(--ink); background: var(--surface); }
+    .graph-review button.demo-choice.chosen { background: var(--service-soft); }.graph-review button.demo-choice:disabled { opacity: 1; cursor: default; }
+    .demo-choice strong { display: block; font-size: 10px; font-weight: 600; }.demo-choice small { display: block; color: var(--muted); font-size: 9px; line-height: 1.5; margin-top: 2px; }
+    .selected-summary { line-height: 1.9; }.graph-review .demo-action { cursor: pointer; }
+    @media(min-width:581px) and (max-width:1100px) { .graph-review { left: 67%; width: 31%; }.domain { left: 65%; }.case-hub { left: 54%; width: 12%; } }
+    @media(max-width:580px) { .storybar { padding: 10px; }.story-tabs { gap: 6px; }.story-tab { flex: 1; min-width: 0; gap: 5px; padding: 10px 6px; font-size: 12px; }.story-tab svg { width: 15px; height: 15px; }.story-tab[aria-selected="true"]::after { inset-inline: 10px; }.story-intro { padding: 10px 12px 0; }.demo-choice strong { font-size: 9px; }.demo-choice small { font-size: 8px; }.graph-review .demo-choice { padding: 6px 4px; } }
+    @media(max-width:360px) { .story-tab { flex-direction: column; gap: 3px; padding: 8px 4px; } }
   </style>
 </head>
-
 <body>
-
-  <div class="hdr">
-    <div class="hdr-left"></div>
-    <div class="hdr-center">
-      <svg class="hdr-logo" viewBox="0 0 600 200" height="50">
-        <path d="M 54 40 L 30 40 L 30 160 L 54 160" fill="none" stroke="#0B1121" stroke-width="16"
-          stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M 146 40 L 170 40 L 170 160 L 146 160" fill="none" stroke="#0B1121" stroke-width="16"
-          stroke-linecap="round" stroke-linejoin="round" />
-        <circle cx="100" cy="100" r="24" fill="#FF5C00" />
-        <text x="220" y="122">
-          <tspan font-family="'Inter',system-ui,sans-serif" font-weight="800" font-size="64" fill="#0B1121"
-            letter-spacing="-0.03em">HITL</tspan>
-          <tspan font-family="'Inter',system-ui,sans-serif" font-weight="300" font-size="64" fill="#64748B"
-            letter-spacing="-0.01em"> Protocol</tspan>
-        </text>
-      </svg>
-      <span class="ver">v0.7</span>
-    </div>
-    <div class="hdr-right">
-      <a class="hdr-link" href="https://github.com/rotorstar/hitl-protocol"
-        target="_blank">github.com/rotorstar/hitl-protocol</a>
-      <div class="rfc-hints" aria-label="RFC alignment hints">
-        <a class="rfc-tag" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank"
-          rel="noopener noreferrer">RFC 9110</a>
-        <a class="rfc-tag" href="https://www.rfc-editor.org/rfc/rfc3339" target="_blank"
-          rel="noopener noreferrer">RFC 3339</a>
-        <a class="rfc-tag" href="https://www.rfc-editor.org/rfc/rfc6750" target="_blank"
-          rel="noopener noreferrer">RFC 6750</a>
-      </div>
-    </div>
-  </div>
-  <div class="prog">
-    <div class="prog-fill" id="progress"></div>
-  </div>
-
-  <div class="main">
-    <div class="sidebar">
-      <div class="controls">
-        <div class="controls-row">
-          <button class="btn" id="prevBtn" onclick="prevStep()" disabled>&#9664;</button>
-          <button class="btn primary" id="playBtn" onclick="togglePlay()">&#9654; Play</button>
-          <button class="btn" id="nextBtn" onclick="nextStep()">&#9654;</button>
-          <button class="btn" onclick="resetSteps()" title="Reset">&#8634;</button>
-        </div>
-        <div class="controls-row" style="margin-top:6px">
-          <span class="step-counter" id="stepCounter">0 / 9</span>
-        </div>
-        <div class="speed-row">
-          <label>Speed</label>
-          <input type="range" id="speedSlider" min="600" max="4000" value="1800" step="200" oninput="updateSpeed()">
-          <span id="speedLabel">1.8s</span>
+  <a class="skip" href="#explorer">Skip to the interactive flow</a>
+  <svg class="sr-only" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="icon-human" viewBox="0 0 24 24"><circle cx="12" cy="7" r="3.5"/><path d="M4.5 21v-2a7.5 7.5 0 0 1 15 0v2"/></symbol>
+    <symbol id="icon-agent" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="4"/><path d="M12 6V2M8 12v2m8-2v2M9 17h6"/></symbol>
+    <symbol id="icon-service" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6m-6 11h6"/></symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z"/></symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M8 4v16m8-16v16"/></symbol>
+    <symbol id="icon-prev" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></symbol>
+    <symbol id="icon-next" viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></symbol>
+    <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v2"/></symbol>
+    <symbol id="icon-stop" viewBox="0 0 24 24"><path d="m7 7 10 10M7 17 17 7"/></symbol>
+  </svg>
+  <header class="wrap topbar">
+    <a class="brand" href="https://github.com/rotorstar/hitl-protocol" aria-label="HITL Protocol repository">
+      <svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true"><path d="M12 5H5v34h7m20-34h7v34h-7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="22" r="6" fill="var(--accent)"/></svg>
+      <span translate="no"><strong>HITL</strong> Protocol</span>
+    </a>
+    <nav class="topnav" aria-label="Resources">
+      <a href="../playground/index.html">Explore the details ↗</a>
+      <a class="repo-link" href="https://github.com/rotorstar/hitl-protocol">GitHub ↗</a>
+      <label class="sr-only" for="theme">Color theme</label>
+      <select id="theme" class="theme-control" name="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
+    </nav>
+  </header>
+  <main class="wrap">
+    <section class="hero" aria-labelledby="page-title">
+      <div><div class="eyebrow"><span>The human decision layer</span><span class="version" translate="no">v0.9 · Draft</span></div><h1 id="page-title">Your agent works.<br><em>You choose the next step.</em></h1></div>
+      <p class="hero-copy"><strong>The service asks. The agent relays. You decide.</strong><br>See how your assistant finds options, asks for your choice and continues with your decision.<span class="edition">AN ANIMATED EXPLANATION / <time datetime="2026-10-06" id="edition-date">06 OCT 2026</time></span></p>
+    </section>
+    <noscript><h2>The HITL v0.9 flow</h2><p>The human gives an agent a task. When the service needs a decision, it returns HTTP 202 with a versioned HITL object. The agent relays the exact review URL. The human reviews on the service’s page; the agent polls for the structured decision. A completed review records a decision; business execution has its own authorization contract.</p><p>Optional inline submit requires an explicit human button action and service support. The optional Agent Access profile adds verified enrollment, bounded delegation, an immutable operation snapshot, an authenticated owner review and a fresh, explicit commit. Enable JavaScript to step through these examples.</p></noscript>
+    <section id="explorer" class="explorer" aria-label="Interactive HITL protocol explorer" hidden>
+      <div class="storybar" id="storybar">
+        <div class="story-tabs" id="story-tabs" role="tablist" aria-label="Choose an example">
+          <button type="button" class="story-tab" id="story-tab-jobs" role="tab" data-story="jobs" aria-controls="story-panel-jobs" aria-selected="true" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12a24 24 0 0 0 18 0M12 11v4"/></svg>Job search</button>
+          <button type="button" class="story-tab" id="story-tab-purchase" role="tab" data-story="purchase" aria-controls="story-panel-purchase" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14l2 14H3L5 7Z M8 8V6a4 4 0 0 1 8 0v2"/></svg>Shopping</button>
+          <button type="button" class="story-tab" id="story-tab-research" role="tab" data-story="research" aria-controls="story-panel-research" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 8h5M8 11h3"/></svg>Research</button>
         </div>
       </div>
-      <div class="step-list" id="stepList"></div>
-      <div class="legend">
-        <div class="legend-title">Legend</div>
-        <div class="legend-items">
-          <div class="legend-item">
-            <div class="legend-line" style="background:var(--human-g)"></div>Core
-          </div>
-          <div class="legend-item">
-            <div class="legend-line" style="background:var(--inline-g)"></div>Inline
-          </div>
-          <div class="legend-item">
-            <div class="legend-line dashed"></div>Browser
-          </div>
-          <div class="legend-item">
-            <div class="legend-line" style="background:var(--poll-g)"></div>Polling
-          </div>
-          <div class="legend-item">
-            <div class="legend-line" style="background:var(--ok-g)"></div>Done
-          </div>
+      <div id="story-panel-jobs" role="tabpanel" aria-labelledby="story-tab-jobs" data-story-panel="jobs" tabindex="0">
+      <div id="story-content">
+      <div class="story-intro" id="story-summary"></div>
+      <div class="flowbar">
+        <div class="flow-switch" role="group" aria-label="Choose a flow"><button type="button" data-flow="browser" aria-pressed="true">Choose in the browser</button><button type="button" data-flow="inline" aria-pressed="false">Decide in the messenger <span class="optional">OPTIONAL</span></button><button type="button" data-flow="access" aria-pressed="false">Authorize a booking <span class="optional">PROFILE · DRAFT</span></button></div>
+        <div class="outcome-control"><label for="outcome">Explore an outcome</label><select id="outcome" name="outcome"></select></div>
+      </div>
+      <div class="explorer-body">
+        <nav class="timeline" aria-label="Flow steps">        <div class="player-main">
+          <button class="control" type="button" id="reset" aria-label="Reset this flow" title="Reset this flow"><svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><use href="#icon-reset"/></svg></button>
+          <button class="control" type="button" id="previous" aria-label="Previous step" title="Previous step"><svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><use href="#icon-prev"/></svg></button>
+          <button class="control primary" type="button" id="play"><svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use id="play-icon" href="#icon-play"/></svg><span id="play-label">Play flow</span></button>
+          <button class="control" type="button" id="next" aria-label="Next step" title="Next step"><svg fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><use href="#icon-next"/></svg></button><span class="counter" id="counter"></span>
         </div>
-        <div class="insight-box"><strong>Inline</strong> = fast, channel-native &middot; <strong>Browser</strong> = rich
-          UI, optional</div>
-        <div class="legend-rfc">Aligned references: RFC 9110 (HTTP), RFC 3339 (timestamps), RFC 6750 (bearer auth),
-          RFC 2119/8174 (normative terms).</div>
+<div class="eyebrow" id="flow-heading"></div><p class="flow-desc" id="flow-description"></p><ol class="steps" id="steps"></ol><p class="timeline-note">Choose any step, or play the sequence.<br>The examples run entirely in your browser.</p></nav>
+        <div class="stage">
+          <div class="stage-header"><span class="eyebrow" id="stage-scope"></span><div class="stage-tools"><span class="status" id="case-status" data-status="none">no case yet</span><button type="button" class="inspect-toggle focus-toggle" id="focus-toggle" aria-pressed="false">Focus view</button><button type="button" class="inspect-toggle" id="inspect-toggle" aria-expanded="false" aria-controls="inspector">{ } Payload</button></div></div>
+          <div class="annotation" aria-live="polite" aria-atomic="true"><div class="annotation-title"><span class="mono" id="step-label"></span><h3 id="step-title"></h3></div><p id="step-description"></p></div>
+          <div class="architecture" id="architecture" role="group" aria-label="Animated architecture: human, agent, service, messaging channel and service-owned review">
+            <div class="domain" aria-hidden="true"><span>ON THE PLATFORM’S WEBSITE</span></div>
+            <svg class="transfer" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true">
+              <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="m1 1 8 4-8 4" fill="none" stroke="var(--signal)" stroke-width="1.5"/></marker></defs>
+              <path class="route-base" data-route="task" style="--route-color:var(--human)"/>
+              <path class="route-base" data-route="request" style="--route-color:var(--agent)"/>
+              <path class="route-base" data-route="handoff" style="--route-color:var(--accent)"/>
+              <path class="route-base" data-route="delivery" style="--route-color:var(--agent)"/>
+              <path class="route-base" data-route="review" style="--route-color:var(--human)"/>
+              <path class="route-base" data-route="decision" style="--route-color:var(--service)"/>
+              <path class="route-base" data-route="poll" style="--route-color:var(--agent)"/>
+              <path class="route-base" data-route="owner" style="--route-color:var(--human)"/>
+              <path class="route-base" data-route="inline" style="--route-color:var(--service)"/>
+              <path class="transfer-path" id="transfer-path" marker-end="url(#arrow)"/>
+              <g id="packet" style="transform-box:view-box;transform-origin:0 0"><rect class="packet" x="-6" y="-6" width="12" height="12" rx="3"/></g>
+              <text id="transfer-label" class="sr-only"></text>
+            </svg>
+            <div class="actor" data-actor="human"><div class="actor-heading">You</div><div class="actor-art" aria-hidden="true"></div><div class="actor-role">Choose what happens next.</div></div>
+            <div class="actor" data-actor="agent"><div class="actor-heading">Your AI assistant</div><div class="actor-art" aria-hidden="true"></div><div class="actor-role">Finds options. Asks you. Continues.</div></div>
+            <div class="actor" data-actor="service"><div class="actor-heading">Job platform</div><div class="actor-art" aria-hidden="true"></div><div class="actor-role">Shows options. Records your choice.</div></div>
+            <span class="route-name route-request">Search request</span><span class="route-name route-review">Review link</span><span class="route-name route-delivery">Message to you</span><span class="route-name route-result">Please choose</span>
+            <div class="case-hub"><div class="hub-symbol"><span class="hub-orbit" id="hub-orbit" aria-hidden="true"></span><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M12 5H5v34h7m20-34h7v34h-7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="22" cy="22" r="6" fill="currentColor"/></svg></div><span class="hub-label" translate="no">HITL v0.9</span><span class="hub-status" id="hub-status">Decision transport</span></div>
+            <div class="graph-channel"><div class="channel-head"><span>Messenger</span><span>TELEGRAM / SLACK</span></div><div class="channel-body" id="channel-body"></div></div>
+            <div class="scene-card graph-review" id="scene"></div>
+            <div class="execution-gate" id="execution-gate">Business authorization<br>Separate from the decision</div>
+            <div class="signal-caption"><strong id="signal-caption">01 / Task instruction</strong><span id="signal-detail">Follow the highlighted route.</span></div>
+          </div>
+          <div class="graph-legend" aria-label="Connection legend"><span><i style="--legend-color:var(--human)"></i>Your interaction</span><span><i style="--legend-color:var(--agent)"></i>Assistant / platform</span><span><i style="--legend-color:var(--accent)"></i>Request for your decision</span><span><i style="--legend-color:var(--service)"></i>Your recorded choice</span></div>
+          <p class="boundary-note" id="boundary-note"></p>
+          <div class="code-panel inspector" id="inspector" hidden><div class="code-header"><span id="payload-label"></span><button type="button" class="copy" id="copy-payload" aria-label="Copy current payload">Copy</button></div><pre tabindex="0" aria-label="Current illustrative payload"><code id="payload" translate="no"></code></pre></div>
+        </div>
       </div>
-    </div>
-
-    <div class="canvas-area">
-      <canvas id="particles"></canvas>
-      <svg viewBox="0 0 1050 680" id="diagram">
-        <defs>
-          <filter id="glowFilter">
-            <feGaussianBlur stdDeviation="6" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id="shadowFilter">
-            <feDropShadow dx="0" dy="3" stdDeviation="6" flood-opacity=".35" flood-color="#000" />
-          </filter>
-          <filter id="packetGlow">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <marker id="mH" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#3B82F6" />
-          </marker>
-          <marker id="mA" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#8B5CF6" />
-          </marker>
-          <marker id="mS" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#10B981" />
-          </marker>
-          <marker id="mI" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#F59E0B" />
-          </marker>
-          <marker id="mR" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#EF4444" />
-          </marker>
-          <marker id="mP" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#64748B" />
-          </marker>
-          <marker id="mOk" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0,8 3,0 6" fill="#22C55E" />
-          </marker>
-        </defs>
-
-        <!-- ========== ACTORS ========== -->
-
-        <!-- Human (left, mid-height) -->
-        <g class="actor-card" id="actor-human" style="color:#3B82F6">
-          <rect class="card-bg" x="30" y="230" width="145" height="115" rx="12" fill="#ffffff" stroke="#3B82F6"
-            stroke-width="2" filter="url(#shadowFilter)" />
-          <image href="isometric_human.png" x="30" y="230" width="145" height="115" preserveAspectRatio="xMidYMid slice"
-            clip-path="url(#clip-human)" />
-          <clipPath id="clip-human">
-            <rect x="30" y="230" width="145" height="115" rx="12" />
-          </clipPath>
-          <rect x="30" y="230" width="145" height="115" rx="12" fill="none" stroke="#3B82F6" stroke-width="2" />
-          <rect x="30" y="230" width="145" height="28" rx="12" fill="#2563EB" opacity=".85" />
-          <circle class="state-ring" id="ring-human" cx="103" cy="288" r="26" fill="none" stroke="#3B82F6"
-            stroke-width="2" opacity="0">
-            <animate attributeName="r" values="24;30;24" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite" />
-          </circle>
-
-          <text x="103" y="246" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff"
-            font-family="system-ui,sans-serif" letter-spacing=".5">HUMAN</text>
-          <rect x="30" y="325" width="145" height="20" rx="0" fill="#ffffff" opacity="0.9" />
-          <text x="103" y="337" text-anchor="middle" font-size="9" font-weight="600" fill="#6B7280"
-            font-family="system-ui,sans-serif">Requestor</text>
-        </g>
-
-        <!-- Agent (center-top) -->
-        <g class="actor-card" id="actor-agent" style="color:#8B5CF6">
-          <rect class="card-bg" x="370" y="40" width="155" height="140" rx="12" fill="#ffffff" stroke="#8B5CF6"
-            stroke-width="2" filter="url(#shadowFilter)" />
-          <image href="isometric_agent.png" x="370" y="40" width="155" height="140" preserveAspectRatio="xMidYMid slice"
-            clip-path="url(#clip-agent)" />
-          <clipPath id="clip-agent">
-            <rect x="370" y="40" width="155" height="140" rx="12" />
-          </clipPath>
-          <rect x="370" y="40" width="155" height="140" rx="12" fill="none" stroke="#8B5CF6" stroke-width="2" />
-          <rect x="370" y="40" width="155" height="28" rx="12" fill="#7C3AED" opacity=".85" />
-          <circle class="state-ring" id="ring-agent" cx="448" cy="110" r="26" fill="none" stroke="#8B5CF6"
-            stroke-width="2" opacity="0">
-            <animate attributeName="r" values="24;30;24" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite" />
-          </circle>
-
-          <text x="448" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff"
-            font-family="system-ui,sans-serif" letter-spacing=".5">AGENT</text>
-          <rect x="370" y="160" width="155" height="20" rx="0" fill="#ffffff" opacity="0.9" />
-          <text x="448" y="172" text-anchor="middle" font-size="9" font-weight="600" fill="#6B7280"
-            font-family="system-ui,sans-serif">Orchestrator</text>
-        </g>
-
-        <!-- Service (right-top, pushed far right) -->
-        <g class="actor-card" id="actor-service" style="color:#10B981">
-          <rect class="card-bg" x="790" y="40" width="185" height="140" rx="12" fill="#ffffff" stroke="#10B981"
-            stroke-width="2" filter="url(#shadowFilter)" />
-          <image href="isometric_service.png" x="790" y="40" width="185" height="140"
-            preserveAspectRatio="xMidYMid slice" clip-path="url(#clip-service)" />
-          <clipPath id="clip-service">
-            <rect x="790" y="40" width="185" height="140" rx="12" />
-          </clipPath>
-          <rect x="790" y="40" width="185" height="140" rx="12" fill="none" stroke="#10B981" stroke-width="2" />
-          <rect x="790" y="40" width="185" height="28" rx="12" fill="#059669" opacity=".85" />
-          <circle class="state-ring" id="ring-service" cx="883" cy="110" r="26" fill="none" stroke="#10B981"
-            stroke-width="2" opacity="0">
-            <animate attributeName="r" values="24;30;24" dur="2s" repeatCount="indefinite" />
-            <animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite" />
-          </circle>
-
-          <text x="883" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff"
-            font-family="system-ui,sans-serif" letter-spacing=".5">SERVICE API</text>
-          <rect x="790" y="160" width="185" height="20" rx="0" fill="#ffffff" opacity="0.9" />
-          <text x="883" y="172" text-anchor="middle" font-size="9" font-weight="600" fill="#6B7280"
-            font-family="system-ui,sans-serif">Website / Backend</text>
-        </g>
-
-        <!-- ========== MESSENGER (pushed down) ========== -->
-        <g class="messenger-group" id="messenger">
-          <rect x="300" y="410" width="195" height="155" rx="10" fill="#ffffff" stroke="#F59E0B" stroke-width="1.5"
-            filter="url(#shadowFilter)" />
-          <rect x="300" y="410" width="195" height="30" rx="10" fill="#0088CC" />
-          <rect x="300" y="430" width="195" height="10" fill="#0088CC" />
-          <text x="398" y="425" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif" letter-spacing=".5">Messenger</text>
-          <text x="398" y="436" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.7)"
-            font-family="system-ui,sans-serif">e.g. Telegram, WhatsApp, Slack</text>
-          <rect x="316" y="450" width="164" height="34" rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1" />
-          <text x="398" y="465" text-anchor="middle" font-size="9" font-weight="600" fill="#334155"
-            font-family="system-ui,sans-serif">New Review Request</text>
-          <text x="398" y="478" text-anchor="middle" font-size="8" fill="#64748b"
-            font-family="system-ui,sans-serif">Task #4821 needs approval</text>
-          <rect id="approveBtn" x="316" y="494" width="78" height="28" rx="6" fill="#16A34A" style="transition:all .3s"/>
-          <rect id="approveGlow" x="312" y="490" width="86" height="36" rx="9" fill="none" stroke="#22C55E" stroke-width="2.5" opacity="0" style="transition:opacity .3s"/>
-          <text id="approveTxt" x="355" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif" style="transition:all .3s">Approve</text>
-          <rect x="402" y="494" width="78" height="28" rx="6" fill="#EF4444" />
-          <text x="441" y="512" text-anchor="middle" font-size="10" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">Reject</text>
-          <text x="398" y="550" text-anchor="middle" font-size="9" fill="#d97706" font-weight="600"
-            font-family="system-ui,sans-serif">Inline Buttons (v0.7)</text>
-        </g>
-
-        <!-- Magnifier ring -->
-        <g class="messenger-group" id="messengerRing">
-          <circle cx="398" cy="490" r="105" fill="none" stroke="#F59E0B" stroke-width="2" stroke-dasharray="6 4"
-            opacity=".25" />
-        </g>
-
-        <!-- Dotted line Human -> Messenger -->
-        <g class="messenger-group" id="messengerLink">
-          <line x1="130" y1="345" x2="300" y2="460" stroke="#3B82F6" stroke-width="1" stroke-dasharray="3 3"
-            opacity=".25" />
-        </g>
-
-        <!-- ========== REVIEW PAGE (far bottom-right) ========== -->
-        <g class="review-group" id="reviewPage">
-          <rect x="720" y="400" width="240" height="170" rx="10" fill="#ffffff" stroke="#EF4444" stroke-width="1.5"
-            stroke-dasharray="6 4" filter="url(#shadowFilter)" />
-          <rect x="720" y="400" width="240" height="26" rx="10" fill="#e2e8f0" />
-          <rect x="720" y="418" width="240" height="8" fill="#e2e8f0" />
-          <circle cx="734" cy="413" r="4" fill="#EF4444" />
-          <circle cx="746" cy="413" r="4" fill="#F59E0B" />
-          <circle cx="758" cy="413" r="4" fill="#22C55E" />
-          <rect x="770" y="406" width="170" height="14" rx="3" fill="#ffffff" />
-          <text x="855" y="417" text-anchor="middle" font-size="6.5" fill="#64748b"
-            font-family="ui-monospace,'SF Mono',monospace">review.service.com/case/4821</text>
-          <text x="840" y="458" text-anchor="middle" font-size="13" font-weight="700" fill="#dc2626"
-            font-family="system-ui,sans-serif">Review Page</text>
-          <text x="840" y="474" text-anchor="middle" font-size="9" fill="#64748b"
-            font-family="system-ui,sans-serif">Rich Browser UI</text>
-          <rect x="745" y="490" width="190" height="12" rx="3" fill="#e2e8f0" />
-          <rect x="745" y="508" width="130" height="12" rx="3" fill="#e2e8f0" />
-          <rect x="745" y="528" width="75" height="20" rx="5" fill="#EF4444" />
-          <text x="783" y="542" text-anchor="middle" font-size="8" font-weight="600" fill="#fff"
-            font-family="system-ui,sans-serif">Submit</text>
-          <rect x="780" y="560" width="120" height="18" rx="5" fill="#fee2e2" stroke="#ef4444" stroke-width="1"
-            stroke-dasharray="3 2" />
-          <text x="840" y="572" text-anchor="middle" font-size="8" font-weight="700" fill="#dc2626"
-            font-family="system-ui,sans-serif">OPTIONAL</text>
-        </g>
-
-        <!-- ========== HITL OBJECT (below arrow band, no overlap) ========== -->
-        <g class="hitl-object" id="hitlObject">
-          <rect x="575" y="190" width="152" height="92" rx="6" fill="#ffffff" stroke="#10B981" stroke-width="1.2"
-            filter="url(#shadowFilter)" />
-          <image href="isometric_hitl.png" x="575" y="190" width="152" height="92" preserveAspectRatio="xMidYMid slice"
-            clip-path="url(#clip-hitl)" opacity="0.15" />
-          <clipPath id="clip-hitl">
-            <rect x="575" y="190" width="152" height="92" rx="6" />
-          </clipPath>
-          <rect x="575" y="190" width="152" height="18" rx="6" fill="#10B981" opacity=".8" />
-          <text x="585" y="202" font-size="7.5" font-weight="700" fill="#ffffff"
-            font-family="ui-monospace,'SF Mono',monospace">HITL Object</text>
-          <text x="585" y="218" font-size="6.5" fill="#475569" font-family="ui-monospace,'SF Mono',monospace">{</text>
-          <text x="593" y="229" font-size="6.5" fill="#475569" font-family="ui-monospace,'SF Mono',monospace">
-            <tspan fill="#d97706">"case_id"</tspan>: "rev_4821",
-          </text>
-          <text x="593" y="240" font-size="6.5" fill="#475569" font-family="ui-monospace,'SF Mono',monospace">
-            <tspan fill="#d97706">"review_url"</tspan>: "https://...",
-          </text>
-          <text x="593" y="251" font-size="6.5" fill="#475569" font-family="ui-monospace,'SF Mono',monospace">
-            <tspan fill="#d97706">"submit_url"</tspan>: "https://...",
-          </text>
-          <text x="593" y="262" font-size="6.5" fill="#475569" font-family="ui-monospace,'SF Mono',monospace">
-            <tspan fill="#d97706">"poll_url"</tspan>: "https://..."
-          </text>
-          <text x="585" y="273" font-size="6.5" fill="#475569" font-family="ui-monospace,'SF Mono',monospace">}</text>
-        </g>
-
-        <!-- ========== FLOW ARROWS ========== -->
-
-        <!-- Step 1: Human -> Agent (diagonal up-right) -->
-        <g class="step-group" id="step-1">
-          <line x1="175" y1="265" x2="368" y2="115" stroke="#3B82F6" stroke-width="2.5" marker-end="url(#mH)" />
-          <circle cx="260" cy="200" r="11" fill="#2563EB" />
-          <text x="260" y="204" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">1</text>
-          <text x="250" y="188" text-anchor="middle" font-size="9" font-weight="600" fill="#3B82F6"
-            font-family="system-ui,sans-serif">Task Request</text>
-        </g>
-
-        <!-- Step 2: Agent -> Service (horizontal, y=70) -->
-        <g class="step-group" id="step-2">
-          <line x1="525" y1="70" x2="788" y2="70" stroke="#8B5CF6" stroke-width="2.5" marker-end="url(#mA)" />
-          <circle cx="656" cy="56" r="11" fill="#7C3AED" />
-          <text x="656" y="60" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">2</text>
-          <text x="656" y="41" text-anchor="middle" font-size="9" font-weight="600" fill="#8B5CF6"
-            font-family="system-ui,sans-serif">API Call</text>
-        </g>
-
-        <!-- Step 3: Service -> Agent (horizontal, y=98) -->
-        <g class="step-group" id="step-3">
-          <line x1="788" y1="98" x2="527" y2="98" stroke="#10B981" stroke-width="2" stroke-dasharray="7 3"
-            marker-end="url(#mS)" />
-          <circle cx="656" cy="86" r="11" fill="#059669" />
-          <text x="656" y="90" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">3</text>
-          <text x="656" y="116" text-anchor="middle" font-size="8" font-weight="600" fill="#10B981"
-            font-family="ui-monospace,'SF Mono',monospace">HTTP 202 + HITL Object</text>
-        </g>
-
-        <!-- Step 4: Agent -> Messenger (vertical down) -->
-        <g class="step-group" id="step-4">
-          <line x1="430" y1="180" x2="398" y2="408" stroke="#F59E0B" stroke-width="2.5" marker-end="url(#mI)" />
-          <circle cx="418" cy="275" r="11" fill="#D97706" />
-          <text x="418" y="279" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">4</text>
-          <text x="458" y="275" text-anchor="middle" font-size="8" font-weight="600" fill="#F59E0B"
-            font-family="system-ui,sans-serif">Render Buttons</text>
-        </g>
-
-        <!-- Step 5: Human decides (Messenger -> Human) -->
-        <g class="step-group" id="step-5">
-          <path d="M 300 480 Q 210 410 160 345" stroke="#F59E0B" stroke-width="2" fill="none" stroke-dasharray="5 3"
-            marker-end="url(#mI)" />
-          <circle cx="220" cy="400" r="11" fill="#D97706" />
-          <text x="220" y="404" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">5</text>
-          <text x="200" y="425" text-anchor="middle" font-size="8" font-weight="600" fill="#F59E0B"
-            font-family="system-ui,sans-serif">Human decides</text>
-        </g>
-
-        <!-- Step 6: POST submit_url (curves from messenger area up-right to Service, avoids HITL Object) -->
-        <g class="step-group" id="step-6">
-          <path d="M 495 460 Q 780 340 790 175" stroke="#F59E0B" stroke-width="2.5" fill="none" marker-end="url(#mI)" />
-          <circle cx="670" cy="345" r="11" fill="#D97706" />
-          <text x="670" y="349" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">6</text>
-          <text x="670" y="330" text-anchor="middle" font-size="8" font-weight="600" fill="#F59E0B"
-            font-family="ui-monospace,'SF Mono',monospace">POST submit_url</text>
-        </g>
-
-        <!-- Step 7: Poll Agent -> Service (horizontal, y=133) -->
-        <g class="step-group" id="step-7">
-          <line x1="525" y1="133" x2="788" y2="133" stroke="#64748B" stroke-width="1.5" stroke-dasharray="4 3"
-            marker-end="url(#mP)" />
-          <circle cx="656" cy="133" r="11" fill="#475569" />
-          <text x="656" y="137" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">7</text>
-          <text x="656" y="153" text-anchor="middle" font-size="8" font-weight="600" fill="#64748B"
-            font-family="system-ui,sans-serif">Poll status</text>
-        </g>
-
-        <!-- Step 8: Result Service -> Agent (horizontal, y=163) -->
-        <g class="step-group" id="step-8">
-          <line x1="788" y1="163" x2="527" y2="163" stroke="#64748B" stroke-width="1.5" marker-end="url(#mP)" />
-          <circle cx="656" cy="167" r="11" fill="#475569" />
-          <text x="656" y="171" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">8</text>
-          <text x="656" y="183" text-anchor="middle" font-size="7.5" font-weight="600" fill="#64748B"
-            font-family="ui-monospace,'SF Mono',monospace">status: completed</text>
-        </g>
-
-        <!-- Step 9: Agent -> Human (diagonal down-left, separate from step 1) -->
-        <g class="step-group" id="step-9">
-          <path d="M 370 130 Q 280 220 175 290" stroke="#22C55E" stroke-width="3" fill="none" marker-end="url(#mOk)" />
-          <circle cx="270" cy="225" r="11" fill="#16A34A" />
-          <text x="270" y="229" text-anchor="middle" font-size="9" font-weight="700" fill="#fff"
-            font-family="system-ui,sans-serif">9</text>
-          <text x="305" y="230" text-anchor="middle" font-size="8" font-weight="700" fill="#22C55E"
-            font-family="system-ui,sans-serif">Continue</text>
-        </g>
-
-        <!-- Browser flow hint -->
-        <g class="browser-hint" id="browserHint">
-          <path d="M 155 345 Q 380 630 718 500" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4"
-            marker-end="url(#mR)" />
-          <text x="530" y="548" text-anchor="start" font-size="8" fill="#EF4444" opacity=".7"
-            font-family="system-ui,sans-serif">open review_url</text>
-          <path d="M 855 400 L 855 180" stroke="#EF4444" stroke-width="1.2" fill="none" stroke-dasharray="5 4"
-            marker-end="url(#mR)" />
-        </g>
-
-        <!-- Data packet -->
-        <circle id="dataPacket" r="5" fill="#888" opacity="0" filter="url(#packetGlow)" />
-      </svg>
-
-      <div class="desc-panel" id="descPanel">
-        <h3 id="descTitle"></h3>
-        <p id="descText"></p>
+      <div class="player">
+        <div class="player-options"><label class="speed-label" for="speed">Speed</label><select id="speed" name="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select><label class="motion-label"><input type="checkbox" id="reduce-motion" name="reduce-motion"> Reduce motion</label><button class="control" type="button" id="share">Copy link</button></div>
       </div>
-    </div>
-  </div>
-
-  <div class="bottom-bar">
-    <div class="bottom-text" id="bottomText">Press &#9654; Play or step through the HITL Protocol v0.7 architecture.
-    </div>
-    <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">Copy</button>
-  </div>
-
+      <div class="progress" role="progressbar" id="progress" aria-label="Flow progress" aria-valuemin="1" aria-valuemax="9" aria-valuenow="1"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+      </div>
+      <div id="story-panel-purchase" role="tabpanel" aria-labelledby="story-tab-purchase" data-story-panel="purchase" tabindex="0" hidden></div>
+      <div id="story-panel-research" role="tabpanel" aria-labelledby="story-tab-research" data-story-panel="research" tabindex="0" hidden></div>
+    </section>
+    <div class="explorer-caption"><span>Jobs, source titles, products and outcomes are illustrative. No applications are sent and no orders are placed.</span><span id="playback-status" role="status">Manual exploration · motion respects your system preference</span></div>
+  </main>
+  <footer class="wrap footer"><span translate="no">HITL Protocol · v0.9 Draft · Apache 2.0</span><div class="footer-links"><a href="../playground/index.html">Interactive playground ↗</a><a href="https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.9/hitl-protocol.md">Core specification ↗</a><a href="https://github.com/rotorstar/hitl-protocol/blob/main/profiles/agent-access/v0.1/README.md">Agent Access v0.1 ↗</a><a href="https://github.com/rotorstar/hitl-protocol/tree/main/schemas">Canonical schemas ↗</a></div></footer>
   <script>
-    var PACKET_PATHS = {
-      1: { x1: 175, y1: 265, x2: 368, y2: 115, color: "#3B82F6" },
-      2: { x1: 525, y1: 70, x2: 788, y2: 70, color: "#8B5CF6" },
-      3: { x1: 788, y1: 98, x2: 527, y2: 98, color: "#10B981" },
-      4: { x1: 430, y1: 180, x2: 398, y2: 408, color: "#F59E0B" },
-      5: { x1: 300, y1: 480, x2: 160, y2: 345, cx: 210, cy: 410, color: "#F59E0B" },
-      6: { x1: 495, y1: 460, x2: 790, y2: 175, cx: 780, cy: 340, color: "#F59E0B" },
-      7: { x1: 525, y1: 133, x2: 788, y2: 133, color: "#64748B" },
-      8: { x1: 788, y1: 163, x2: 527, y2: 163, color: "#64748B" },
-      9: { x1: 370, y1: 130, x2: 175, y2: 290, cx: 280, cy: 220, color: "#22C55E" },
+    'use strict';
+    // Educational snapshots only. Canonical wire contracts live in /schemas.
+    // One step model drives narration, participants, scene, payload and status.
+    const CREATED_AT = '2026-10-06T09:00:00Z';
+    const COMPLETED_AT = '2026-10-06T09:12:00Z';
+    const EXPIRES_AT = '2026-10-07T09:00:00Z';
+    const DEMO_TOKEN = 'illustrative_case_token_never_use_in_requests';
+    const BOOKING_SNAPSHOT = {"offer_id":"offer_4821","offer_version":1,"title":"Illustrative service booking","unit_price_cents":22000,"fee_cents":2000,"quantity":1,"total_cents":24000,"currency":"EUR","refundable":false,"terms":"Non-refundable. Reviewed terms are immutable.","policy_version":1,"grant_version":1};
+    const SNAPSHOT_DIGEST = '92ad0193df432cada7398eec83ae1925da53ade968b716fe7c8ef20fe22f8d0b';
+    const CASE_IDS = { browser: 'review_job_sel_7f3a9b', inline: 'review_mail_4821', access: 'review_booking_4821' };
+    const STORIES = {
+      jobs: { name: 'Job search & applications', service: 'Job platform', host: 'jobboard.example.com',
+        summary: 'Choose the positions. Your assistant prepares the applications.',
+        task: 'Find remote developer jobs in Berlin and help me apply.',
+        request: { query: 'Developer jobs', location: 'Berlin', remote: true },
+        prompt: 'Which positions would you like to apply for?',
+        confirm: 'Send the application drafts for your chosen positions?',
+        next: 'Prepare application drafts', followup: 'Review sending', ready: 'Ready to send your applications', declined: 'Keep your applications as drafts',
+        items: [{ id: 'job-tc-senior-fs', title: 'Senior Full-Stack Developer', detail: 'TechCorp · Berlin · Remote' }, { id: 'job-dx-platform', title: 'Platform Engineer', detail: 'DataX · Berlin · Remote' }, { id: 'job-gb-frontend', title: 'Frontend Developer', detail: 'GreenByte · Berlin · Hybrid' }], defaults: ['job-tc-senior-fs','job-dx-platform'] },
+      research: { name: 'Research & comparison', service: 'Research platform', host: 'research.example.com',
+        summary: 'Choose the sources. Your assistant builds a comparison.',
+        task: 'Compare heat pumps: efficiency, running costs and installation.', request: { topic: 'Heat pumps', focus: ['efficiency','running costs','installation'] },
+        prompt: 'Which sources should your comparison use?', confirm: 'Share your comparison with the team?',
+        next: 'Build your comparison', followup: 'Review sharing', ready: 'Ready to share the comparison', declined: 'Keep the comparison private',
+        items: [{ id: 'source-efficiency', title: 'Efficiency in cold weather', detail: 'University study · Research' }, { id: 'source-running-costs', title: 'Annual running costs', detail: 'Consumer lab · Cost comparison' }, { id: 'source-installation', title: 'Installation & maintenance', detail: 'Industry report · Practical guide' }], defaults: ['source-efficiency','source-running-costs'] },
+      purchase: { name: 'Product choice & order', service: 'Online shop', host: 'shop.example.com',
+        summary: 'Choose your headphones. Review the order before buying.',
+        task: 'Find noise-cancelling headphones under €200.', request: { category: 'Noise-cancelling headphones', budget_eur: 200 },
+        prompt: 'Which headphones would you like?', confirm: 'Confirm the order summary for your chosen headphones?',
+        next: 'Prepare your order summary', followup: 'Review the order', ready: 'Order approved for the shop’s final checks', declined: 'Leave the headphones in your wishlist', single: true,
+        items: [{ id: 'product-quiettone', title: 'QuietTone Air', detail: '€129 · Light & comfortable' }, { id: 'product-studiowave', title: 'StudioWave Pro', detail: '€179 · Over-ear headphones' }, { id: 'product-travelsound', title: 'TravelSound Mini', detail: '€89 · Compact for travel' }], defaults: ['product-quiettone'] }
     };
-
-    var ACTOR_RINGS = {
-      "actor-human": "ring-human",
-      "actor-agent": "ring-agent",
-      "actor-service": "ring-service",
+    const STATUS_LABELS = { none: 'Not requested yet', pending: 'Waiting for your choice', opened: 'Review page open', in_progress: 'You are choosing', completed: 'Decision recorded', expired: 'Time ran out', cancelled: 'Request withdrawn' };
+    const FLOW_META = {
+      browser: { heading: '01 / You choose', description: 'Your assistant presents options. You choose what it should work on.', scope: 'Choose on the platform’s website', outcomes: [['success', 'Decision recorded'], ['expired', 'Time runs out'], ['cancelled', 'Request is withdrawn']] },
+      inline: { heading: '02 / You confirm', description: 'A simple yes or no, using the messenger’s buttons.', scope: 'Confirm the next step in your messenger', outcomes: [['success', 'Decision recorded'], ['declined', 'You choose Cancel'], ['step-up', 'Review page required'], ['expired', 'Time runs out'], ['cancelled', 'Request is withdrawn']] },
+      access: { heading: '03 / You authorize a booking', description: 'Review the terms. Confirm. The service checks permission before booking.', scope: 'Agent Access v0.1 / draft profile', outcomes: [['success', 'Booking completed'], ['declined', 'Owner chooses cancel'], ['revoked', 'Permission is withdrawn'], ['changed', 'Booking terms change'], ['expired', 'Review expires']] }
     };
+    const $ = (id) => document.getElementById(id);
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const themeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const state = { story: 'jobs', selected: [...STORIES.jobs.defaults], flow: 'browser', outcome: 'success', step: 0, speed: 1, playing: false, reduced: motionQuery.matches };
+    let timer = null;
+    let animations = [];
+    let sequence = [];
+    let payloadText = '';
+    let lastSequenceKey = '';
+    const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+    const rows = (items) => items.map(([label, value]) => `<div class="mini-row"><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join('');
 
-    var STEPS = [
-      {
-        id: 1, title: "Task Request", subtitle: "Human \u2192 Agent",
-        desc: "Human sends a task instruction to the Agent via Telegram, Slack, or any messaging channel. The Agent begins autonomous execution.",
-        hex: "#3B82F6", actors: ["actor-human", "actor-agent"],
-        elements: ["step-1"], showMessenger: false, showReview: false, showHitlObj: false
-      },
-      {
-        id: 2, title: "API Call", subtitle: "Agent \u2192 Service",
-        desc: "Agent makes a standard HTTP request to the Service API. No special SDK \u2014 just a normal REST call to execute the task.",
-        hex: "#8B5CF6", actors: ["actor-agent", "actor-service"],
-        elements: ["step-1", "step-2"], showMessenger: false, showReview: false, showHitlObj: false
-      },
-      {
-        id: 3, title: "HTTP 202 + HITL Object", subtitle: "Service \u2192 Agent",
-        desc: "Service needs a human decision. Returns HTTP 202 Accepted with a HITL object: case_id, review_url, submit_url, submit_token, and poll_url.",
-        hex: "#10B981", actors: ["actor-agent", "actor-service"],
-        elements: ["step-1", "step-2", "step-3"], showMessenger: false, showReview: false, showHitlObj: true
-      },
-      {
-        id: 4, title: "Render Inline Buttons", subtitle: "Agent \u2192 Messenger",
-        desc: "Agent forwards the review to the Human\u2019s chat channel. With v0.7 Inline Submit, native action buttons (Approve/Reject) render directly in the chat \u2014 no browser needed.",
-        hex: "#F59E0B", actors: ["actor-agent"],
-        elements: ["step-1", "step-2", "step-3", "step-4"], showMessenger: true, showReview: false, showHitlObj: true
-      },
-      {
-        id: 5, title: "Human Decides", subtitle: "Tap in Messenger",
-        desc: "Human sees inline buttons and taps their decision. Zero context switch, zero page loads \u2014 instant native interaction in the messaging app.",
-        hex: "#F59E0B", actors: ["actor-human"],
-        elements: ["step-1", "step-2", "step-3", "step-4", "step-5"], showMessenger: true, showReview: false, showHitlObj: true
-      },
-      {
-        id: 6, title: "POST submit_url", subtitle: "Agent \u2192 Service",
-        desc: "Agent posts the decision to the Service\u2019s submit_url with the submit_token. SHA-256 hash validation ensures integrity. Decision recorded.",
-        hex: "#F59E0B", actors: ["actor-agent", "actor-service"],
-        elements: ["step-1", "step-2", "step-3", "step-4", "step-5", "step-6"], showMessenger: true, showReview: false, showHitlObj: true
-      },
-      {
-        id: 7, title: "Poll Status", subtitle: "Agent \u2194 Service",
-        desc: "Agent checks poll_url for completion. Supported methods: Polling (GET with exponential backoff), Long Polling (?wait=30), SSE (Server-Sent Events for real-time push), or Webhooks (callback_url). Works for both inline and browser flows.",
-        hex: "#64748B", actors: ["actor-agent", "actor-service"],
-        elements: ["step-1", "step-2", "step-3", "step-4", "step-5", "step-6", "step-7"], showMessenger: true, showReview: true, showHitlObj: true
-      },
-      {
-        id: 8, title: "Status: Completed", subtitle: "Service \u2192 Agent",
-        desc: "Service responds with status: \"completed\" and structured result data (decision, reviewer, timestamp). Possible statuses: pending \u2192 completed | expired | error. The Agent now has the machine-readable decision.",
-        hex: "#64748B", actors: ["actor-agent", "actor-service"],
-        elements: ["step-1", "step-2", "step-3", "step-4", "step-5", "step-6", "step-7", "step-8"], showMessenger: true, showReview: true, showHitlObj: true
-      },
-      {
-        id: 9, title: "Continue Execution", subtitle: "Agent \u2192 Human",
-        desc: "Agent delivers the result summary to Human and continues autonomous execution. The human-in-the-loop moment is complete.",
-        hex: "#22C55E", actors: ["actor-human", "actor-agent"],
-        elements: ["step-1", "step-2", "step-3", "step-4", "step-5", "step-6", "step-7", "step-8", "step-9"], showMessenger: true, showReview: true, showHitlObj: true
-      },
-    ];
+    const story = () => STORIES[state.story];
+    const chosenItems = () => story().items.filter(item => state.selected.includes(item.id));
+    const selectionResult = () => ({ action: 'select', data: { selected: chosenItems().map(item => item.id) } });
+    const caseID = (flow) => flow === 'access' ? CASE_IDS.access : `${CASE_IDS[flow]}_${state.story}`;
+    const selectedSummary = () => chosenItems().map(item => item.title).join(' + ');
 
-    var currentStep = 0, isPlaying = false, playInterval = null, speed = 1800, packetAnimId = null;
-
-    var stepListEl = document.getElementById("stepList");
-    STEPS.forEach(function (s) {
-      var div = document.createElement("div");
-      div.className = "step-item"; div.id = "step-item-" + s.id;
-      div.onclick = function () { goToStep(s.id); };
-      div.innerHTML = '<div class="step-badge" style="background:' + s.hex + '">' + s.id + '</div>' +
-        '<div class="step-info"><h3>' + s.title + '</h3><p>' + s.subtitle + '</p></div>';
-      stepListEl.appendChild(div);
-    });
-
-    var packetEl = document.getElementById("dataPacket");
-
-    function animatePacket(stepId) {
-      if (packetAnimId) { cancelAnimationFrame(packetAnimId); packetAnimId = null; }
-      var path = PACKET_PATHS[stepId];
-      if (!path) { packetEl.setAttribute("opacity", "0"); return; }
-      packetEl.setAttribute("fill", path.color);
-      packetEl.setAttribute("opacity", "1");
-      var startTime = null, duration = 600;
-      function tick(ts) {
-        if (!startTime) startTime = ts;
-        var p = Math.min((ts - startTime) / duration, 1);
-        var t = 1 - Math.pow(1 - p, 3);
-        var x, y;
-        if (path.cx !== undefined) {
-          var mt = 1 - t;
-          x = mt * mt * path.x1 + 2 * mt * t * path.cx + t * t * path.x2;
-          y = mt * mt * path.y1 + 2 * mt * t * path.cy + t * t * path.y2;
-        } else {
-          x = path.x1 + (path.x2 - path.x1) * t;
-          y = path.y1 + (path.y2 - path.y1) * t;
+    function hitlObject(flow) {
+      const access = flow === 'access';
+      const host = access ? 'booking.example.com' : story().host;
+      const hitl = {
+        spec_version: '0.9', case_id: caseID(flow),
+        review_url: `https://${host}/review/${caseID(flow)}?token=${DEMO_TOKEN}`,
+        poll_url: `https://${host}/v1/reviews/${caseID(flow)}${access ? '' : '/status'}`,
+        type: flow === 'browser' ? 'selection' : 'confirmation',
+        prompt: flow === 'browser' ? story().prompt : flow === 'inline' ? `${story().confirm} ${selectedSummary()}` : 'Review the booking: €240, non-refundable.',
+        created_at: CREATED_AT, expires_at: access ? '2026-10-06T09:15:00Z' : EXPIRES_AT, default_action: flow === 'browser' ? 'skip' : 'abort'
+      };
+      if (flow === 'inline') Object.assign(hitl, { submit_url: `https://${host}/v1/reviews/${caseID(flow)}/submit`, submit_token: 'illustrative_separate_submit_token', previous_case_id: caseID('browser'), inline_actions: ['confirm', 'cancel'] });
+      if (access) Object.assign(hitl, {
+        context: { 'x-hitl-agent-access': { profile: 'hitl-agent-access/0.1', binding: 'delegated-api', operation_id: 'operation_4821', operation_version: 1, snapshot_digest: SNAPSHOT_DIGEST, execution_mode: 'explicit_commit' } },
+        verification_policy: {
+          mode: 'required', required_for: ['browser_submit'],
+          requirements: { any_of: [{ all_of: [{ proof_type: 'x-hitl-agent-access-reviewer', provider: 'reference-oidc', presentation_formats: ['x-service-session'] }] }] },
+          binding: { case_id: true, action: true, freshness_seconds: 300, single_use: true },
+          fallback: { on_missing: 'reject', on_invalid: 'reject' }
         }
-        packetEl.setAttribute("cx", x); packetEl.setAttribute("cy", y);
-        var r = p > 0.8 ? 5 * (1 - (p - 0.8) / 0.2) : 5;
-        packetEl.setAttribute("r", Math.max(r, 1));
-        if (p < 1) { packetAnimId = requestAnimationFrame(tick); }
-        else { packetEl.setAttribute("opacity", "0"); packetAnimId = null; }
-      }
-      packetAnimId = requestAnimationFrame(tick);
-    }
-
-    function updateUI() {
-      document.getElementById("stepCounter").textContent = currentStep + " / " + STEPS.length;
-      document.getElementById("progress").style.width = ((currentStep / STEPS.length) * 100) + "%";
-      document.getElementById("prevBtn").disabled = currentStep === 0;
-      document.getElementById("nextBtn").disabled = currentStep >= STEPS.length;
-
-      document.querySelectorAll(".step-group").forEach(function (g) { g.classList.remove("visible"); });
-      document.querySelectorAll(".actor-card").forEach(function (a) {
-        a.classList.remove("glow"); a.querySelector(".card-bg").style.filter = "url(#shadowFilter)";
       });
-      document.querySelectorAll(".state-ring").forEach(function (r) { r.classList.remove("active"); });
-      document.getElementById("messenger").classList.remove("visible");
-      document.getElementById("messengerRing").classList.remove("visible");
-      document.getElementById("messengerLink").classList.remove("visible");
-      document.getElementById("reviewPage").classList.remove("visible");
-      document.getElementById("browserHint").classList.remove("visible");
-      document.getElementById("hitlObject").classList.remove("visible");
-      document.getElementById("approveBtn").setAttribute("fill","#16A34A");
-      document.getElementById("approveGlow").setAttribute("opacity","0");
-      document.getElementById("approveTxt").textContent="Approve";
+      return hitl;
+    }
+    function poll(flow, status = 'completed', action) {
+      const base = { status, case_id: caseID(flow) };
+      if (status === 'expired') return { ...base, expired_at: hitlObject(flow).expires_at, default_action: flow === 'browser' ? 'skip' : 'abort' };
+      if (status === 'cancelled') return { ...base, cancelled_at: COMPLETED_AT, reason: 'The service withdrew this review case.' };
+      if (status !== 'completed') return { ...base, expires_at: hitlObject(flow).expires_at };
+      return { ...base, completed_at: COMPLETED_AT, result: flow === 'browser' ? selectionResult() : { action: action || 'confirm', data: {} } };
+    }
+    function step(title, description, from, to, route, kind, label, body, status = 'none', note = '') { return { title, description, from, to, route, kind, label, body, status, note }; }
 
-      document.querySelectorAll(".step-item").forEach(function (item, i) {
-        item.classList.remove("active", "completed");
-        if (i < currentStep - 1) item.classList.add("completed");
-        if (i === currentStep - 1) item.classList.add("active");
+    function coreSequence(flow, outcome) {
+      const browser = flow === 'browser', example = story();
+      const terminal = ['expired','cancelled'].includes(outcome) ? outcome : 'completed';
+      const action = outcome === 'declined' ? 'cancel' : 'confirm';
+      const hitl = hitlObject(flow);
+      const choices = selectedSummary();
+      const steps = [
+        step('Tell your assistant what you need', browser ? `“${example.task}” Your assistant starts looking for suitable options.` : `Your assistant has prepared the next step for ${choices}. It asks you before continuing.`, 'human','agent','Your task','task','Illustrative task · not a wire body',{ instruction: example.task }),
+        step(browser ? 'Find suitable options' : 'Prepare the next step', browser ? `Your assistant asks the ${example.service.toLowerCase()} for matching options.` : `The ${example.service.toLowerCase()} prepares a clear summary for you to check.`,'agent','service','Assistant asks the platform','api','Illustrative application request',browser ? example.request : { selected: state.selected, prepare_only: true }),
+        step('Ask for your choice', `The ${example.service.toLowerCase()} pauses the workflow and creates a review. Your assistant cannot make this decision for you.`,'service','agent','Please choose','handoff','HTTP 202 · application envelope',{ status:'human_input_required',hitl },'pending','The platform hosts the review and records your response.'),
+        step(browser ? 'Send you the review link' : 'Show you the messenger buttons', browser ? `Your messenger shows: “${example.prompt}” Open review takes you to the platform’s page.` : `Confirm continues with your chosen ${state.story === 'jobs' ? 'applications' : state.story === 'research' ? 'comparison' : 'headphones'}. Cancel stops this step. Details opens the full review.`,'agent','human',browser ? 'Review link in your messenger' : 'Confirm · Cancel · Details',browser ? 'relay' : 'inline','Delivery illustration · not a wire body',{ prompt:hitl.prompt,review_url:hitl.review_url,...(browser ? {} : { inline_actions:hitl.inline_actions }) },'pending')
+      ];
+      if(browser) {
+        steps.push(step('Open the review page','The page belongs to the platform. If this review requires a named person, the platform checks who you are and whether you may respond.','human','service','Open the review link','browser','GET poll_url · optional opened state',poll(flow,'opened'),'opened','A review link gives case access; it does not prove identity.'));
+        steps.push(step('Choose what matters to you', `${example.prompt} Try the choices in the illustration, then press “Use my selection”.`,'human','service','You choose the options','selection','GET poll_url · optional progress',poll(flow,'in_progress'),'in_progress',example.single ? 'Choose one product. Your order will be reviewed before purchase.' : 'Choose one or more options. The assistant follows your selection.'));
+      } else steps.push(step(action === 'cancel' ? 'You choose Cancel' : 'You choose Confirm',action === 'cancel' ? 'You explicitly stop this next step. Cancel is a recorded decision.' : 'You explicitly press Confirm. The assistant relays your choice; it cannot invent your consent.','human','agent',action === 'cancel' ? 'Your Cancel button' : 'Your Confirm button','inline-tap','Illustrative human-triggered action',{case_id:caseID(flow),action,submitted_via:'telegram_inline_button'},'pending'));
+      if(terminal !== 'completed') steps.push(step(terminal === 'expired' ? 'Time runs out' : 'The platform withdraws the request',terminal === 'expired' ? 'No answer arrived before the deadline. Nothing is treated as your approval.' : 'The platform closes this request without recording your choice.','service','agent',terminal === 'expired' ? 'Deadline reached' : 'Request withdrawn','error','GET poll_url · terminal response',poll(flow,terminal),terminal,'The assistant reports what happened. A closed request cannot reopen.'));
+      else if(outcome === 'step-up') {
+        steps.push(step('Continue on the review page','The messenger cannot satisfy the platform’s verification rules. Your assistant sends you the original review link.','service','agent','Open the full review','step-up','Illustrative error · service-specific body',{error:'browser_review_required',review_url:hitl.review_url},'pending'));
+        steps.push(step('Confirm on the platform’s page','The platform performs the required checks. You review the summary and explicitly confirm.','human','service','Your browser decision','decision','Illustrative browser response body',{action:'confirm',data:{}},'completed','The first accepted response stays recorded. A correction uses a new review.'));
+      } else steps.push(step(browser ? 'Save your selection' : 'Record your decision',browser ? `Your choice is recorded: ${choices}. This review is complete.` : action === 'cancel' ? 'Your Cancel decision is recorded. The next step stops.' : 'Your Confirm decision is recorded. The service still checks permission before carrying out the next step.',browser ? 'human' : 'agent','service','Your decision is recorded','decision',browser ? 'Illustrative browser response body' : 'POST submit_url · SubmitRequest',browser ? selectionResult() : {action,data:{},submitted_via:'telegram_inline_button',submitted_by:{platform:'telegram',platform_user_id:'123456789'}},'completed','A recorded decision cannot be overwritten. Changes need a new review.'));
+      steps.push(step('Tell your assistant what you chose',terminal === 'completed' ? `The platform sends the recorded response back to your assistant: ${browser ? choices : action === 'cancel' ? 'Cancel' : 'Confirm'}.` : 'Your assistant receives the closed request’s outcome.','service','agent','Your response reaches the assistant',terminal === 'completed' ? 'result' : 'error','GET poll_url · PollResponse',poll(flow,terminal,action),terminal));
+      steps.push(step(terminal !== 'completed' ? 'Stop and let you know' : browser ? example.next : action === 'cancel' ? example.declined : example.ready,
+        terminal !== 'completed' ? 'Your assistant tells you why the workflow stopped. You can start a fresh request.' : browser ? `${example.next}: ${choices}. ${state.story === 'jobs' ? 'You review sending in a separate confirmation.' : state.story === 'purchase' ? 'You check the order summary before confirming a purchase.' : 'You can then decide whether to share the comparison.'}` : action === 'cancel' ? 'The assistant keeps the preparation. It does not carry out the cancelled next step.' : 'Your confirmation is saved. The platform checks current permission and the agreed details before carrying out the next step.', 'agent','human','Your next step',terminal === 'completed' ? 'boundary' : 'error','Explanation · not a wire body',{review_status:terminal,selected:state.selected,next_step:browser ? example.next : action === 'cancel' ? example.declined : example.ready,business_execution:'separate_authorization_contract'},terminal,browser ? 'Choosing an option starts preparation. Sending, sharing or buying is a separate next step.' : 'This illustration sends no applications, shares no documents and places no orders.'));
+      return steps;
+    }
+    function accessSequence(outcome) {
+      const declined = outcome === 'declined';
+      const expired = outcome === 'expired';
+      const terminal = expired ? 'expired' : 'completed';
+      const steps = [
+        step('Read the public catalogue', 'A public-web signature can establish the signing entity and request integrity. It does not establish a user or grant delegated rights. Anonymous public reads may also be allowed.', 'agent', 'service', 'GET /v1/catalog · optional HTTP signature', 'public', 'Binding illustration · not a wire body', { profile: 'hitl-agent-access-public-web/0.1', proof: 'RFC 9421 + pinned Web Bot Auth draft', capability: 'public_catalogue_read' }, 'none', 'PUBLIC ORIGIN ≠ USER AUTHORITY · Public-web signing is separate from delegated API enrollment.'),
+        step('Enroll a bounded delegation', 'OAuth Authorization Code with PKCE and DPoP establishes verified identity and key facts. The independently authenticated account owner confirms enrollment; the service creates a principal and a bounded grant.', 'human', 'service', 'OAuth + PKCE + DPoP · owner confirmation', 'grant', 'Reference grant summary · illustrative', { token_scopes: ['bookings:prepare', 'bookings:commit', 'hitl:reviews:read'], local_grant: { max_total_cents: 50000 }, effective_rights: 'token scopes ∩ active local grant ∩ service policy' }, 'none', 'BOUNDED DELEGATION · Confirmation cannot exceed an active grant. The reference limit is per operation, not a cumulative budget.'),
+        step('Prepare an immutable operation', 'A DPoP-authenticated prepare request includes an Idempotency-Key. The service validates the offer, quantity and grant, then persists the exact item, price, fees, terms and versions. JCS + SHA-256 binds the snapshot.', 'agent', 'service', 'POST /v1/bookings/prepare · Idempotency-Key', 'snapshot', 'Illustrative stored operation summary', { operation_id: 'operation_4821', status: 'awaiting_approval', snapshot: BOOKING_SNAPSHOT, snapshot_digest: SNAPSHOT_DIGEST }, 'none', 'IMMUTABLE SNAPSHOT · The stored operation is the source of truth for the review display and eventual execution.'),
+        step('Bind a review to that operation', 'The service returns a v0.9 confirmation case with x-hitl-agent-access context. Version and digest are correlation metadata checked against persisted state; they are not credentials or portable grants.', 'service', 'agent', 'HTTP 202 · bound confirmation case', 'handoff', 'HTTP 202 · application envelope', { status: 'human_input_required', hitl: hitlObject('access') }, 'pending', 'BROWSER REVIEW REQUIRED · Agent Access exposes neither submit_url nor submit_token and uses default_action abort.'),
+        step('Relay the owner’s review URL', 'The agent forwards the exact review link. The service exchanges the initial opaque token for a short-lived case-scoped browser session and redirects to a token-free URL.', 'agent', 'human', 'Prompt + exact review_url', 'relay', 'Delivery illustration · not a wire body', { prompt: 'Review the booking terms and total.', review_url: hitlObject('access').review_url }, 'pending', 'CASE ACCESS · Protected review content still requires the authenticated, authorized owner.'),
+        step('Authenticate & review the snapshot', 'The service checks the authenticated owner, case authorization and expiry before displaying protected terms. The human sees the persisted snapshot, not a regenerated offer. Browser authentication and CSRF protect the decision.', 'human', 'service', 'Owner authentication · service-hosted review', 'owner', 'Owner review illustration · not a wire body', { operation_id: 'operation_4821', total_cents: 24000, refundable: false, snapshot_digest: SNAPSHOT_DIGEST }, 'opened', 'VERIFICATION SCOPE · Owner-review evidence does not claim proof of humanity, biometrics or legal authority.'),
+        step(expired ? 'The review expires' : declined ? 'Record the owner’s cancellation' : 'Record the owner’s confirmation', expired ? 'No accepted decision arrived before the deadline. The case and operation expire; default_action abort never authorizes execution.' : declined ? 'Cancel is an accepted human decision: the HITL case becomes completed with action cancel, while the operation becomes cancelled. No booking is created.' : 'The authorized owner explicitly confirms. The HITL decision becomes completed and the operation becomes ready. This records intent; it does not create a booking.', expired ? 'service' : 'human', 'service', expired ? 'Deadline reached · default_action abort' : `POST /review/{case_id}/respond · ${declined ? 'cancel' : 'confirm'}`, expired || declined ? 'error' : 'ready', 'GET /v1/reviews/{id} · PollResponse', poll('access', terminal, declined ? 'cancel' : 'confirm'), terminal, 'TWO STATE MACHINES · Review completed and operation ready are different facts. Only operation succeeded establishes local execution.')
+      ];
+      if (expired || declined) {
+        steps.push(step('Report the outcome & stop', 'The agent retrieves the authoritative terminal outcome. The reference creates no booking for owner cancellation or review expiry; it does not silently retry a declined confirmation.', 'service', 'agent', `Operation ${expired ? 'expired' : 'cancelled'} · no booking`, 'error', 'Operation summary · illustrative projection', { operation_id: 'operation_4821', status: expired ? 'expired' : 'cancelled', booking: null }, terminal, 'NO EXECUTION · The service’s stored operation state governs whether any commit is possible.'));
+        return explainBooking(steps,outcome);
+      }
+      steps.push(step('Commit with fresh authorization', 'The initiating principal sends a fresh DPoP-authenticated commit with expected_version and snapshot_digest. The service rechecks the current token, scopes, active grant, owner, policy, snapshot, expiry and stock.', 'agent', 'service', 'POST /v1/operations/{id}/commit · fresh DPoP', 'commit', 'POST commit · reference request body', { expected_version: hitlObject('access').context['x-hitl-agent-access'].operation_version, snapshot_digest: SNAPSHOT_DIGEST }, 'completed', 'EXPLICIT COMMIT · Confirmation alone never books. Current authority and the immutable operation must still pass every execution check.'));
+      if (outcome === 'revoked' || outcome === 'changed') {
+        const revoked = outcome === 'revoked';
+        steps.push(step(revoked ? 'Reject the revoked grant' : 'Require a new preparation', revoked ? 'A local grant revocation committed before reservation prevents execution, even after an earlier confirmation. The operation is cancelled and no booking is created.' : 'Changed material terms supersede the reviewed operation. The service requires a new preparation and review instead of mutating the accepted snapshot or executing different terms.', 'service', 'agent', revoked ? 'Commit refused · grant revoked' : 'Commit refused · operation superseded', 'error', 'Operation summary · illustrative projection', { operation_id: 'operation_4821', status: revoked ? 'cancelled' : 'superseded', booking: null, reason: revoked ? 'grant_revoked' : 'material_terms_changed' }, 'completed', 'REVIEW STILL COMPLETED · The historical decision remains immutable even when execution is refused.'));
+      } else steps.push(step('Persist one local booking', 'The reference commits reservation, inventory change, a unique local booking and its result in one PostgreSQL transaction. A retry after a lost success response returns the stored result without another booking.', 'service', 'agent', 'Operation succeeded · persisted result', 'receipt', 'Operation summary · illustrative projection', { operation_id: 'operation_4821', status: 'succeeded', booking: { id: 'booking_4821', total_cents: 24000, currency: 'EUR' } }, 'completed', 'LOCAL EXECUTION ONLY · The reference does not claim external provider execution, payment settlement or reconciliation of uncertain remote outcomes.'));
+      return explainBooking(steps,outcome);
+    }
+
+    function explainBooking(steps,outcome) {
+      const explanations = {
+        public: ['Register the assistant','The service checks the assistant’s signed identity. This identifies the software; your permission is a separate check.'],
+        grant: ['Give limited booking permission','You allow this assistant to prepare bookings within chosen limits. You can withdraw that permission.'],
+        snapshot: ['Prepare the exact booking','The service stores the price (€240) and the non-refundable terms. The eventual booking must use these exact details.'],
+        handoff: ['Ask you to review','The booking stays on hold. Your assistant receives a link to your review page.'],
+        relay: ['Send you the booking review','Your messenger shows the review link. Open it to check the price and terms.'],
+        owner: ['Sign in and check the terms','The booking service checks that you are the authorized owner before showing protected details. You review the saved price and terms.'],
+        ready: ['Record your confirmation','You press Confirm. Your decision is saved, and the booking becomes ready for the final permission check.'],
+        commit: ['Recheck permission before booking','The service checks that permission still exists and that the price, terms, deadline and availability still match.'],
+        receipt: ['Create one booking','The service records one local booking for €240. Repeating the same successful request returns that booking without creating another.']
+      };
+      return steps.map(item => {
+        const explanation = explanations[item.kind];
+        if(explanation) return {...item,title:explanation[0],description:explanation[1],note:'Confirming records your decision. Booking also requires the service’s current permission checks.'};
+        if(item.kind === 'error') {
+          const stop = outcome === 'declined' ? ['You choose Cancel','Your cancellation is saved. The booking stops; no booking is created.'] : outcome === 'revoked' ? ['Stop: permission was withdrawn','You withdrew the assistant’s permission. The earlier confirmation stays recorded, but no booking is created.'] : outcome === 'changed' ? ['Stop: the booking terms changed','The service asks for a new review because the price or terms changed. It cannot book different terms using your earlier confirmation.'] : ['Stop: the review timed out','No timely confirmation arrived. The review and prepared booking expire; no booking is created.'];
+          return {...item,title:stop[0],description:stop[1],note:'The recorded review and the booking outcome are separate facts.'};
+        }
+        return item;
       });
+    }
 
-      var descPanel = document.getElementById("descPanel");
-      if (currentStep === 0) {
-        descPanel.classList.remove("visible");
-        packetEl.setAttribute("opacity", "0");
-        updateBottomText(null); return;
+    function routeKey(current) {
+      if (current.kind === 'task') return 'task';
+      if (['api', 'public', 'snapshot', 'commit'].includes(current.kind)) return 'request';
+      if (current.kind === 'handoff') return 'handoff';
+      if (['relay', 'inline', 'inline-tap', 'boundary'].includes(current.kind)) return 'delivery';
+      if (current.kind === 'grant' || current.kind === 'owner') return 'owner';
+      if (['browser', 'selection'].includes(current.kind)) return 'owner';
+      if (current.kind === 'decision') return state.flow === 'inline' && state.outcome !== 'step-up' ? 'inline' : 'decision';
+      if (current.kind === 'ready') return 'decision';
+      return 'poll';
+    }
+    function diagramPaths() {
+      if (window.matchMedia('(max-width: 580px)').matches) return {
+        task: 'M280 282C345 282 335 155 405 155', request: 'M610 130H690',
+        handoff: 'M715 185C690 215 650 290 610 290C565 290 490 250 490 195',
+        delivery: 'M465 195C400 255 365 375 250 410C210 430 185 370 285 305', review: 'M825 195V440',
+        decision: 'M800 440V200', poll: 'M695 190H610',
+        owner: 'M285 270C420 340 510 420 600 450', inline: 'M400 365C610 365 770 300 800 210'
+      };
+      return {
+        task: 'M225 325C310 325 305 145 365 145', request: 'M570 120H740',
+        handoff: 'M745 175C720 250 685 315 635 315C555 315 465 300 465 245',
+        delivery: 'M455 245V415C455 485 330 450 225 375', review: 'M830 245V390',
+        decision: 'M810 390V250', poll: 'M742 200H575',
+        owner: 'M220 375C365 450 570 535 730 535', inline: 'M590 500C680 500 760 360 790 250'
+      };
+    }
+    function renderGraph(current) {
+      const paths = diagramPaths();
+      const visited = new Set(sequence.slice(0, state.step + 1).map(routeKey));
+      document.querySelectorAll('[data-route]').forEach((path) => { path.setAttribute('d', paths[path.dataset.route]); path.dataset.visited = String(visited.has(path.dataset.route)); });
+      const route = routeKey(current);
+      const color = { task: 'human', request: 'agent', handoff: 'accent', delivery: 'agent', review: 'human', decision: 'service', poll: 'agent', owner: 'human', inline: 'service' }[route];
+      $('architecture').style.setProperty('--signal', `var(--${color})`);
+      $('hub-status').textContent = STATUS_LABELS[current.status];
+      $('signal-caption').textContent = `${String(state.step + 1).padStart(2, '0')} / ${state.flow === 'access' ? 'Booking authorization' : current.route}`;
+      $('signal-detail').textContent = state.reduced ? 'Highlighted paths show the handoff.' : 'The moving packet follows this step.';
+      const hasCase = current.status !== 'none' && state.step >= (state.flow === 'access' ? 4 : 3);
+      const hitl = hitlObject(state.flow);
+      const showButtons = state.flow === 'inline' && state.step >= 3;
+      const closed = ['completed','expired','cancelled'].includes(current.status) ? 'disabled' : '';
+      $('channel-body').innerHTML = `<div class="bubble">${hasCase ? escapeHTML(hitl.prompt) : 'The agent is working on your task. A review request appears here when human input is needed.'}</div>${hasCase && !showButtons ? '<button type="button" class="channel-button" data-demo-action="open">Open review ↗</button><div class="channel-link">On the service’s page</div>' : ''}${showButtons ? `<div class="demo-actions"><button type="button" data-demo-action="confirm" ${closed} class="demo-action${state.step >= 4 && state.outcome !== 'declined' ? ' selected' : ''}">Confirm${state.step >= 4 && state.outcome !== 'declined' ? ' ✓' : ''}</button><button type="button" data-demo-action="cancel" ${closed} class="demo-action${state.step >= 4 && state.outcome === 'declined' ? ' selected' : ''}">Cancel${state.step >= 4 && state.outcome === 'declined' ? ' ✓' : ''}</button><button type="button" data-demo-action="details" ${closed} class="demo-action link">Details ↗</button></div>` : ''}`;
+      let body = '';
+      if (['expired', 'cancelled'].includes(current.status)) body = `<div class="scene-label">Terminal case</div><h3>${current.status === 'expired' ? 'Review expired.' : 'Case withdrawn.'}</h3><p>No accepted human response.<br>The service returns a terminal outcome.</p>`;
+      else if (state.flow === 'access') {
+        const stopped = ['declined', 'revoked', 'changed'].includes(state.outcome) && state.step >= 6;
+        body = `<div class="scene-label">Authenticated owner review</div><h3>${stopped ? 'Execution stopped.' : 'The exact booking terms.'}</h3>${rows([['Total', new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(BOOKING_SNAPSHOT.total_cents / 100)], ['Terms', 'Non-refundable'], ['Reviewed terms', 'Fixed for this booking']])}<div class="demo-actions"><span class="demo-action selected">${state.outcome === 'declined' && state.step >= 6 ? 'Cancel ✓' : state.step >= 6 ? 'Confirm ✓' : 'Confirm'}</span><span class="demo-action">${state.step >= 6 ? 'Decision recorded' : 'Cancel'}</span></div>`;
+      } else if (state.flow === 'browser') {
+        const recorded = current.status === 'completed';
+        const choices = story().items.map(item => {
+          const selected = state.selected.includes(item.id);
+          return `<button type="button" class="demo-choice${selected ? ' chosen' : ''}" data-choice="${item.id}" aria-pressed="${selected}" ${recorded ? 'disabled' : ''}><span class="check" aria-hidden="true">${selected ? '✓' : ''}</span><span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.detail)}</small></span></button>`;
+        }).join('');
+        body = `<div class="scene-label">${escapeHTML(story().service)} · Your review</div><h3>${recorded ? 'Your selection is saved.' : 'Choose your options.'}</h3>${choices}<div class="demo-actions"><button type="button" class="demo-action selected" data-review-action="${recorded ? 'followup' : 'submit'}">${recorded ? escapeHTML(story().followup) + ' ↗' : 'Use my selection'}</button></div>`;
+        if(state.step === sequence.length - 1) body = `<div class="scene-label">Your assistant continues</div><h3>${escapeHTML(story().next)}</h3><p class="selected-summary">${chosenItems().map(item => `<strong>✓ ${escapeHTML(item.title)}</strong>`).join('<br>')}</p><div class="demo-actions"><button type="button" class="demo-action selected" data-review-action="followup">${escapeHTML(story().followup)} ↗</button></div>`;
+      } else body = `<div class="scene-label">Full review on the platform</div><h3>${state.outcome === 'step-up' && state.step >= 5 ? 'Verify on the review page.' : 'Check the full summary.'}</h3><p>${escapeHTML(selectedSummary())}</p><div class="demo-actions"><span class="demo-action selected">${current.status === 'completed' ? state.outcome === 'declined' ? 'Cancelled by you ✓' : 'Confirmed by you ✓' : 'Full details available ↗'}</span></div>`;
+      $('scene').innerHTML = `<div class="scene-top"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>Your review page</div><div class="scene-content">${body}</div>`;
+      const access = state.flow === 'access';
+      const succeeded = current.kind === 'receipt';
+      $('execution-gate').dataset.ready = String(succeeded);
+      $('execution-gate').innerHTML = access ? succeeded ? 'Booking confirmed<br>One local booking saved' : 'Final permission check required<br>Then the booking is created' : state.flow === 'browser' ? `${escapeHTML(story().next)}<br>Then you review the next step` : 'Your decision is saved<br>The platform checks permission';
+    }
+    function highlightJSON(value) {
+      // Tokenize the original JSON, then escape each token; never insert raw JSON as HTML.
+      let cursor = 0;
+      let html = '';
+      const tokens = /"(?:\\.|[^"\\])*"\s*:|"(?:\\.|[^"\\])*"|\b(?:true|false|null|-?\d+(?:\.\d+)?)\b/g;
+      for (const match of value.matchAll(tokens)) {
+        html += escapeHTML(value.slice(cursor, match.index));
+        const token = match[0];
+        const cls = token.endsWith(':') ? 'json-key' : token.startsWith('"') ? 'json-string' : 'json-value';
+        html += `<span class="${cls}">${escapeHTML(token)}</span>`;
+        cursor = match.index + token.length;
       }
-
-      var step = STEPS[currentStep - 1];
-      step.elements.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add("visible"); });
-      step.actors.forEach(function (id) {
-        var a = document.getElementById(id); a.classList.add("glow");
-        a.querySelector(".card-bg").style.filter = "url(#glowFilter)";
-        var rid = ACTOR_RINGS[id]; if (rid) document.getElementById(rid).classList.add("active");
+      return html + escapeHTML(value.slice(cursor));
+    }
+    function cancelAnimations() { animations.forEach((animation) => animation.cancel()); animations = []; }
+    function animateScene(current) {
+      cancelAnimations();
+      const path = $('transfer-path');
+      const mobile = window.matchMedia('(max-width: 580px)').matches;
+      const direction = current.kind === 'inline-tap' ? mobile ? 'M285 305C185 370 210 430 250 410C365 375 400 255 465 195' : 'M225 375C330 450 455 485 455 415V245' : diagramPaths()[routeKey(current)];
+      path.setAttribute('d', direction);
+      $('packet').style.opacity = '0';
+      if (state.reduced) return;
+      // Sample SVG geometry once; WAAPI then animates compositor transforms.
+      const length = path.getTotalLength();
+      const frames = Array.from({ length: 41 }, (_, index) => {
+        const point = path.getPointAtLength(length * index / 40);
+        return { transform: `translate(${point.x}px, ${point.y}px)`, opacity: index === 0 || index === 40 ? 0 : 1, offset: index / 40 };
       });
-      if (step.showMessenger) {
-        document.getElementById("messenger").classList.add("visible");
-        document.getElementById("messengerRing").classList.add("visible");
-        document.getElementById("messengerLink").classList.add("visible");
+      animations.push($('packet').animate(frames, { duration: 1700 / state.speed, iterations: state.playing ? 2 : 1, easing: 'linear' }));
+      if (current.status !== 'none') animations.push($('hub-orbit').animate([{ transform: 'scale(1)', opacity: .7 }, { transform: 'scale(1.12)', opacity: .1 }, { transform: 'scale(1)', opacity: .7 }], { duration: 1900 / state.speed, iterations: state.playing ? 2 : 1 }));
+      document.querySelectorAll('.actor[data-active="true"] .actor-art').forEach((art) => animations.push(art.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-5px)' }, { transform: 'translateY(0)' }], { duration: 2400 / state.speed, iterations: state.playing ? 2 : 1, easing: 'ease-in-out' })));
+    }
+    function writeURL() {
+      const params = new URLSearchParams({ story: state.story, flow: state.flow, outcome: state.outcome, step: String(state.step + 1), selected: state.selected.join(',') });
+      if (location.hash.slice(1) !== params.toString()) history.replaceState(null, '', `#${params}`);
+    }
+    function readURL() {
+      const params = new URLSearchParams(location.hash.slice(1));
+      state.story = Object.hasOwn(STORIES,params.get('story')) ? params.get('story') : 'jobs';
+      const requested = (params.get('selected') || '').split(',');
+      const allowed = story().items.filter(item => requested.includes(item.id)).map(item => item.id);
+      state.selected = allowed.length ? story().single ? allowed.slice(0,1) : allowed : [...story().defaults];
+      const flow = params.get('flow');
+      state.flow = Object.hasOwn(FLOW_META, flow) ? flow : 'browser';
+      state.outcome = FLOW_META[state.flow].outcomes.some(([id]) => id === params.get('outcome')) ? params.get('outcome') : 'success';
+      sequence = state.flow === 'access' ? accessSequence(state.outcome) : coreSequence(state.flow, state.outcome);
+      const requestedStep = Number(params.get('step'));
+      state.step = Number.isFinite(requestedStep) ? Math.max(0, Math.min(sequence.length - 1, Math.floor(requestedStep) - 1)) : 0;
+    }
+    function render(syncURL = true) {
+      sequence = state.flow === 'access' ? accessSequence(state.outcome) : coreSequence(state.flow, state.outcome);
+      state.step = Math.max(0, Math.min(sequence.length - 1, state.step));
+      const current = sequence[state.step], meta = FLOW_META[state.flow];
+      const sequenceKey = `${state.story}/${state.flow}/${state.outcome}/${state.selected.join(",")}`;
+      if (sequenceKey !== lastSequenceKey) {
+        $('steps').replaceChildren(...sequence.map((item, index) => {
+          const li = document.createElement('li'), button = document.createElement('button');
+          button.type = 'button'; button.className = 'step'; button.dataset.step = String(index);
+          button.title = `Step ${index + 1}: ${item.title}`;
+          button.innerHTML = `<span class="step-number" aria-hidden="true">${String(index + 1).padStart(2, '0')}</span><span class="step-name">${escapeHTML(item.title)}</span>`;
+          li.append(button); return li;
+        }));
+        $('outcome').replaceChildren(...meta.outcomes.map(([value, label]) => new Option(label, value)));
+        lastSequenceKey = sequenceKey;
       }
-      if (step.showReview) {
-        document.getElementById("reviewPage").classList.add("visible");
-        document.getElementById("browserHint").classList.add("visible");
+      $('outcome').value = state.outcome;
+      document.querySelectorAll('[data-flow]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.flow === state.flow)));
+      $('steps').querySelectorAll('button').forEach((button, index) => index === state.step ? button.setAttribute('aria-current', 'step') : button.removeAttribute('aria-current'));
+      $('flow-heading').textContent = meta.heading; $('flow-description').textContent = meta.description; $('stage-scope').textContent = state.flow === 'access' ? 'Booking authorization · optional profile' : story().name;
+      document.querySelector('.route-request').textContent = state.flow === 'access' ? 'Booking request' : state.flow === 'inline' ? 'Prepare the next step' : 'Search request';
+      document.querySelector('.route-result').textContent = state.flow === 'browser' ? 'Please choose' : 'Please confirm';
+      // Reuse one renderer and its listeners across the three accessible story panels.
+      const storyPanel = $(`story-panel-${state.story}`);
+      if ($('story-content').parentElement !== storyPanel) storyPanel.append($('story-content'));
+      document.querySelectorAll('[data-story-panel]').forEach((panel) => panel.hidden = panel !== storyPanel);
+      document.querySelectorAll('[data-story]').forEach((button) => {
+        const selected = button.dataset.story === state.story;
+        button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+      });
+      storyPanel.setAttribute('role', state.flow === 'access' ? 'region' : 'tabpanel');
+      storyPanel.setAttribute('aria-labelledby', state.flow === 'access' ? 'flow-heading' : `story-tab-${state.story}`);
+      $('storybar').hidden = state.flow === 'access'; $('story-summary').hidden = state.flow === 'access'; $('story-summary').textContent = story().summary;
+      document.querySelector('[data-actor="service"] .actor-heading').textContent = state.flow === 'access' ? 'Booking service' : story().service;
+      $('case-status').textContent = STATUS_LABELS[current.status];
+      $('case-status').dataset.status = current.status;
+      document.querySelectorAll('[data-actor]').forEach((actor) => actor.dataset.active = String([current.from, current.to].includes(actor.dataset.actor)));
+      $('transfer-label').textContent = current.route; renderGraph(current);
+      $('payload-label').textContent = current.label; payloadText = JSON.stringify(current.body, null, 2); $('payload').innerHTML = highlightJSON(payloadText);
+      $('payload').parentElement.scrollTop = 0;
+      $('step-label').textContent = String(state.step + 1).padStart(2, '0'); $('step-title').textContent = current.title; $('step-description').textContent = current.description;
+      $('boundary-note').textContent = current.note || (state.flow === 'access' ? 'Optional booking profile: the assistant’s identity, your permission, your review and the final booking are separate checks.' : 'The platform keeps the review. Your assistant follows your decision.');
+      $('counter').textContent = `${String(state.step + 1).padStart(2, '0')} / ${String(sequence.length).padStart(2, '0')}`;
+      $('previous').disabled = state.step === 0; $('next').disabled = state.step === sequence.length - 1;
+      $('play-label').textContent = state.playing ? 'Pause' : state.step === sequence.length - 1 ? 'Replay flow' : 'Play flow'; $('play-icon').setAttribute('href', state.playing ? '#icon-pause' : '#icon-play');
+      $('progress').setAttribute('aria-valuemax', String(sequence.length)); $('progress').setAttribute('aria-valuenow', String(state.step + 1)); $('progress').setAttribute('aria-valuetext', `Step ${state.step + 1} of ${sequence.length}: ${current.title}`);
+      $('progress-fill').style.transform = `scaleX(${(state.step + 1) / sequence.length})`;
+      animateScene(current); if (syncURL) writeURL();
+    }
+    function schedule() {
+      clearTimeout(timer);
+      if (!state.playing) return;
+      timer = setTimeout(() => {
+        if (state.step < sequence.length - 1) {
+          state.step += 1; if (state.step === sequence.length - 1) state.playing = false;
+          render(); schedule(); if (!state.playing) $('playback-status').textContent = 'Flow complete · choose another outcome or replay';
+        }
+      }, 5200 / state.speed);
+    }
+    function pause(announce = true) {
+      clearTimeout(timer); timer = null; state.playing = false; animations.forEach((animation) => animation.pause());
+      $('play-label').textContent = state.step === sequence.length - 1 ? 'Replay flow' : 'Play flow'; $('play-icon').setAttribute('href', '#icon-play');
+      if (announce) $('playback-status').textContent = 'Paused · use the step controls to explore';
+    }
+    function jump(index) { pause(false); state.step = index; render(); $('playback-status').textContent = 'Manual exploration · playback paused'; }
+    async function copyText(text, success, fallbackTarget) {
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+        await navigator.clipboard.writeText(text); $('playback-status').textContent = success;
+      } catch {
+        if (fallbackTarget) {
+          const range = document.createRange(); range.selectNodeContents(fallbackTarget);
+          const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range); fallbackTarget.parentElement.focus();
+          $('playback-status').textContent = 'Clipboard unavailable. The payload is selected; copy it with your keyboard.';
+        } else $('playback-status').textContent = 'Clipboard unavailable. Copy the current link from your browser’s address bar.';
       }
-      if (step.showHitlObj) document.getElementById("hitlObject").classList.add("visible");
-      if (step.id >= 6) {
-        document.getElementById("approveBtn").setAttribute("fill","#0F766E");
-        document.getElementById("approveGlow").setAttribute("opacity","1");
-        document.getElementById("approveTxt").textContent="\u2713 Approved";
-      }
-
-      animatePacket(step.id);
-      descPanel.classList.add("visible");
-      document.getElementById("descTitle").textContent = "Step " + step.id + ": " + step.title;
-      document.getElementById("descTitle").style.color = step.hex;
-      document.getElementById("descText").textContent = step.desc;
-      var ai = document.getElementById("step-item-" + step.id);
-      if (ai) ai.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      updateBottomText(step);
     }
-
-    function updateBottomText(step) {
-      var el = document.getElementById("bottomText");
-      if (!step) { el.textContent = "Press \u25b6 Play or step through the HITL Protocol v0.7 architecture."; return; }
-      var t = "Step " + step.id + "/" + STEPS.length + ": " + step.title + " (" + step.subtitle + ")\n" + step.desc;
-      if (currentStep === STEPS.length) t += "\n\n\u2014 Full HITL Protocol v0.7 flow complete.";
-      el.textContent = t;
+    function applyMotion() {
+      state.reduced = $('reduce-motion').checked || motionQuery.matches;
+      document.documentElement.dataset.motion = state.reduced ? 'reduced' : 'full';
+      if (state.reduced) { cancelAnimations(); $('packet').style.opacity = '0'; }
     }
-
-    function nextStep() { if (currentStep < STEPS.length) { currentStep++; updateUI(); } else if (isPlaying) { togglePlay(); } }
-    function prevStep() { if (currentStep > 0) { currentStep--; updateUI(); } }
-    function goToStep(n) { currentStep = n; updateUI(); }
-    function resetSteps() { if (isPlaying) togglePlay(); currentStep = 0; updateUI(); }
-
-    function togglePlay() {
-      isPlaying = !isPlaying;
-      var btn = document.getElementById("playBtn");
-      if (isPlaying) {
-        btn.innerHTML = "&#9646;&#9646; Pause";
-        if (currentStep >= STEPS.length) currentStep = 0;
-        playInterval = setInterval(function () { if (currentStep < STEPS.length) { currentStep++; updateUI(); } else { togglePlay(); } }, speed);
-      } else { btn.innerHTML = "&#9654; Play"; clearInterval(playInterval); playInterval = null; }
+    function applyTheme() {
+      document.documentElement.dataset.theme = $('theme').value;
+      const dark = $('theme').value === 'dark' || ($('theme').value === 'system' && themeQuery.matches);
+      document.querySelector('meta[name="theme-color"]').content = dark ? '#161b17' : '#f6f5f1';
     }
-
-    function updateSpeed() {
-      speed = parseInt(document.getElementById("speedSlider").value);
-      document.getElementById("speedLabel").textContent = (speed / 1000).toFixed(1) + "s";
-      if (isPlaying) { clearInterval(playInterval); playInterval = setInterval(function () { if (currentStep < STEPS.length) { currentStep++; updateUI(); } else { togglePlay(); } }, speed); }
+    document.querySelector('.flow-switch').addEventListener('click', (event) => { const button = event.target.closest('[data-flow]'); if (!button) return; pause(false); state.flow = button.dataset.flow; state.outcome = 'success'; state.step = 0; render(); $('playback-status').textContent = 'Flow changed · choose a step or play'; });
+    $('outcome').addEventListener('change', () => { pause(false); state.outcome = $('outcome').value; render(); $('playback-status').textContent = 'Outcome changed · playback paused'; });
+    function selectStory(value) {
+      if (value === state.story) return;
+      pause(false); state.story = value; state.selected = [...story().defaults]; state.step = 0; state.outcome = 'success'; render();
+      $('playback-status').textContent = `${story().name} · choose a step or play`;
     }
-
-    function copyPrompt() {
-      var text = document.getElementById("bottomText").textContent;
-      var btn = document.getElementById("copyBtn");
-      navigator.clipboard.writeText(text).then(function () { btn.textContent = "Copied!"; setTimeout(function () { btn.textContent = "Copy"; }, 1200); });
-    }
-
-    // Particles
-    var canvas = document.getElementById("particles"), ctx = canvas.getContext("2d"), particleList = [];
-    function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; }
-    window.addEventListener("resize", resizeCanvas); resizeCanvas();
-    function Particle() { this.reset(); }
-    Particle.prototype.reset = function () {
-      this.x = Math.random() * canvas.width; this.y = Math.random() * canvas.height;
-      this.vx = (Math.random() - .5) * .3; this.vy = (Math.random() - .5) * .3;
-      this.r = Math.random() * 1.5 + .5; this.a = Math.random() * .12 + .03; this.hue = 250 + Math.random() * 30;
-    };
-    Particle.prototype.update = function () { this.x += this.vx; this.y += this.vy; if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset(); };
-    Particle.prototype.draw = function () { ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fillStyle = "hsla(" + this.hue + ",70%,70%," + this.a + ")"; ctx.fill(); };
-    for (var i = 0; i < 50; i++)particleList.push(new Particle());
-    function animP() { ctx.clearRect(0, 0, canvas.width, canvas.height); for (var i = 0; i < particleList.length; i++) { particleList[i].update(); particleList[i].draw(); } requestAnimationFrame(animP); }
-    animP();
-
-    // Keyboard
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "ArrowRight") nextStep(); else if (e.key === "ArrowLeft") prevStep();
-      else if (e.key === " ") { e.preventDefault(); togglePlay(); } else if (e.key === "r" || e.key === "R") resetSteps();
+    $('story-tabs').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-story]'); if (button) selectStory(button.dataset.story);
     });
-
-    updateUI();
+    $('story-tabs').addEventListener('keydown', (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const buttons = [...$('story-tabs').querySelectorAll('[data-story]')], index = buttons.indexOf(event.target);
+      if (index < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault(); event.stopPropagation();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+      selectStory(buttons[next].dataset.story); buttons[next].focus();
+    });
+    $('scene').addEventListener('click', (event) => {
+      const choice = event.target.closest('[data-choice]')?.dataset.choice;
+      if(choice && state.flow === 'browser' && sequence[state.step].status !== 'completed') {
+        pause(false);
+        if(story().single) state.selected = [choice];
+        else if(state.selected.includes(choice)) { if(state.selected.length > 1) state.selected = state.selected.filter(id => id !== choice); else { $('playback-status').textContent = 'Choose at least one option to continue.'; return; } }
+        else state.selected.push(choice);
+        state.step = 5; render();
+        $('scene').querySelector(`[data-choice="${choice}"]`)?.focus();
+        return;
+      }
+      const action = event.target.closest('[data-review-action]')?.dataset.reviewAction;
+      if(action === 'submit') jump(6);
+      if(action === 'followup') { pause(false); state.flow = 'inline'; state.outcome = 'success'; state.step = 3; render(); }
+    });
+    $('channel-body').addEventListener('click', (event) => {
+      const action = event.target.closest('[data-demo-action]')?.dataset.demoAction;
+      if (!action) return;
+      const current = sequence[state.step];
+      if (['expired','cancelled'].includes(current.status)) { $('playback-status').textContent = 'This request is closed. Start a new example to make a new decision.'; return; }
+      if (current.status === 'completed' && action === 'open') { jump(6); return; }
+      pause(false);
+      if (state.flow === 'inline') {
+        state.outcome = action === 'cancel' ? 'declined' : action === 'details' ? 'step-up' : 'success';
+        state.step = action === 'details' ? 5 : 4; render();
+      } else {
+        const index = sequence.findIndex((item) => item.kind === 'browser' || item.kind === 'owner');
+        jump(Math.max(0,index));
+      }
+      $('playback-status').textContent = 'Illustrative button selected · no request sent';
+    });
+    $('steps').addEventListener('click', (event) => { const button = event.target.closest('[data-step]'); if (button) jump(Number(button.dataset.step)); });
+    $('previous').addEventListener('click', () => jump(state.step - 1)); $('next').addEventListener('click', () => jump(state.step + 1)); $('reset').addEventListener('click', () => jump(0));
+    $('play').addEventListener('click', () => { if (state.playing) { pause(); return; } if (state.step === sequence.length - 1) state.step = 0; state.playing = true; render(); schedule(); $('playback-status').textContent = state.reduced ? 'Playing · transitions shown without motion' : 'Playing · pause at any time'; });
+    $('speed').addEventListener('change', () => { state.speed = Number($('speed').value); animations.forEach((animation) => animation.updatePlaybackRate(state.speed)); schedule(); });
+    $('reduce-motion').checked = motionQuery.matches; $('reduce-motion').addEventListener('change', applyMotion);
+    motionQuery.addEventListener('change', () => { $('reduce-motion').checked = motionQuery.matches; applyMotion(); if (motionQuery.matches) pause(); });
+    $('theme').addEventListener('change', applyTheme); themeQuery.addEventListener('change', applyTheme);
+    $('copy-payload').addEventListener('click', () => copyText(payloadText, 'Payload copied', $('payload'))); $('share').addEventListener('click', () => copyText(location.href, 'Link copied · includes flow, outcome, step'));
+    $('inspect-toggle').addEventListener('click', () => { const expanded = $('inspector').hidden; $('inspector').hidden = !expanded; $('inspect-toggle').setAttribute('aria-expanded', String(expanded)); });
+    function toggleFocus(force) { const focused = force ?? document.body.dataset.focus !== 'true'; document.body.dataset.focus = String(focused); $('focus-toggle').setAttribute('aria-pressed', String(focused)); $('focus-toggle').textContent = focused ? 'Exit focus' : 'Focus view'; renderGraph(sequence[state.step]); }
+    $('focus-toggle').addEventListener('click', () => toggleFocus());
+    window.addEventListener('resize', () => { renderGraph(sequence[state.step]); animateScene(sequence[state.step]); });
+    window.addEventListener('hashchange', () => { pause(false); readURL(); render(false); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { pause(); if (document.body.dataset.focus === 'true') toggleFocus(false); return; }
+      const target = event.target;
+      if (!target.closest('#explorer') || target.closest('#story-tabs, select, input, textarea, pre, [contenteditable="true"]') || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.key === 'ArrowRight') { event.preventDefault(); jump(state.step + 1); }
+      if (event.key === 'ArrowLeft') { event.preventDefault(); jump(state.step - 1); }
+    });
+    $('edition-date').textContent = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date('2026-10-06T00:00:00Z')).toUpperCase();
+    readURL(); applyTheme(); applyMotion(); render(false); $('explorer').hidden = false;
   </script>
 </body>
-
 </html>

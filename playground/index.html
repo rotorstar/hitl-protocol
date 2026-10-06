@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HITL Protocol — Interactive Playground</title>
+<title>HITL Protocol v0.9 — Interactive Playground</title>
+<meta name="description" content="Explore HITL v0.9 review types, lifecycle, transport, inline decisions and verification through interactive local examples.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -48,13 +49,13 @@ body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;backg
 .header h1 span{background:linear-gradient(135deg,var(--accent),#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .header p{color:var(--muted);font-size:14px;margin-top:8px;max-width:600px;margin-inline:auto;letter-spacing:0.01em}
 .rfc-strip{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
-.rfc-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--bg3);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);text-decoration:none;letter-spacing:0.02em;transition:all .2s}
+.rfc-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:var(--bg3);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);text-decoration:none;letter-spacing:0.02em;transition:background-color .2s}
 .rfc-pill:hover{color:var(--text2);border-color:var(--border2);text-decoration:none}
 
 /* Nav — pill style with glow */
 .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
 .nav-inner{max-width:1200px;margin:0 auto;display:flex;gap:6px;padding:10px 0}
-.nav button{background:none;border:1px solid transparent;color:var(--muted);padding:8px 18px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;transition:all .25s;white-space:nowrap;letter-spacing:0.01em}
+.nav button{background:none;border:1px solid transparent;color:var(--muted);padding:8px 18px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;transition:background-color .25s, color .25s, opacity .25s;white-space:nowrap;letter-spacing:0.01em}
 .nav button:hover{color:var(--text2);background:rgba(0,0,0,0.04)}
 .nav button.active{color:#fff;background:var(--accent);box-shadow:0 0 20px var(--accent-glow);border-color:transparent}
 .nav button svg{width:14px;height:14px;vertical-align:-2px;margin-right:4px;stroke-width:2}
@@ -67,7 +68,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 .subtitle{color:var(--muted);font-size:14px;margin-top:4px}
 
 /* Glass cards */
-.card{background:var(--card);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .3s ease;box-shadow:var(--shadow)}
+.card{background:var(--card);backdrop-filter:var(--glass);-webkit-backdrop-filter:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:box-shadow .3s ease, border-color .3s ease;box-shadow:var(--shadow)}
 .card:hover{box-shadow:var(--shadow-lg);border-color:var(--border2);transform:translateY(-2px)}
 
 /* Animated cards */
@@ -105,7 +106,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 .control-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .control-label svg{width:14px;height:14px;opacity:0.5}
 .radio-group{display:flex;flex-direction:column;gap:2px}
-.radio-option{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;transition:all .15s;color:var(--text2)}
+.radio-option{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;transition:background-color .15s;color:var(--text2)}
 .radio-option:hover{background:rgba(0,0,0,0.03)}
 .radio-option input{accent-color:var(--accent);margin:0;width:14px;height:14px}
 .check-option{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:13px;cursor:pointer;border-radius:var(--radius-sm);color:var(--text2)}
@@ -114,7 +115,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 
 /* Step cards */
 .step-list{display:flex;flex-direction:column;gap:14px}
-.step-card{padding:16px 18px;border-radius:12px;border-left:4px solid var(--blue);background:var(--surface);font-size:14px;position:relative;transition:all .3s;border:1px solid var(--border);border-left-width:4px}
+.step-card{padding:16px 18px;border-radius:12px;border-left:4px solid var(--blue);background:var(--surface);font-size:14px;position:relative;transition:background-color .3s;border:1px solid var(--border);border-left-width:4px}
 .step-card.agent{border-left-color:var(--blue)}
 .step-card.service{border-left-color:var(--accent)}
 .step-card.human{border-left-color:var(--green)}
@@ -131,7 +132,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 .json-block .jb{color:#c4b5fd}
 .json-block .jc{color:#64748b;font-style:italic}
 .json-block .jnull{color:#94a3b8}
-.copy-btn{position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;transition:all .25s;opacity:0.85;letter-spacing:0.02em;text-transform:uppercase}
+.copy-btn{position:absolute;top:10px;right:10px;background:var(--accent);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;transition:background-color .25s, color .25s, opacity .25s;opacity:0.85;letter-spacing:0.02em;text-transform:uppercase}
 .copy-btn:hover{opacity:1;box-shadow:0 0 16px var(--accent-glow)}
 .copy-btn.copied{background:var(--green);box-shadow:0 0 16px var(--green-glow)}
 
@@ -142,7 +143,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 
 /* State machine */
 .state-machine{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;padding:20px 0;align-items:center}
-.sm-state{padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:2px solid;text-align:center;min-width:110px;cursor:default;transition:all .3s;letter-spacing:0.01em;font-family:'JetBrains Mono',monospace;font-size:12px}
+.sm-state{padding:12px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;border:2px solid;text-align:center;min-width:110px;cursor:default;transition:background-color .3s;letter-spacing:0.01em;font-family:'JetBrains Mono',monospace;font-size:12px}
 .sm-state.pending{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
 .sm-state.opened{background:var(--yellow-bg);color:var(--yellow);border-color:var(--yellow)}
 .sm-state.in_progress{background:var(--purple-bg);color:var(--purple);border-color:var(--purple)}
@@ -179,7 +180,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 
 /* Case chain */
 .chain{display:flex;align-items:center;gap:0;overflow-x:auto;padding:16px 0}
-.chain-case{flex-shrink:0;width:190px;padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--surface);text-align:center;font-size:12px;position:relative;transition:all .3s}
+.chain-case{flex-shrink:0;width:190px;padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--surface);text-align:center;font-size:12px;position:relative;transition:background-color .3s}
 .chain-case.edit{border-color:var(--yellow);box-shadow:0 2px 12px var(--yellow-glow)}
 .chain-case.approve{border-color:var(--green);box-shadow:0 2px 12px var(--green-glow)}
 .chain-case .cc-id{font-weight:600;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'JetBrains Mono',monospace}
@@ -225,7 +226,7 @@ h3{font-size:17px;font-weight:700;margin-bottom:10px;color:var(--text2)}
 
 /* Details styling */
 details{margin-bottom:14px}
-details summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);transition:all .2s;color:var(--text2);list-style:none}
+details summary{cursor:pointer;font-weight:700;font-size:14px;padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);transition:background-color .2s;color:var(--text2);list-style:none}
 details summary::-webkit-details-marker{display:none}
 details summary::before{content:'';display:inline-block;width:0;height:0;border-left:6px solid var(--muted);border-top:4px solid transparent;border-bottom:4px solid transparent;margin-right:10px;transition:transform .2s}
 details[open] summary::before{transform:rotate(90deg)}
@@ -237,7 +238,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 .audit-card .audit-body{font-size:13px;color:var(--text2);line-height:1.6}
 
 /* Verify signature button */
-.verify-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--purple),#8b5cf6);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;transition:all .25s;box-shadow:0 4px 16px var(--purple-glow);font-family:'Inter',sans-serif;letter-spacing:0.01em}
+.verify-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--purple),#8b5cf6);color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;transition:background-color .25s, color .25s, opacity .25s;box-shadow:0 4px 16px var(--purple-glow);font-family:'Inter',sans-serif;letter-spacing:0.01em}
 .verify-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px var(--purple-glow)}
 .verify-btn svg{width:16px;height:16px}
 
@@ -272,14 +273,43 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 .state-map tr:first-child td{background:var(--bg3);font-weight:700;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:0.04em}
 .state-map .hitl-state{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--blue)}
 .state-map .adl-state{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--accent)}
+
+/* v0.9 refresh: existing orange visual identity and eight-tab layout */
+:root{--accent:#c74c08;--accent2:#a73e05;--muted:#526176;--dim:#607086;--yellow:#926100;--green:#087856;--border:rgba(15,23,42,.1)}
+body{background:#fafbfddd;overflow-x:visible}
+.header{padding-top:36px;padding-bottom:22px}.header h1{font-size:clamp(30px,5vw,48px)}
+.header img{height:54px!important}.header p{max-width:680px}
+.nav button{min-height:44px}.nav button.active{box-shadow:0 2px 8px #c74c081a}
+.section{scroll-margin-top:80px}.section:focus{outline:none}
+.card{background:#fff}.card:hover{transform:none}
+.hero-card{background:linear-gradient(120deg,#fff7ed,#fff 65%);border-color:#fed7aa}
+.version-note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0 14px;padding:14px 18px;border:1px solid #fed7aa;background:#fff7ed;border-radius:12px;font-size:13px}
+.version-note a{margin-left:auto;font-weight:600}.v09-cards{margin-bottom:28px}.v09-cards h3{font-size:15px;margin-bottom:8px}.v09-cards p{font-size:13px;color:var(--muted)}.v09-cards a{display:inline-block;margin-top:8px;font-size:13px;font-weight:600}
+.table-scroll{max-width:100%;overflow-x:auto;border-radius:8px}.table-scroll .dtable{min-width:680px}.state-map{table-layout:fixed;overflow-wrap:anywhere}
+.pg-grid>*{min-width:0}.controls{background:#fff;border-top:3px solid var(--accent)}
+.radio-option,.check-option{min-height:38px}.radio-option:has(input:checked){background:var(--accent-bg);color:var(--text)}
+.step-title{flex-wrap:wrap;padding-right:55px}.step-card{background:#fff;box-shadow:0 2px 6px #0f172a04}
+.json-block{background:#172233;tab-size:2;font-size:12px}.copy-btn{min-height:32px;background:#ad4008;opacity:1}
+.delivery-mock{overflow-wrap:anywhere;white-space:pre-wrap;min-width:0}
+.mock-button{font:inherit;border:0;min-height:36px}.mock-button:focus-visible{outline:3px solid var(--text);outline-offset:3px}
+:where(button,a,input,select,summary,[tabindex]):focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.skip-link{position:fixed;left:12px;top:12px;transform:translateY(-150%);background:var(--text);color:#fff;padding:10px 16px;z-index:200;border-radius:8px}.skip-link:focus{transform:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+[hidden]{display:none!important}
+@media(max-width:900px){.controls{position:static}.step-list{padding-left:0!important}}
+@media(max-width:600px){.header{padding-inline:16px}.section{padding:20px 16px}.version-note{padding:12px}.version-note a{margin-left:0}.step-card{padding:14px 12px}.json-block{padding:14px 12px;max-width:100%;font-size:11px}.step-title{font-size:13px}.heatmap{min-width:760px}.callout{overflow-wrap:anywhere}.audit-entry,.sse-event{flex-wrap:wrap}.state-map{font-size:11px}.verify-btn{white-space:normal}.grid-3{gap:12px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
 </style>
 </head>
 <body>
+<a class="skip-link" href="#tab-0">Skip to playground content</a>
+<div class="sr-only" id="playground-status" role="status"></div>
 
 <div class="header">
   <img src="../assets/logo.svg" alt="HITL Protocol Logo" style="height:64px;margin-bottom:12px">
   <h1>HITL Protocol <span>Interactive Playground</span></h1>
-  <p>HITL v0.8 &mdash; illustrative local playground; all data and outcomes are simulated</p>
+  <p>HITL v0.9 Draft &mdash; illustrative local playground; all data and outcomes are simulated</p>
   <div class="rfc-strip" aria-label="RFC alignment hints">
     <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener noreferrer">RFC 9110</a>
     <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc3339" target="_blank" rel="noopener noreferrer">RFC 3339</a>
@@ -289,7 +319,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 </div>
 
 <nav class="nav">
-  <div class="nav-inner">
+  <div class="nav-inner" role="tablist" aria-label="Playground examples">
     <button class="active" onclick="switchTab(0)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/></svg>Protocol</button>
     <button onclick="switchTab(1)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Job Search</button>
     <button onclick="switchTab(2)"><svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>Deploy</button>
@@ -327,6 +357,12 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
     <div style="color:var(--dim);font-size:11px;margin-top:8px">Aligned references: RFC 9110 (HTTP), RFC 3339 (timestamps), RFC 6750 (bearer auth), RFC 2119/8174 (normative terms).</div>
   </div>
 
+  <div class="version-note"><span class="badge badge-orange">New in v0.9</span><span>Same HTTP handoff. Clearer case ownership, reviewer authorization and decision semantics.</span><a href="../assets/hitl-protocol-flow.html">Watch the animation ↗</a></div>
+  <div class="grid-3 v09-cards">
+    <div class="card"><h3>The service owns the case</h3><p>A review URL grants access to one case. It does not identify a person. When policy requires a named reviewer, the service authenticates and authorizes that reviewer before revealing protected content or accepting a response.</p></div>
+    <div class="card"><h3>A decision stays recorded</h3><p>The first accepted response is immutable. A correction uses a new case linked with <code>previous_case_id</code>. A timeout default does not count as human approval or verification.</p></div>
+    <div class="card"><h3>Execution has its own gate</h3><p><code>completed</code> records the review response. Business execution requires independent current authorization. Optional Agent Access v0.1 adds prepare → authenticated owner review → fresh commit.</p><a href="https://github.com/rotorstar/hitl-protocol/blob/main/profiles/agent-access/v0.1/README.md">Agent Access draft ↗</a></div>
+  </div>
   <h2>Case Lifecycle</h2>
   <div class="card" style="margin-bottom:28px">
     <div class="state-machine">
@@ -343,7 +379,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       <div style="font-size:12px;color:var(--dim)">Also: any non-terminal &rarr; <span style="color:var(--dim);font-weight:600;background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:10px">cancelled</span></div>
     </div>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">
-      <strong style="color:var(--text2)">opened</strong> and <strong style="color:var(--text2)">in_progress</strong> are optional intermediate states; inline submissions can transition directly from pending to completed. Terminal states have glow borders.
+      <strong style="color:var(--text2)">opened</strong> and <strong style="color:var(--text2)">in_progress</strong> are optional intermediate states; any case may transition directly from pending to a terminal state. The first accepted response is immutable. A completed cancel decision is different from a cancelled case.
     </div>
   </div>
 
@@ -359,19 +395,19 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       <div class="t-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
       <div class="t-name">Polling</div>
       <div class="badge badge-green" style="margin-bottom:10px">Default</div>
-      <div class="t-desc">Agent calls <code>GET poll_url</code> every 30s-5min. Stateless. No server needed on agent side. Works everywhere.</div>
+      <div class="t-desc">Agent calls <code>GET poll_url</code> every 30s–5min, respecting Retry-After and ETag where offered. Stateless. No server needed on agent side. Works everywhere.</div>
     </div>
     <div class="card transport-card anim-card">
       <div class="t-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
       <div class="t-name">SSE</div>
       <div class="badge badge-blue" style="margin-bottom:10px">Real-time</div>
-      <div class="t-desc">Agent opens persistent connection to <code>events_url</code>. Server pushes status updates instantly. No public endpoint needed.</div>
+      <div class="t-desc">Agent opens persistent connection to <code>events_url</code>. Server pushes status updates. Reconnect or fall back to the authenticated poll endpoint. No public agent endpoint needed.</div>
     </div>
     <div class="card transport-card anim-card">
       <div class="t-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
       <div class="t-name">Callback</div>
       <div class="badge badge-purple" style="margin-bottom:10px">Webhook</div>
-      <div class="t-desc">Service POSTs result to <code>callback_url</code>. Requires agent to expose a public endpoint. Signed via <code>X-HITL-Signature: sha256=&lt;hmac&gt;</code> header.</div>
+      <div class="t-desc">Service POSTs result to <code>callback_url</code>. Requires agent to expose a public endpoint. Signed via <code>X-HITL-Signature: sha256=&lt;hmac&gt;</code> header. Correlate the case, authenticate delivery and deduplicate retries.</div>
     </div>
   </div>
 
@@ -382,7 +418,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       <div class="rt-name">Approval</div>
       <div class="rt-desc">Go/no-go on an artifact. CV draft, deployment plan, email.</div>
       <div style="margin-top:8px"><span class="badge badge-green">approve ✓</span> <span class="badge badge-yellow">edit ↩</span> <span class="badge badge-red">reject ✗</span></div>
-      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">edit creates new round (<code style="font-size:10px">previous_case_id</code> chain)</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">edit finishes this case; a revision creates a linked case (<code style="font-size:10px">previous_case_id</code> chain)</div>
     </div>
     <div class="card rt-card anim-card">
       <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
@@ -403,7 +439,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       <div class="rt-name">Confirmation</div>
       <div class="rt-desc">Irreversible action check. Send emails, deploy, delete data.</div>
       <div style="margin-top:8px"><span class="badge badge-green">confirm ✓</span> <span class="badge badge-red">cancel ✗</span></div>
-      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">One-shot. No edit loop. Irreversible action gate.</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--muted);line-height:1.4">One-shot decision. Execution requires separate current authorization.</div>
     </div>
     <div class="card rt-card anim-card">
       <div class="rt-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/><rect x="2" y="2" width="20" height="20" rx="2"/></svg></div>
@@ -418,7 +454,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 <!-- TAB 1: Job Search -->
 <div class="section" id="tab-1">
   <h2>Use Case 1: Job Search <span class="badge badge-orange">Selection + Confirmation</span></h2>
-  <p class="subtitle" style="margin-bottom:16px">OpenClaw agent finds jobs for a user. Two HITL rounds: select jobs, then confirm applications.</p>
+  <p class="subtitle" style="margin-bottom:16px">OpenClaw agent finds jobs for a user. Two HITL rounds: select jobs, then record whether to send applications. Actual sending requires separate authorization.</p>
 
   <div class="pg-grid">
     <div class="controls">
@@ -606,10 +642,10 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
   </div>
 </div>
 
-<!-- TAB 6: Inline Confirmation (v0.7) -->
+<!-- TAB 6: Optional Inline Confirmation -->
 <div class="section" id="tab-6">
-  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">v0.7 Inline Submit</span></h2>
-  <p class="subtitle" style="margin-bottom:16px">Email service needs confirmation before sending. Agent renders native messaging buttons — human confirms with one tap, no browser needed.</p>
+  <h2>Use Case 7: Inline Confirmation <span class="badge badge-green">Optional Inline Submit</span></h2>
+  <p class="subtitle" style="margin-bottom:16px">Email service needs confirmation before sending. Agent renders native messaging buttons — the human explicitly chooses an action. Service policy may require a browser step-up.</p>
 
   <div class="pg-grid">
     <div class="controls">
@@ -629,6 +665,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
           <label class="radio-option"><input type="radio" name="uc7-action" value="details" onchange="renderUC7()"> View Details (URL)</label>
         </div>
       </div>
+      <div class="control-group"><div class="control-label">Service policy</div><label class="check-option"><input type="checkbox" id="uc7-step-up" onchange="renderUC7()"> Verification requires browser step-up</label><p style="font-size:11px;color:var(--muted);padding:4px 10px">Proof-of-human evidence and reviewer identity are separate checks.</p></div>
     </div>
     <div id="uc7-main"></div>
   </div>
@@ -637,7 +674,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 <!-- TAB 7: Compare -->
 <div class="section" id="tab-7">
   <h2>Comparison Matrix</h2>
-  <p class="subtitle" style="margin-bottom:16px">How HITL core compares to adjacent standards and optional declarative UI companions. The browser review URL remains the canonical fallback.</p>
+  <p class="subtitle" style="margin-bottom:16px">How HITL core compares to adjacent standards and optional declarative UI companions. The browser review URL remains the canonical fallback. This is a scoped comparison, not a protocol ranking. <a href="https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation">MCP 2026-07-28 form / URL modes ↗</a>; long-running tasks are an optional extension.</p>
 
   <div class="card" style="overflow-x:auto;margin-bottom:28px;padding:0;border-radius:var(--radius)">
     <table class="heatmap">
@@ -648,22 +685,22 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
           <th style="min-width:60px">AG-UI</th>
           <th style="min-width:60px">A2UI</th>
           <th style="min-width:80px">Adaptive Cards</th>
-          <th style="min-width:70px">MCP Elicit</th>
+          <th style="min-width:70px">MCP Form / URL</th>
           <th style="min-width:80px">Slack Blocks</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>URL-based delivery</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td></tr>
-        <tr><td>Browser fallback is core</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td></tr>
-        <tr><td>Async (hours/days)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
-        <tr><td>Rich forms</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="no">No</td><td class="partial">Partial</td></tr>
-        <tr><td>State/data separation</td><td class="partial">Minimal</td><td class="partial">Embedded</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
-        <tr><td>No platform lock-in</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="no">No</td></tr>
+        <tr><td>URL-based delivery</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="yes">URL mode</td><td class="no">No</td></tr>
+        <tr><td>Browser fallback is core</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="partial">URL mode</td><td class="no">No</td></tr>
+        <tr><td>Async (hours/days)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="partial">Tasks extension</td><td class="no">No</td></tr>
+        <tr><td>Rich forms</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="partial">External URL</td><td class="partial">Partial</td></tr>
+        <tr><td>State/data separation</td><td class="partial">Minimal</td><td class="partial">Embedded</td><td class="yes">Yes</td><td class="no">No</td><td class="partial">Mode dependent</td><td class="no">No</td></tr>
+        <tr><td>No platform lock-in</td><td class="yes">Yes</td><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td></tr>
         <tr><td>Open standard</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td></tr>
         <tr><td>CLI agent support</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="partial">Partial</td><td class="yes">Yes</td><td class="no">No</td></tr>
-        <tr><td>Mobile support</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="partial">Partial</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="yes">Yes</td></tr>
+        <tr><td>Mobile support</td><td class="yes">Yes</td><td class="partial">Partial</td><td class="partial">Partial</td><td class="yes">Yes</td><td class="partial">Client dependent</td><td class="yes">Yes</td></tr>
         <tr><td>Crypto signing</td><td class="partial">Partial</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
-        <tr><td>Real-time updates</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+        <tr><td>Real-time updates</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td><td class="partial">Tasks / client</td><td class="yes">Yes</td></tr>
         <tr><td>Multi-round chains</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
         <tr><td>Delegation + audit</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
       </tbody>
@@ -686,7 +723,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
         <span style="font-weight:800;font-size:15px;color:var(--text)">AG-UI (CopilotKit)</span>
       </div>
       <div class="badge badge-blue" style="margin-bottom:10px">SSE Streaming</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">Server-Sent Events as transport option. Real-time status updates without requiring a public agent endpoint. Adapted from AG-UI's event architecture.</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Server-Sent Events as transport option. Real-time status updates without requiring a public agent endpoint. The HTTP review lifecycle remains service-owned.</div>
     </div>
     <div class="card anim-card" style="border-left:4px solid var(--purple)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -702,7 +739,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
         <span style="font-weight:800;font-size:15px;color:var(--text)">Adaptive Cards</span>
       </div>
       <div class="badge badge-orange" style="margin-bottom:10px">Input Patterns</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.6">6 years of proven input type semantics (text, number, date, toggle, choice). Mature patterns for structured data entry in agent workflows.</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6">Established input type semantics (text, number, date, toggle, choice). Mature patterns for structured data entry in agent workflows.</div>
     </div>
   </div>
 
@@ -715,7 +752,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       </div>
       <div>
         <div style="font-weight:800;color:var(--purple);margin-bottom:6px;font-size:15px">MCP Elicitation</div>
-        <div style="font-size:13px;color:var(--muted);line-height:1.6">Simple prompts inline in AI client. Text, number, boolean. Synchronous, blocks the tool.</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6">Form mode collects structured input in the client; URL mode opens a service-owned page. Current request-based elicitation returns input_required and resumes on re-issue.</div>
       </div>
       <div>
         <div style="font-weight:800;color:var(--accent);margin-bottom:6px;font-size:15px">HITL Protocol</div>
@@ -726,17 +763,61 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 </div>
 
 <script>
-// --- Tab switching ---
-function switchTab(n) {
-  document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === n));
-  document.querySelectorAll('.nav button').forEach((b, i) => b.classList.toggle('active', i === n));
-  if (n === 1) renderUC1();
-  if (n === 2) renderUC2();
-  if (n === 3) renderUC3();
-  if (n === 4) renderUC4();
-  if (n === 5) renderUC5();
-  if (n === 6) renderUC7();
+const HITL_VERSION = '0.9';
+const TAB_IDS = ['protocol','job-search','deploy','content','agent-deal','input-form','inline','compare'];
+let currentTab = 0;
+// Keep the existing renderers. The URL contains only known control names and values.
+function writeStateURL() {
+  const params = new URLSearchParams({ tab: TAB_IDS[currentTab] });
+  document.querySelectorAll(`#tab-${currentTab} input`).forEach(input => {
+    if (input.type === 'radio' && input.checked) params.set(input.name, input.value);
+    if (input.type === 'checkbox') params.set(input.id, input.checked ? '1' : '0');
+  });
+  history.replaceState(null, '', `#${params}`);
 }
+function switchTab(n, syncURL = true) {
+  currentTab = Math.max(0, Math.min(TAB_IDS.length - 1, n));
+  document.querySelectorAll('.section').forEach((section, index) => {
+    const active = index === currentTab; section.classList.toggle('active', active); section.hidden = !active;
+  });
+  document.querySelectorAll('.nav button').forEach((button, index) => {
+    const active = index === currentTab; button.classList.toggle('active', active); button.setAttribute('aria-selected', String(active)); button.tabIndex = active ? 0 : -1;
+  });
+  const renderers = { 1: renderUC1, 2: renderUC2, 3: renderUC3, 4: renderUC4, 5: renderUC5, 6: renderUC7 };
+  renderers[currentTab]?.();
+  if (syncURL) writeStateURL();
+}
+function restoreStateURL() {
+  const params = new URLSearchParams(location.hash.slice(1));
+  const requested = TAB_IDS.indexOf(params.get('tab'));
+  const tab = requested < 0 ? 0 : requested;
+  document.querySelectorAll(`#tab-${tab} input`).forEach(input => {
+    if (input.type === 'radio' && params.has(input.name)) {
+      const value = params.get(input.name);
+      const options = [...document.getElementsByName(input.name)];
+      if (options.some(option => option.value === value)) input.checked = input.value === value;
+    }
+    if (input.type === 'checkbox' && ['0','1'].includes(params.get(input.id))) input.checked = params.get(input.id) === '1';
+  });
+  switchTab(tab, false);
+}
+const tabButtons = [...document.querySelectorAll('.nav button')];
+tabButtons.forEach((button, index) => {
+  button.type = 'button'; button.id = `nav-${index}`; button.setAttribute('role','tab'); button.setAttribute('aria-controls', `tab-${index}`);
+  const panel = document.getElementById(`tab-${index}`); panel.setAttribute('role','tabpanel'); panel.setAttribute('aria-labelledby',button.id); panel.tabIndex = 0;
+});
+document.querySelector('.nav-inner').addEventListener('keydown', event => {
+  const index = tabButtons.indexOf(event.target);
+  if (index < 0) return;
+  const next = { ArrowRight: (index + 1) % tabButtons.length, ArrowLeft: (index + tabButtons.length - 1) % tabButtons.length, Home: 0, End: tabButtons.length - 1 }[event.key];
+  if (next !== undefined) { event.preventDefault(); switchTab(next); tabButtons[next].focus(); }
+});
+document.querySelectorAll('.control-group').forEach((group,index) => {
+  const label = group.querySelector('.control-label');
+  if (label) { label.id = `control-label-${index}`; group.setAttribute('role','group'); group.setAttribute('aria-labelledby',label.id); }
+});
+document.addEventListener('change', event => { if (event.target.matches('.controls input')) writeStateURL(); });
+window.addEventListener('hashchange',restoreStateURL);
 
 // --- JSON syntax highlighting ---
 function hl(obj, indent = 0) {
@@ -744,7 +825,7 @@ function hl(obj, indent = 0) {
   if (obj === null) return '<span class="jnull">null</span>';
   if (typeof obj === 'boolean') return `<span class="jb">${obj}</span>`;
   if (typeof obj === 'number') return `<span class="jn">${obj}</span>`;
-  if (typeof obj === 'string') return `<span class="js">"${escHtml(obj)}"</span>`;
+  if (typeof obj === 'string') return `<span class="js">${escHtml(JSON.stringify(obj))}</span>`;
   if (Array.isArray(obj)) {
     if (obj.length === 0) return '[]';
     const items = obj.map(v => sp + '  ' + hl(v, indent + 1));
@@ -755,20 +836,33 @@ function hl(obj, indent = 0) {
   const lines = keys.map(k => {
     const val = obj[k];
     if (k.startsWith('//')) return sp + '  ' + `<span class="jc">// ${escHtml(val)}</span>`;
-    return sp + '  ' + `<span class="jk">"${escHtml(k)}"</span>: ${hl(val, indent + 1)}`;
+    return sp + '  ' + `<span class="jk">${escHtml(JSON.stringify(k))}</span>: ${hl(val, indent + 1)}`;
   });
   return '{\n' + lines.join(',\n') + '\n' + sp + '}';
 }
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // --- Copy to clipboard ---
-function copyJson(id) {
+async function copyJson(id) {
   const el = document.getElementById(id);
-  const text = el.textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = el.parentElement.querySelector('.copy-btn');
-    if (btn) { btn.textContent = 'Copied!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500); }
-  });
+  const clone = el.cloneNode(true); clone.querySelectorAll('button').forEach(button => button.remove());
+  const text = clone.textContent.trim();
+  const status = document.getElementById('playground-status');
+  const button = el.parentElement.querySelector('.copy-btn') || el.querySelector('.copy-btn');
+  try {
+    if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(text);
+    if (button) { button.textContent = 'Copied!'; setTimeout(() => button.textContent = 'Copy',1500); }
+    status.textContent = 'JSON copied.';
+  } catch {
+    const selection = getSelection(); const range = document.createRange();
+    const content = document.createElement('span'); content.append(...el.childNodes);
+    el.append(content); range.selectNodeContents(content); selection.removeAllRanges(); selection.addRange(range);
+    // The selected text excludes controls even when the original button was nested.
+    content.querySelectorAll('button').forEach(control => el.append(control));
+    range.selectNodeContents(content); selection.removeAllRanges(); selection.addRange(range);
+    status.textContent = 'Clipboard unavailable. JSON selected; press Ctrl+C or Command+C to copy.';
+  }
 }
 
 // --- Utility ---
@@ -777,7 +871,7 @@ function getCheck(id) { const c = document.getElementById(id); return c ? c.chec
 
 // --- HITL Object Anatomy ---
 document.getElementById('hitl-anatomy').innerHTML = hl({
-  "spec_version": "0.8",
+  "spec_version": HITL_VERSION,
   "case_id": "review_abc123def456",
   "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
   "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -787,7 +881,6 @@ document.getElementById('hitl-anatomy').innerHTML = hl({
   "prompt": "Select which jobs to apply for",
   "timeout": "24h",
   "reminder_at": ["2026-02-20T18:00:00Z", "2026-02-20T22:00:00Z"],
-  "previous_case_id": null,
   "default_action": "skip",
   "created_at": "2026-02-20T10:00:00Z",
   "expires_at": "2026-02-21T10:00:00Z",
@@ -810,7 +903,7 @@ function renderUC1() {
   if (wdlControls) wdlControls.style.display = wdl ? 'block' : 'none';
 
   const hitlObj = {
-    spec_version: "0.8",
+    spec_version: HITL_VERSION,
     case_id: "review_job_sel_7f3a9b",
     review_url: "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
@@ -818,7 +911,7 @@ function renderUC1() {
     type: "selection",
     prompt: "5 matching Senior Dev positions found. Select which to apply for.",
     timeout: "24h",
-    ...(reminders ? { reminder_at: "2026-02-20T22:00:00Z" } : {}),
+    ...(reminders ? { reminder_at: ["2026-02-20T22:00:00Z"] } : {}),
     default_action: "skip",
     created_at: "2026-02-20T10:00:00Z",
     expires_at: "2026-02-21T10:00:00Z",
@@ -888,7 +981,12 @@ function renderUC1() {
       <div class="step-body">Agent prepares applications for selected jobs &rarr; service returns another HTTP 202 (confirmation type).</div>
       <div class="json-block" id="uc1-confirm">${hl({
         hitl: {
+          spec_version: HITL_VERSION,
           case_id: "review_job_confirm_8d4e2c",
+          review_url: "https://jobboard.example.com/review/job_confirm_8d4e2c?token=illustrative_confirmation_token",
+          poll_url: "https://jobboard.example.com/api/reviews/job_confirm_8d4e2c/status",
+          created_at: "2026-02-20T10:13:00Z",
+          expires_at: "2026-02-20T14:13:00Z",
           previous_case_id: "review_job_sel_7f3a9b",
           type: "confirmation",
           prompt: "About to send 2 applications. Confirm?",
@@ -1006,7 +1104,7 @@ function renderUC2() {
   const audit = getCheck('uc2-audit');
 
   const hitlObj = {
-    spec_version: "0.8",
+    spec_version: HITL_VERSION,
     case_id: "review_deploy_v210",
     review_url: "https://ci.company.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://ci.company.com/api/reviews/deploy_v210/status",
@@ -1102,9 +1200,9 @@ function renderUC2() {
         <div class="step-title"><span class="badge badge-purple" style="font-size:10px">4</span> Review page</div>
         <div class="step-body">Shows build summary, test results (47/47), 12 files changed, diff preview.</div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid rgba(5,150,105,0.25);cursor:pointer;transition:all .2s" onmouseover="this.style.boxShadow='0 0 16px var(--green-glow)'" onmouseout="this.style.boxShadow='none'">Approve</div>
-          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,0.25);cursor:pointer;transition:all .2s" onmouseover="this.style.boxShadow='0 0 16px var(--red-glow)'" onmouseout="this.style.boxShadow='none'">Reject</div>
-          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(202,138,4,0.25);cursor:pointer;transition:all .2s" onmouseover="this.style.boxShadow='0 0 16px var(--yellow-glow)'" onmouseout="this.style.boxShadow='none'">Request Changes</div>
+          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--green-bg);color:var(--green);border:1px solid rgba(5,150,105,0.25);cursor:pointer;transition:background-color .2s" onmouseover="this.style.boxShadow='0 0 16px var(--green-glow)'" onmouseout="this.style.boxShadow='none'">Approve</div>
+          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--red-bg);color:var(--red);border:1px solid rgba(220,38,38,0.25);cursor:pointer;transition:background-color .2s" onmouseover="this.style.boxShadow='0 0 16px var(--red-glow)'" onmouseout="this.style.boxShadow='none'">Reject</div>
+          <div style="padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(202,138,4,0.25);cursor:pointer;transition:background-color .2s" onmouseover="this.style.boxShadow='0 0 16px var(--yellow-glow)'" onmouseout="this.style.boxShadow='none'">Request Changes</div>
         </div>
       </div>
 
@@ -1113,14 +1211,14 @@ function renderUC2() {
         ${timeout ? `
           <div class="json-block" id="uc2-result">${hl(timeoutResult)}</div>
           <button class="copy-btn" onclick="copyJson('uc2-result')">Copy</button>
-          <div style="font-size:13px;color:var(--red);margin-top:10px">No response in 4h. Agent executes <strong>default_action: abort</strong>. Deployment cancelled. Agent notifies team.</div>
+          <div style="font-size:13px;color:var(--red);margin-top:10px">No response in 4h. Agent executes <strong>default_action: abort</strong>. No affirmative approval is recorded; deployment stays blocked.</div>
         ` : `
           <div class="json-block" id="uc2-result">${hl(pollResult)}</div>
           <button class="copy-btn" onclick="copyJson('uc2-result')">Copy</button>
           ${verifyHtml}
-          ${decision === 'approve' ? '<div style="font-size:13px;color:var(--green);margin-top:10px">Agent proceeds with deployment to production.</div>' : ''}
+          ${decision === 'approve' ? '<div style="font-size:13px;color:var(--green);margin-top:10px">Approval recorded. The deployment service must recheck current execution authority before deploying.</div>' : ''}
           ${decision === 'reject' ? '<div style="font-size:13px;color:var(--red);margin-top:10px">Agent aborts deployment and notifies the team.</div>' : ''}
-          ${decision === 'changes' ? '<div style="font-size:13px;color:var(--yellow);margin-top:10px">Agent addresses requested changes, then triggers a new approval round (new case_id, previous_case_id links back).</div>' : ''}
+          ${decision === 'changes' ? '<div style="font-size:13px;color:var(--yellow);margin-top:10px">This case is completed with edit. The agent addresses the feedback and creates a new linked case; the recorded decision stays immutable.</div>' : ''}
         `}
       </div>
 
@@ -1177,7 +1275,13 @@ function renderUC3() {
     const action = isLast ? 'approve' : 'edit';
 
     const hitl = {
+      spec_version: HITL_VERSION,
       case_id: `review_post_v${i}`,
+      review_url: `https://cms.example.com/review/post_v${i}?token=illustrative_round_${i}_token`,
+      poll_url: `https://cms.example.com/api/reviews/post_v${i}/status`,
+      created_at: `2026-02-2${i}T10:00:00Z`,
+      expires_at: `2026-02-2${i+1}T10:00:00Z`,
+      default_action: 'abort',
       ...(!isFirst ? { previous_case_id: `review_post_v${i-1}` } : {}),
       type: "approval",
       prompt: isFirst ? "Blog post draft ready: 'Scaling Microservices in 2026'. Please review." : `Revision ${i} ready. ${isLast ? 'Final review.' : 'Updated based on your feedback.'}`,
@@ -1192,6 +1296,9 @@ function renderUC3() {
       resultObj = { status: "completed", result: { action: "edit", data: { feedback: i === 1 ? "Good structure but title too generic. Fix the conclusion." : "Conclusion improved but intro needs work.", edits: { sections_to_revise: i === 1 ? ["title", "conclusion"] : ["introduction"] } } } };
       if (i < rounds) resultObj.next_case_id = `review_post_v${i+1}`;
     }
+
+    resultObj.case_id = hitl.case_id;
+    resultObj.completed_at = `2026-02-2${i}T13:00:00Z`;
 
     let sseHtml = '';
     if (showSSE) {
@@ -1250,7 +1357,7 @@ function renderUC3() {
         </div>
         <div style="font-size:13px;color:var(--text2)">
           Agent can traverse the full chain: ${Array.from({length: rounds}, (_, i) => `<code style="background:rgba(5,150,105,0.08);color:var(--green);padding:1px 6px;border-radius:4px">review_post_v${i+1}</code>`).join(' &rarr; ')}.<br>
-          Each case links via <strong style="color:var(--accent)">previous_case_id</strong> (forward) and <strong style="color:var(--accent)">next_case_id</strong> (backward). The review page can show revision history.
+          Each case links via <strong style="color:var(--accent)">previous_case_id</strong> (points to the earlier case) and <strong style="color:var(--accent)">next_case_id</strong> (points to the later case). Each edit is a completed, immutable response; the revision is a new case. Publishing requires separate authorization.
         </div>
       </div>
     </div>`;
@@ -1286,7 +1393,7 @@ function buildDTableHtml(firedPriority) {
     html += `<tr class="${pri === firedPriority ? 'fired' : 'skipped'}"><td>${pri}</td><td><code style="font-size:11px">${cond}</code></td><td style="color:${actionColor};font-weight:700">${action}</td><td style="font-size:11px">${mod}</td><td style="font-size:11px;color:var(--muted)">${reason}</td></tr>`;
   });
   html += '</table>';
-  return html;
+  return `<div class="table-scroll" role="region" aria-label="ADL decision rules" tabindex="0">${html}</div>`;
 }
 
 function buildReviewMockHtml(category, decision) {
@@ -1297,7 +1404,7 @@ function buildReviewMockHtml(category, decision) {
     sla: ['Current SLA: 99.9% (43.8min downtime/mo)', 'Requested: 99.99% (4.38min downtime/mo)', 'Cost impact: +$12,000/mo for redundancy']
   };
   const actions = { approve: '[ ✓ APPROVE ]  [ ✗ Reject ]  [ ↩ Counter ]', counter: '[ ✓ Approve ]  [ ✗ Reject ]  [ ↩ COUNTER ]', reject: '[ ✓ Approve ]  [ ✗ REJECT ]  [ ↩ Counter ]' };
-  return `<div style="background:#1a1b26;color:#a9b1d6;font-family:'JetBrains Mono',monospace;font-size:11px;padding:14px;border-radius:8px;line-height:1.7;white-space:pre">┌─────────────────────────────────────┐
+  return `<div style="background:#1a1b26;color:#a9b1d6;font-family:'JetBrains Mono',monospace;font-size:11px;padding:14px;border-radius:8px;line-height:1.7;white-space:pre;overflow-x:auto;max-width:100%">┌─────────────────────────────────────┐
 │  ${titles[category].padEnd(36)}│
 ├─────────────────────────────────────┤
 ${details[category].map(d => '│  ' + d.padEnd(36) + '│').join('\n')}
@@ -1316,7 +1423,7 @@ function renderUC4() {
 
   const catLabels = { comp: 'Infrastructure Budget', data: 'Data Access', sla: 'SLA Override' };
   const catTermTypes = { comp: 'budget_allocation', data: 'data_access', sla: 'sla_override' };
-  const hitlTypes = { comp: 'approval', data: 'input', sla: 'approval' };
+  const hitlTypes = { comp: 'approval', data: 'approval', sla: 'approval' };
   const firedPriorities = { comp: 11, data: 13, sla: 12 };
 
   // Step 1: Agent proposes deal
@@ -1414,7 +1521,7 @@ function renderUC4() {
     <tr><td class="adl-state">AGREED</td><td class="hitl-state">completed (approve)</td><td style="font-size:12px">Human approved deal</td></tr>
     <tr><td class="adl-state">DECLINED</td><td class="hitl-state">completed (reject)</td><td style="font-size:12px">Human rejected deal</td></tr>
     <tr><td class="adl-state">COUNTER_PROPOSED</td><td class="hitl-state">completed (edit)</td><td style="font-size:12px">Human sent counter-offer</td></tr>
-    <tr><td class="adl-state">EXPIRED</td><td class="hitl-state">expired</td><td style="font-size:12px">Timeout reached, default_action executes</td></tr>
+    <tr><td class="adl-state">EXPIRED</td><td class="hitl-state">expired</td><td style="font-size:12px">Timeout policy recorded; no human approval</td></tr>
     </table></div>
 
     <div style="margin-top:14px"><h3>HITL → ADL Response Mapping</h3>
@@ -1422,8 +1529,8 @@ function renderUC4() {
     <tr><td class="hitl-state">approve</td><td class="adl-state">ACCEPT</td><td style="font-size:12px">Deal accepted as proposed</td></tr>
     <tr><td class="hitl-state">reject</td><td class="adl-state">DENY</td><td style="font-size:12px">Deal rejected with reason</td></tr>
     <tr><td class="hitl-state">edit</td><td class="adl-state">COUNTER</td><td style="font-size:12px">Modified terms sent back</td></tr>
-    <tr><td class="hitl-state">input</td><td class="adl-state">CLARIFY</td><td style="font-size:12px">Additional info requested</td></tr>
-    <tr><td class="hitl-state">timeout</td><td class="adl-state">DENY + TIMEOUT</td><td style="font-size:12px">No response, default_action applies</td></tr>
+    <tr><td class="hitl-state">submit (input)</td><td class="adl-state">CLARIFY</td><td style="font-size:12px">Additional info requested</td></tr>
+    <tr><td class="hitl-state">expired (status)</td><td class="adl-state">DENY + TIMEOUT</td><td style="font-size:12px">No response, default_action applies</td></tr>
     </table></div>`;
 
   document.getElementById('uc4-main').innerHTML = `<div class="flow-steps">
@@ -1434,7 +1541,7 @@ function renderUC4() {
       <div class="step-num" style="background:var(--blue-bg);color:var(--blue)">1</div>
       <div class="step-title">Agent Proposes Deal</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL: POST /deals — Agent submits terms via Agent Deal Language</div>
-      <div class="json-block" data-copy="uc4-req">${hl({
+      <div class="json-block" id="uc4-req">${hl({
         method: 'POST',
         url: '/v1/deals',
         body: {
@@ -1450,7 +1557,7 @@ function renderUC4() {
       <div class="step-num" style="background:var(--accent-bg);color:var(--accent)">2</div>
       <div class="step-title">Platform Evaluates — Decision Table</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">18-rule priority cascade. Priority ${firedPriorities[cat]} fires: <strong style="color:var(--purple)">ESCALATE</strong> with <strong style="color:var(--accent)">boost: 0.75</strong></div>
-      <div class="json-block" data-copy="uc4-eval">${hl({
+      <div class="json-block" id="uc4-eval">${hl({
         evaluation: {
           deal_id: 'deal_infra_q2',
           rules_evaluated: 18,
@@ -1467,8 +1574,8 @@ function renderUC4() {
       <div class="step-num" style="background:var(--purple-bg);color:var(--purple)">3</div>
       <div class="step-title">HITL Case Created — HTTP 202</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL bridge creates a HITL case. The deal enters <code>NEGOTIATING</code> state.</div>
-      <div class="json-block" data-copy="uc4-hitl">${hl({
-        spec_version: '0.8',
+      <div class="json-block" id="uc4-hitl">${hl({
+        spec_version: HITL_VERSION,
         case_id: 'review_deal_001',
         review_url: 'https://platform.company.com/review/deal_infra_q2?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...',
         poll_url: 'https://platform.company.com/api/v1/hitl/review_deal_001/status',
@@ -1476,7 +1583,7 @@ function renderUC4() {
         type: hitlTypes[cat],
         prompt: hitlPrompts[cat],
         timeout: '4h',
-        default_action: 'deny',
+        default_action: 'reject',
         context: { deal_id: 'deal_infra_q2', adl_version: '1.1', source_priority: firedPriorities[cat] },
         created_at: '2026-02-20T14:00:03Z',
         expires_at: '2026-02-20T18:00:03Z'
@@ -1486,7 +1593,7 @@ function renderUC4() {
     <div class="step-card" style="border-left-color:var(--green)">
       <div class="step-num" style="background:var(--green-bg);color:var(--green)">4</div>
       <div class="step-title">Human Reviews Deal</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Reviewer opens the review URL. The HITL case transitions: pending → opened → in_progress.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Reviewer opens the review URL. The HITL case transitions: pending → opened → in_progress (the intermediate states are optional).</div>
       ${buildReviewMockHtml(cat, decision)}
     </div>
 
@@ -1494,7 +1601,7 @@ function renderUC4() {
       <div class="step-num" style="background:var(--blue-bg);color:var(--blue)">5</div>
       <div class="step-title">Human Decides — ${decision === 'approve' ? 'Approved' : decision === 'counter' ? 'Counter-Offer' : 'Rejected'}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">HITL result submitted. Action: <strong style="color:${adlFinalColors[decision]}">${decision === 'counter' ? 'edit' : decision}</strong></div>
-      <div class="json-block" data-copy="uc4-result">${hl(uc4ResultObj)}<button class="copy-btn" onclick="copyJson('uc4-result')">Copy</button></div>
+      <div class="json-block" id="uc4-result">${hl(uc4ResultObj)}<button class="copy-btn" onclick="copyJson('uc4-result')">Copy</button></div>
       ${verifyBtnHtml}
       ${sseHtml}
     </div>
@@ -1502,8 +1609,8 @@ function renderUC4() {
     <div class="step-card" style="border-left-color:${adlFinalColors[decision]}">
       <div class="step-num" style="background:${decision === 'approve' ? 'var(--green-bg)' : decision === 'counter' ? 'var(--yellow-bg)' : 'var(--red-bg)'};color:${adlFinalColors[decision]}">6</div>
       <div class="step-title">ADL Deal Resolved → ${adlFinalStates[decision]}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">HITL result mapped back to ADL. Deal state: <strong style="color:${adlFinalColors[decision]}">${adlFinalStates[decision]}</strong></div>
-      <div class="json-block" data-copy="uc4-final">${hl({
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">The immutable HITL decision is mapped back to the illustrative ADL contract; resource execution still requires current authority. Deal state: <strong style="color:${adlFinalColors[decision]}">${adlFinalStates[decision]}</strong></div>
+      <div class="json-block" id="uc4-final">${hl({
         deal_id: 'deal_infra_q2',
         state: adlFinalStates[decision],
         resolution: {
@@ -1557,12 +1664,12 @@ function renderUC5() {
       ...(showValidation ? { validation: { min: 40000, max: 200000 } } : {}),
       hint: 'Gross annual compensation'
     };
-    if (showConditional) {
+    if (showConditional && hasSelect) {
       salaryField.conditional = { field: 'employment_type', operator: 'eq', value: 'fulltime' };
     }
     fields.push(salaryField);
 
-    if (showConditional) {
+    if (showConditional && hasSelect) {
       fields.push({
         key: 'hourly_rate', label: 'Hourly Rate (EUR)', type: 'number',
         ...(showSensitive ? { sensitive: true } : {}),
@@ -1621,10 +1728,10 @@ function renderUC5() {
     formObj = {
       session_id: 'form_sess_z1a2b3c4',
       steps: [
-        { title: 'Personal Information', description: 'Basic contact and identity details', fields: step1Fields.length > 0 ? step1Fields : [fields[0]] },
-        { title: 'Work Preferences', description: 'Employment type, availability, and compensation', fields: step2Fields.length > 0 ? step2Fields : [fields[fields.length > 1 ? 1 : 0]] },
+        { title: 'Personal Information', description: 'Basic contact and identity details', fields: step1Fields },
+        { title: 'Work Preferences', description: 'Employment type, availability, and compensation', fields: step2Fields },
         { title: 'Review & Submit', description: 'Review your answers and submit', fields: step3Fields }
-      ]
+      ].filter(step => step.fields.length > 0)
     };
   } else {
     formObj = { fields: fields };
@@ -1632,7 +1739,7 @@ function renderUC5() {
 
   // Build HITL object
   const hitlObj = {
-    spec_version: '0.8',
+    spec_version: HITL_VERSION,
     case_id: 'review_input_q1w2e3r4',
     review_url: 'https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q',
     poll_url: 'https://api.service.example.com/v1/reviews/input_q1w2e3r4/status',
@@ -1665,7 +1772,7 @@ function renderUC5() {
     else if (f.key === 'additional_notes') resultData[f.key] = 'Open to equity compensation.';
   });
   // Remove conditional fields that wouldn't be shown (hourly_rate when fulltime)
-  if (showConditional && resultData.employment_type === 'fulltime') {
+  if (showConditional && hasSelect && resultData.employment_type === 'fulltime') {
     delete resultData.hourly_rate;
   }
 
@@ -1686,10 +1793,10 @@ function renderUC5() {
     created_at: '2026-02-22T10:00:00Z',
     opened_at: '2026-02-22T11:15:03Z',
     progress: {
-      current_step: 2,
+      current_step: Math.min(2, formObj.steps.length),
       total_steps: formObj.steps ? formObj.steps.length : 1,
-      completed_fields: Math.min(4, fields.length),
-      total_fields: fields.length
+      completed_fields: Math.min(4, fields.filter(field => field.required).length),
+      total_fields: fields.filter(field => field.required).length
     }
   } : {
     status: 'in_progress',
@@ -1729,7 +1836,7 @@ function renderUC5() {
 
   // Build form preview (visual mock)
   let formPreviewHtml = '<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">';
-  const previewFields = isMulti && formObj.steps ? formObj.steps[1].fields : fields.slice(0, 4);
+  const previewFields = isMulti && formObj.steps ? formObj.steps[Math.min(1, formObj.steps.length - 1)].fields : fields.slice(0, 4);
   previewFields.forEach(f => {
     const sensitiveMark = f.sensitive ? ' <span style="color:var(--red);font-size:10px;font-weight:700">SENSITIVE</span>' : '';
     const conditionalMark = f.conditional ? ' <span style="color:var(--purple);font-size:10px;font-weight:700">CONDITIONAL</span>' : '';
@@ -1841,6 +1948,7 @@ function renderUC5() {
 }
 
 // ========== Helper: stepCard ==========
+let jsonBlockCounter = 0;
 function stepCard(actor, title, body, jsonObj) {
   const badgeColor = actor === 'agent' ? 'blue' : actor === 'service' ? 'orange' : actor === 'human' ? 'green' : 'purple';
   const badgeLabel = actor.charAt(0).toUpperCase() + actor.slice(1);
@@ -1848,7 +1956,7 @@ function stepCard(actor, title, body, jsonObj) {
     <div class="step-title"><span class="badge badge-${badgeColor}">${badgeLabel}</span> ${title}</div>
     <div class="step-body">${body}</div>`;
   if (jsonObj) {
-    const uid = 'uc7-json-' + Math.random().toString(36).slice(2, 8);
+    const uid = 'uc7-json-' + String(++jsonBlockCounter);
     html += `<div class="json-block" id="${uid}">${hl(jsonObj)}</div>
     <button class="copy-btn" onclick="copyJson('${uid}')">Copy</button>`;
   }
@@ -1860,13 +1968,14 @@ function stepCard(actor, title, body, jsonObj) {
 function renderUC7() {
   const platform = getRadio('uc7-platform');
   const action = getRadio('uc7-action');
+  const stepUp = getCheck('uc7-step-up');
   const el = document.getElementById('uc7-main');
 
   const platformNames = { telegram: 'Telegram', slack: 'Slack', discord: 'Discord' };
   const platformSubmittedVia = { telegram: 'telegram_inline_button', slack: 'slack_block_action', discord: 'discord_component' };
 
   const hitl = {
-    spec_version: '0.8',
+    spec_version: HITL_VERSION,
     case_id: 'review_confirm_s5t6u7v8',
     review_url: 'https://mailcraft.example/review/confirm_s5t6u7v8?token=X2yZ4aB6cD8eF0gH2i...',
     poll_url: 'https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status',
@@ -1876,29 +1985,36 @@ function renderUC7() {
     prompt: 'Send 3 application emails to TechFlow, Klarna, and Zalando?',
     inline_actions: ['confirm', 'cancel'],
     timeout: '4h',
-    default_action: 'skip',
+    default_action: 'abort',
     created_at: '2026-02-23T14:00:00Z',
     expires_at: '2026-02-23T18:00:00Z',
+  };
+
+  if (stepUp) hitl.verification_policy = {
+    mode: 'step_up', required_for: ['inline_submit','browser_submit'],
+    requirements: { any_of: [{ all_of: [{ proof_type: 'proof_of_human', provider: 'x-illustrative-provider', min_assurance: 'high' }] }] },
+    binding: { case_id: true, action: true, challenge: 'illustrative_case_action_challenge', freshness_seconds: 300, single_use: true },
+    fallback: { on_missing: 'browser_review', on_invalid: 'browser_review' }
   };
 
   let buttonMock = '';
   if (platform === 'telegram') {
     buttonMock = `<div style="display:flex;gap:6px;margin-top:8px">
-      <div style="background:var(--green);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</div>
-      <div style="background:var(--red);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</div>
-      <div style="background:var(--blue);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</div>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('confirm')" style="background:var(--green);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</button>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('cancel')" style="background:var(--red);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</button>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('details')" style="background:var(--blue);color:#fff;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</button>
     </div>`;
   } else if (platform === 'slack') {
     buttonMock = `<div style="display:flex;gap:6px;margin-top:8px">
-      <div style="background:#007a5a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</div>
-      <div style="background:#e01e5a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</div>
-      <div style="background:transparent;color:var(--blue);padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;border:1px solid var(--border);cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</div>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('confirm')" style="background:#007a5a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</button>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('cancel')" style="background:#e01e5a;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</button>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('details')" style="background:transparent;color:var(--blue);padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;border:1px solid var(--border);cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</button>
     </div>`;
   } else {
     buttonMock = `<div style="display:flex;gap:6px;margin-top:8px">
-      <div style="background:#57f287;color:#000;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</div>
-      <div style="background:#ed4245;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</div>
-      <div style="background:#5865f2;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</div>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('confirm')" style="background:#57f287;color:#000;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'confirm' ? ';box-shadow:0 0 12px var(--green-glow)' : ''}">Confirm</button>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('cancel')" style="background:#ed4245;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'cancel' ? ';box-shadow:0 0 12px var(--red-glow)' : ''}">Cancel</button>
+      <button type="button" class="mock-button" onclick="chooseInlineAction('details')" style="background:#5865f2;color:#fff;padding:6px 16px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer${action === 'details' ? ';box-shadow:0 0 12px var(--blue-glow)' : ''}">Details &rarr;</button>
     </div>`;
   }
 
@@ -1928,10 +2044,19 @@ function renderUC7() {
     </div>
   </div>`);
 
-  if (action === 'details') {
-    // Fallback to browser
-    steps.push(stepCard('human', 'Human &rarr; Browser', `Human taps <strong>"Details &rarr;"</strong> URL button &rarr; opens <code>review_url</code> in browser. Full review page with context. Standard flow continues (poll for result).`));
-    steps.push(stepCard('agent', 'Agent &rarr; Service (polling)', `<code>GET poll_url</code> &mdash; Agent polls until human submits via browser`, { status: 'completed', case_id: hitl.case_id, completed_at: '2026-02-20T14:08:00Z', result: { action: 'confirm', data: {} }, submission_context: { mode: 'browser_submit' } }));
+  if (action === 'details' || stepUp) {
+    if (stepUp && action !== 'details') steps.push(stepCard('service','Policy preflight → browser step-up',
+      'The agent cannot satisfy the declared verification policy in this channel, so it forwards the original review URL. If it submitted without evidence, the service would reject that alternative attempt:',
+      { status: 403, body: { error: 'verification_required', case_id: hitl.case_id, review_url: hitl.review_url, message: 'Required evidence is missing. Continue on the service-owned review page.' } }));
+    steps.push(stepCard('human', 'Human → Browser',
+      `${stepUp ? 'The service policy requires browser review.' : 'Human taps the Details URL button.'} The agent forwards the exact <code>review_url</code>. The service independently checks required reviewer authorization and evidence before accepting the response.`));
+    steps.push(stepCard('agent', 'Agent → Service (polling)',
+      '<code>GET poll_url</code> — The browser records a decision. Poll returns normalized metadata, without raw proofs. Execution needs separate current authority.',
+      { status: 'completed', case_id: hitl.case_id, completed_at: '2026-02-23T14:08:00Z', result: { action: action === 'cancel' ? 'cancel' : 'confirm', data: {} },
+        submission_context: { mode: 'browser_submit', ...(stepUp ? { verification_result: {
+          satisfied: true, verified_evidence: [{ proof_type: 'proof_of_human', provider: 'x-illustrative-provider', assurance_level: 'high', bound_to_case: true, bound_to_action: true, fresh: true, single_use_enforced: true }], missing_requirements: []
+        } } : {}) }
+      }));
   } else {
     // Inline submit
     const submitBody = {
@@ -1947,14 +2072,14 @@ function renderUC7() {
 
     steps.push(stepCard('human', `Human taps [${action === 'confirm' ? 'Confirm' : 'Cancel'}]`, `Human taps the <strong>${action}</strong> button directly in ${platformNames[platform]}. No browser opened. ${platformNames[platform]} sends callback to the agent bot.`));
 
-    steps.push(stepCard('agent', 'Agent &rarr; Service (submit_url)', `<code>POST submit_url</code> &mdash; Agent forwards the inline action with platform identity
+    steps.push(stepCard('agent', 'Agent &rarr; Service (submit_url)', `<code>POST submit_url</code> &mdash; Agent relays the explicit human action with claimed platform metadata; these claims alone are not verified identity
       <div style="margin-top:4px;font-size:11px;color:var(--dim)">Authorization: Bearer {submit_token} &mdash; separate from review_url token</div>`, submitBody));
 
-    const serviceResponse = { status: 'completed', case_id: hitl.case_id, completed_at: '2026-02-20T14:08:00Z', result: { action, data: {} }, submission_context: { mode: 'inline_submit', submitted_via: submitBody.submitted_via, submitted_by: submitBody.submitted_by } };
+    const serviceResponse = { status: 'completed', case_id: hitl.case_id, completed_at: '2026-02-23T14:08:00Z', result: { action, data: {} }, submission_context: { mode: 'inline_submit', submitted_via: submitBody.submitted_via, submitted_by: submitBody.submitted_by } };
 
-    steps.push(stepCard('service', 'Service &rarr; Agent', `<code>200 OK</code> &mdash; ${action === 'confirm' ? 'Decision recorded; execution remains a service responsibility.' : 'Cancelled. No emails sent.'}`, serviceResponse));
+    steps.push(stepCard('service', 'Service &rarr; Agent', `<code>200 OK</code> &mdash; ${action === 'confirm' ? 'Decision recorded; execution remains a service responsibility.' : 'Cancel decision recorded in a completed case. No emails sent.'}`, serviceResponse));
 
-    const resultText = action === 'confirm' ? 'Simulated confirmation recorded; no emails are sent by this playground.' : 'Email sending cancelled.';
+    const resultText = action === 'confirm' ? 'Simulated confirmation recorded; no emails are sent by this playground.' : 'Cancel decision recorded in a completed case; no emails are sent.';
     const resultIcon = action === 'confirm' ? '&#10003;' : '&#10005;';
     steps.push(`<div class="step-card agent">
       <div class="step-title"><span class="badge badge-blue">Agent</span> Agent updates ${platformNames[platform]} message</div>
@@ -1978,6 +2103,11 @@ renderUC3();
 renderUC4();
 renderUC5();
 renderUC7();
+function chooseInlineAction(action) {
+  const input = [...document.getElementsByName('uc7-action')].find(option => option.value === action);
+  if (input) { input.checked = true; renderUC7(); writeStateURL(); document.getElementById('playground-status').textContent = `Illustrative ${action} selected. No request sent.`; }
+}
+restoreStateURL();
 </script>
 </body>
 </html>

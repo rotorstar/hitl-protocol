@@ -76,11 +76,16 @@ Use both: let your agent runtime gate its own dangerous actions, and let service
 
 <p align="center">
   <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">
-    <img src="assets/hitl-flow_v2.gif" alt="HITL Protocol v0.8 — Interactive Flow" width="800">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="assets/hitl-flow-v0.9-dark.png">
+      <img src="assets/hitl-flow-v0.9.png" alt="HITL Protocol v0.9 — Animated architecture with human, agent, service, messaging channel and service-hosted review" width="1000">
+    </picture>
   </a>
   <br>
-  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">▶ Try the Interactive Flow</a>
+  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">▶ Explore the v0.9 Interactive Architecture</a>
 </p>
+
+Choose **Job search**, **Shopping** or **Research** in the horizontal tabs, then explore **browser review**, **optional inline decisions**, and the **Agent Access prepare → review → commit** flow across 29 outcome variants. The animated architecture includes an optional payload inspector, shareable steps, keyboard controls, light/dark themes, and reduced motion. [Screenshots and feature comparison](docs/animation-review/README.md).
 
 ```mermaid
 sequenceDiagram
@@ -349,12 +354,14 @@ hitl-protocol/
 
 <p align="center">
   <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html">
-    <img src="assets/hitl-playground.png" alt="HITL Protocol Interactive Playground" width="800">
+    <img src="assets/hitl-playground-v0.9.png" alt="HITL Protocol v0.9 Interactive Playground" width="800">
   </a>
 </p>
 <p align="center">
-  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html"><strong>Try the Interactive Playground →</strong></a>
+  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html"><strong>Try the v0.9 Interactive Playground →</strong></a>
 </p>
+
+The detailed playground preserves its eight use-case tabs and controls, with updated v0.9 examples, reviewer authorization, immutable decisions and verification step-up. [Before/after screenshots and checks](docs/playground-review/README.md).
 
 ## Versioning
 

@@ -5,6 +5,10 @@
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r --filter \"@hitl-protocol/*\" run test",
+    "test:animation": "node scripts/verify-flow-animation.mjs",
+    "capture:animation": "node scripts/verify-flow-animation.mjs --capture",
+    "test:playground": "node scripts/verify-playground.mjs",
+    "capture:playground": "node scripts/verify-playground.mjs --capture",
     "typecheck": "pnpm -r --if-present run typecheck",
     "eval:agent-access": "pnpm --filter @hitl-protocol/agent-access-reference eval",
     "eval:browser": "pnpm --filter @hitl-protocol/agent-access-reference eval:browser",
