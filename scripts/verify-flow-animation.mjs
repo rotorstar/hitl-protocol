@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { createServer } from 'node:http';
+import { startBrowserFixtureServer } from './browser-fixture-server.mjs';
 import { readFile, mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -44,13 +44,9 @@ assert(['chromium', 'webkit', 'firefox'].includes(browserName), 'Choose chromium
 let server;
 const useHTTP = browserName === 'webkit' || process.argv.includes('--http');
 if (useHTTP) {
-  server = createServer(async (request, response) => {
-    const file = request.url?.startsWith('/protocol-actors-v0.9.png') ? 'protocol-actors-v0.9.png' : 'hitl-protocol-flow.html';
-    response.setHeader('Content-Type', file.endsWith('.png') ? 'image/png' : 'text/html');
-    response.end(await readFile(resolve(ROOT, 'assets', file)));
-  });
-  await new Promise((done) => server.listen(0, '127.0.0.1', done));
-  url = `http://127.0.0.1:${server.address().port}/hitl-protocol-flow.html`;
+  const fixture = await startBrowserFixtureServer(ROOT);
+  server = fixture.server;
+  url = `${fixture.origin}/assets/hitl-protocol-flow.html`;
 }
 const browser = await playwright[browserName].launch();
 const errors = [];
@@ -63,6 +59,8 @@ function valid(validator, body, context) {
 }
 async function visit(page, hash = '') {
   await page.goto(`${url}${hash}`, { waitUntil: 'load' });
+  await page.evaluate(() => document.fonts.ready);
+  assert(await page.evaluate(() => ['Inter', 'JetBrains Mono'].every(name => [...document.fonts].some(face => face.family.replace(/["']/g, '') === name && face.status === 'loaded'))), 'Both bundled fonts must load');
   await expect(page.locator('#explorer')).toBeVisible();
 }
 async function readPayload(page) {

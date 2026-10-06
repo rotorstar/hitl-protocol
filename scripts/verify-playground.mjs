@@ -1,7 +1,7 @@
 /** Checks actual rendered playground fixtures against the canonical v0.9 wire schemas.
  * Run: node scripts/verify-playground.mjs [--capture]
  */
-import { createServer } from 'node:http';
+import { startBrowserFixtureServer } from './browser-fixture-server.mjs';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -25,13 +25,9 @@ const browserName = process.argv.find(arg => arg.startsWith('--browser='))?.spli
 assert(['chromium','webkit','firefox'].includes(browserName));
 let server;
 if (browserName === 'webkit') {
-  server = createServer(async (request,response) => {
-    const file = request.url?.startsWith('/assets/logo.svg') ? 'assets/logo.svg' : 'playground/index.html';
-    response.setHeader('Content-Type', file.endsWith('.svg') ? 'image/svg+xml' : 'text/html');
-    response.end(await readFile(resolve(ROOT,file)));
-  });
-  await new Promise(done => server.listen(0,'127.0.0.1',done));
-  url = `http://127.0.0.1:${server.address().port}/playground/index.html`;
+  const fixture = await startBrowserFixtureServer(ROOT);
+  server = fixture.server;
+  url = `${fixture.origin}/playground/index.html`;
 }
 const browser = await playwright[browserName].launch();
 let messages = 0, configurations = 0;
@@ -93,11 +89,13 @@ async function configure(page,tab,choices,flags={},fields) {
 }
 try {
   const context = await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
-  // Optional font requests are blocked: the local fallback must remain usable.
+  // Only local fixture requests are allowed, including the shared font assets.
   await context.route(/^https?:/,route => route.request().url().startsWith(new URL(url).origin + '/') ? route.continue() : route.abort());
   const page = await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(url);
+  await page.evaluate(() => document.fonts.ready);
+  assert(await page.evaluate(() => ['Inter', 'JetBrains Mono'].every(name => [...document.fonts].some(face => face.family.replace(/["']/g, '') === name && face.status === 'loaded'))), 'Both shared local fonts must load');
   await expect(page).toHaveTitle(/v0\.9/);
   await expect(page.getByRole('tab')).toHaveCount(8);
   await check(page,'overview');
@@ -170,7 +168,7 @@ try {
   assert.deepEqual(errors,[],'No JavaScript errors in any configuration');
   assert.equal(await page.evaluate(()=>document.getAnimations().length),0,'System reduced motion suppresses animation');
   if(process.argv.includes('--capture')) {
-    await page.setViewportSize({width:1440,height:1000}); await page.goto(url); await page.evaluate(()=>scrollTo(0,0));
+    await page.setViewportSize({width:1440,height:1000}); await page.goto(url); await page.evaluate(() => document.fonts.ready); await page.evaluate(()=>scrollTo(0,0));
     await page.screenshot({path:resolve(ROOT,'docs/playground-review/after.png')});
     await page.screenshot({path:resolve(ROOT,'assets/hitl-playground-v0.9.png')});
     await configure(page,6,{'uc7-platform':'telegram','uc7-action':'confirm'},{'uc7-step-up':true}); await page.evaluate(()=>scrollTo(0,0));

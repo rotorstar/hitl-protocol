@@ -66,7 +66,7 @@ The product variant allows one headphone selection, then prepares an order summa
 | System, light and dark themes | Light only | Yes | Yes, including theme-aware README previews |
 | Reduced motion and visibility pause | No | Yes | Yes, including packet, orbit and illustration movement |
 | Keyboard semantics and status announcements | Incomplete | Yes | Yes |
-| Offline operation | Local imagery | Self-contained | HTML plus one local illustration asset; no external requests |
+| Offline operation | Local imagery | Self-contained | HTML, one local illustration asset and shared local fonts; no external requests |
 | Wire-example schema checks | No | Added during verification | Canonical core, profile and commit schemas |
 
 ## Flow, data and state model
@@ -96,6 +96,17 @@ Problem: the example selector hides the available stories. Show **Job search**, 
 3. **Interaction:** manual navigation interrupts playback; pause freezes movement; replay resets a completed sequence. URL restoration, keyboard navigation, clipboard fallback, focus view and reduced motion work. Hidden tabs pause playback.
 4. **Delivery:** no external runtime request is required. Layouts at 320, 375, 390, 768, 1024 and 1440 pixels must have no horizontal overflow. README previews are captured from the actual HTML in both themes.
 
+### Playground palette alignment — 2026-10-06 refinement
+
+The animation adopts the existing playground's orange brand colour, cool white/slate surfaces, blue/purple/green supporting colours and typography. Story data, illustrations and interaction contracts remain as verified above.
+
+| Task | Acceptance criteria |
+|---|---|
+| Transfer the light palette | Primary orange is `#c74c08`, its darker text/hover shade is `#a73e05`; text uses `#0f172a` and `#526176`, JSON panels use `#172233`, and supporting blue/purple/green match the playground. Active story tabs and primary actions use orange. Remove the previous olive/beige palette and duplicate participant colour overrides. |
+| Adapt the dark palette | Dark mode uses slate/navy surfaces with readable orange, blue, purple and green accents. Manual/system theme switching remains functional; browser theme colour is derived from the active CSS background. |
+| Match typography | Both pages load the same local Inter 4.1 and JetBrains Mono 2.304 font assets through one shared stylesheet. The animation's headline uses Inter instead of a separate serif face. No font CDN is required; font licences and provenance are retained. Font loading and mobile reflow must pass in each supported browser. |
+| Verify and capture | Check representative foreground/background pairs against the [WCAG text contrast thresholds](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html), run the existing browser checks, and refresh/inspect light, dark, story and mobile screenshots before committing. |
+
 Run from the repository root after installing workspace dependencies:
 
 ```sh
@@ -120,3 +131,5 @@ After changing flow content, rerun the canonical-schema and browser checks. Afte
 ## Final browser result
 
 The animation passes in Chromium, Firefox and WebKit: 29 outcome variants with 85 schema-valid wire messages, including horizontal story tabs, keyboard and panel focus, editable selections, read-only accepted responses, concrete follow-up confirmations, share/reload restoration and review-card containment from 320 to 1440 pixels. The detailed playground separately passes 226 configurations with 552 wire messages in the same three engines.
+
+The palette and typography refinement passes the same checks in all three engines, including actual local font loading. A rendered comparison confirms matching orange, text, muted, blue, purple and green colours, Inter body/headline text, JetBrains Mono technical text and headline weight 800. Twelve representative text/background pairs in each theme meet 4.5:1: the minimum is 4.54:1 in light mode and 4.70:1 in dark mode. The browser theme colour matches the active CSS background. Light/dark, messenger, research, purchase, playground and mobile screenshots were refreshed and visually inspected.

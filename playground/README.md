@@ -14,7 +14,7 @@ open playground/index.html
 xdg-open playground/index.html
 
 # Or serve locally
-npx serve playground/
+npx serve .
 ```
 
 This playground does not call the reference runtime or verify users, signatures or real side effects. A service signature demonstrates integrity and issuer authenticity; it is not proof of a human decision.
@@ -36,8 +36,8 @@ The playground includes interactive tabs for:
 
 The existing orange visual identity, eight tabs and sidebar controls are retained. v0.9 adds a concise ownership/authentication/immutability explanation, accurate full wire examples, accessible tabs, shareable control state, clipboard fallback and reduced motion.
 
-See [before/after screenshots and acceptance criteria](../docs/playground-review/README.md). Run `pnpm test:playground` for schema and browser checks, or `pnpm capture:playground` to refresh screenshots. Optional external fonts fall back to local system fonts. No build step is required.
+See [before/after screenshots and acceptance criteria](../docs/playground-review/README.md). Run `pnpm test:playground` for schema and browser checks, or `pnpm capture:playground` to refresh screenshots. Inter and JetBrains Mono are bundled locally and shared with the animation. Serve the repository root and open `/playground/index.html` so the shared assets are available. No build step is required.
 
 ## Contributing
 
-Improvements to the playground are welcome. The playground is a single self-contained HTML file with inline CSS and JavaScript — no build step required.
+Improvements to the playground are welcome. The playground is one HTML file with inline CSS and JavaScript, plus shared local font assets — no build step required.

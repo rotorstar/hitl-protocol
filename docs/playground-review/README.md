@@ -32,4 +32,4 @@ Sources: [canonical HITL v0.9](../../spec/v0.9/hitl-protocol.md), [schemas](../.
 
 ## Verification result
 
-All 226 configurations pass in Chromium, Firefox and WebKit, including 552 schema-valid wire messages. Mobile table scroll regions and SSE wrapping are checked in each engine. Reproduce with `pnpm test:playground`, `node scripts/verify-playground.mjs --browser=webkit` or `--browser=firefox`. Screenshots use local fallback fonts so the comparison does not depend on a font CDN.
+All 226 configurations pass in Chromium, Firefox and WebKit, including 552 schema-valid wire messages. Mobile table scroll regions and SSE wrapping are checked in each engine. Reproduce with `pnpm test:playground`, `node scripts/verify-playground.mjs --browser=webkit` or `--browser=firefox`. The refreshed screenshots now use bundled Inter 4.1 and JetBrains Mono 2.304, shared with the animation. The original before screenshots are retained. No font CDN is required.
