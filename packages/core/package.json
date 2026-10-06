@@ -1,7 +1,7 @@
 {
   "name": "@hitl-protocol/core",
   "version": "0.1.0",
-  "description": "Core utilities for HITL Protocol — tokens, state machine, rate limiting",
+  "description": "Core utilities for HITL Protocol \u2014 tokens, state machine, rate limiting",
   "type": "module",
   "exports": {
     ".": {
@@ -13,7 +13,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc --emitDeclarationOnly --project tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "keywords": [
@@ -41,13 +42,15 @@
     "access": "public"
   },
   "dependencies": {
-    "@hitl-protocol/schemas": "workspace:*"
+    "@hitl-protocol/schemas": "workspace:*",
+    "ajv-formats": "3.0.1"
   },
   "devDependencies": {
-    "@types/node": "^25.3.0",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.0",
-    "vitest": "^4.0.0"
+    "@types/node": "24.19.1",
+    "tsup": "8.5.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "vite": "8.3.3"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/verification-policy.json",
+  "title": "Verification Policy",
+  "description": "Optional verification policy for HITL Protocol v0.8. Defines when proof_of_human evidence is required and how it must be bound.",
+  "type": "object",
+  "required": ["mode", "required_for", "requirements", "binding", "fallback"],
+  "properties": {
+    "mode": {
+      "type": "string",
+      "enum": ["optional", "required", "step_up"],
+      "description": "Whether verification evidence is optional, required, or only required as a step-up."
+    },
+    "required_for": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["inline_submit", "browser_submit"]
+      },
+      "description": "Submission paths for which verification must be satisfied."
+    },
+    "requirements": {
+      "type": "object",
+      "required": ["any_of"],
+      "properties": {
+        "any_of": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["all_of"],
+            "properties": {
+              "all_of": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/evidenceRequirement"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "OR-of-AND policy logic. Any option may satisfy the policy; each option requires all listed evidence requirements."
+        }
+      },
+      "additionalProperties": false
+    },
+    "binding": {
+      "type": "object",
+      "required": ["case_id", "action", "freshness_seconds", "single_use"],
+      "properties": {
+        "case_id": {
+          "type": "boolean",
+          "description": "Whether accepted evidence must be bound to the HITL case_id."
+        },
+        "action": {
+          "type": "boolean",
+          "description": "Whether accepted evidence must be bound to the submitted action."
+        },
+        "challenge": {
+          "type": "string",
+          "description": "Opaque service-generated challenge for provider-specific binding."
+        },
+        "freshness_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum age of the accepted evidence at the time of verification."
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Absolute policy expiry timestamp for the verification challenge."
+        },
+        "single_use": {
+          "type": "boolean",
+          "description": "Whether equivalent evidence can only be used once for the declared case/action binding."
+        }
+      },
+      "additionalProperties": false
+    },
+    "fallback": {
+      "type": "object",
+      "required": ["on_missing", "on_invalid"],
+      "properties": {
+        "on_missing": {
+          "type": "string",
+          "enum": ["browser_review", "reject"],
+          "description": "Fallback behavior when required evidence is missing."
+        },
+        "on_invalid": {
+          "type": "string",
+          "enum": ["browser_review", "reject"],
+          "description": "Fallback behavior when presented evidence fails verification."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "evidenceRequirement": {
+      "type": "object",
+      "required": ["proof_type"],
+      "properties": {
+        "proof_type": {
+          "type": "string",
+          "anyOf": [
+            {
+              "enum": ["proof_of_human"]
+            },
+            {
+              "pattern": "^x-"
+            }
+          ],
+          "description": "Normative core value in v0.8 is proof_of_human. Custom extensions MUST use x- prefixes."
+        },
+        "provider": {
+          "type": "string",
+          "description": "Provider identifier (for example world_id). Omit to accept any provider for the proof type."
+        },
+        "min_assurance": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "description": "Minimum service-defined assurance level required for this proof."
+        },
+        "presentation_formats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "anyOf": [
+              {
+                "enum": ["provider_opaque", "jwt", "zkp", "attestation"]
+              },
+              {
+                "pattern": "^x-"
+              }
+            ]
+          },
+          "description": "Optional allowed presentation formats for provider evidence."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

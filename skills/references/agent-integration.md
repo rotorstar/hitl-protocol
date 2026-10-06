@@ -2,6 +2,10 @@
 
 This guide is for **agent developers** who want to handle HITL responses from services.
 
+The code below illustrates the historical **v0.8** contract used by the local demos. Validate it against [archived v0.8 schemas](../../schemas/v0.8/) or `@hitl-protocol/schemas/v0.8`; the [current normative contract is v0.9](../../spec/v0.9/hitl-protocol.md), which unversioned schema imports select. These snippets are application examples, not a complete authenticated agent SDK.
+
+`completed` records a decision, not execution success or verified identity. Client-supplied channel metadata is a claim; only trusted service-side authentication and case authorization can establish `responded_by`. The optional draft [Agent Access profile](../../profiles/agent-access/v0.1/README.md) separately defines PKCE/OIDC owner enrollment, DPoP-bound grants and fresh explicit commit. A URL visit, callback payload, correlation ID or expiry default never grants execution authority. Validate service origins, response schemas and case correlation before consuming these examples; do not forward credentials to untrusted URLs.
+
 ## Core Concept
 
 When a service needs human input, it returns HTTP 202 instead of 200. The response body contains a `hitl` object with a `review_url` (for the human) and a `poll_url` (for the agent). The agent forwards the URL, polls for the result, and continues.
@@ -15,8 +19,8 @@ When a service needs human input, it returns HTTP 202 instead of 200. The respon
 - [ ] **Validate required fields** — `review_url`, `poll_url`, `type`, `prompt`, `case_id`, `created_at`, `expires_at`
 - [ ] **Forward review URL** — send `hitl.review_url` to human with `hitl.prompt` as context
 - [ ] **Poll for result** — `GET hitl.poll_url` at 30-second to 5-minute intervals
-- [ ] **Handle `completed`** — extract `result.action` and `result.data`, continue workflow
-- [ ] **Handle `expired`** — execute `hitl.default_action` or inform user
+- [ ] **Handle `completed`** — consume the decision; require the service's execution authorization and authoritative business result before reporting success
+- [ ] **Handle `expired`** — return expiry status and inform the user; trusted service policy determines recovery, without implicit approval or commit
 - [ ] **Handle `cancelled`** — inform user, abort or skip
 - [ ] **Respect rate limits** — max 60 requests/min per case, check `Retry-After` header
 
@@ -30,7 +34,7 @@ When a service needs human input, it returns HTTP 202 instead of 200. The respon
 - [ ] **Reminders** — re-send URL at `hitl.reminder_at` timestamps
 - [ ] **Progress tracking** — relay `progress` from `in_progress` poll responses
 
-## Complete Polling Implementation
+## Historical v0.8 Polling Example
 
 ```python
 import time
@@ -48,7 +52,7 @@ def handle_response(response, send_to_user, auth_headers):
         return body  # 202 without HITL (standard async)
 
     # Validate required fields
-    for field in ("review_url", "poll_url", "type", "prompt", "case_id"):
+    for field in ("spec_version", "review_url", "poll_url", "type", "prompt", "case_id", "created_at", "expires_at"):
         if field not in hitl:
             raise ValueError(f"HITL object missing required field: {field}")
 
@@ -67,21 +71,23 @@ def handle_response(response, send_to_user, auth_headers):
             time.sleep(retry_after)
             continue
 
+        poll_response.raise_for_status()
         poll = poll_response.json()
+        if poll.get("case_id") != hitl["case_id"]:
+            raise ValueError("Poll response belongs to another case")
         status = poll["status"]
 
         if status == "completed":
-            return poll["result"]  # {action: "select", data: {...}}
+            return poll  # Decision envelope; not an execution result
 
         if status == "expired":
-            default = hitl.get("default_action", "skip")
-            send_to_user(f"Review expired. Using default action: {default}")
-            return {"action": default, "data": {}, "expired": True}
+            send_to_user("Review expired. No decision was recorded.")
+            return poll  # Never manufacture an action/result on expiry
 
         if status == "cancelled":
-            reason = poll.get("reason", "User cancelled")
+            reason = poll.get("reason", "Case cancelled")
             send_to_user(f"Review cancelled: {reason}")
-            return {"action": "cancelled", "data": {}, "cancelled": True}
+            return poll
 
         # pending, opened, in_progress → keep polling
         if status == "opened":
@@ -116,11 +122,11 @@ def handle_hitl(hitl: dict, send_to_user) -> None:
     if parsed.scheme != "https" or not parsed.netloc:
         raise ValueError("Invalid review URL: must be HTTPS with a valid host")
 
-    # v0.7: Inline buttons for simple decisions (messaging platforms)
-    if "submit_url" in hitl and "submit_token" in hitl:
+    # Conservative example: policies or undeclared buttons use the browser.
+    if has_inline_submit(hitl):
         send_inline_buttons(
             prompt=hitl["prompt"],
-            actions=hitl.get("inline_actions", []),
+            actions=hitl["inline_actions"],
             review_url=review_url,       # Always include URL fallback
         )
     else:
@@ -137,7 +143,8 @@ def handle_hitl(hitl: dict, send_to_user) -> None:
 If `hitl.events_url` is present, use SSE for real-time updates instead of polling:
 
 ```python
-import httpx_sse, json
+import httpx
+from httpx_sse import connect_sse
 
 def handle_hitl_sse(hitl, send_to_user, auth_headers):
     events_url = hitl.get("events_url")
@@ -145,41 +152,33 @@ def handle_hitl_sse(hitl, send_to_user, auth_headers):
         return handle_hitl_polling(hitl, send_to_user, auth_headers)
 
     try:
-        with httpx_sse.connect(events_url, headers=auth_headers) as sse:
-            for event in sse:
-                if event.event == "review.completed":
-                    data = json.loads(event.data)
-                    return data["result"]
-
-                elif event.event == "review.expired":
-                    data = json.loads(event.data)
-                    return {"action": data["default_action"], "expired": True}
-
-                elif event.event == "review.cancelled":
-                    data = json.loads(event.data)
-                    return {"action": "cancelled", "reason": data.get("reason")}
-
-                elif event.event == "review.opened":
-                    send_to_user("Review page opened")
-
-                elif event.event == "review.reminder":
-                    send_to_user(f"Reminder: {hitl['review_url']}")
-
-    except ConnectionError:
-        return handle_hitl_polling(hitl, send_to_user, auth_headers)
+        with httpx.Client() as client:
+            with connect_sse(client, "GET", events_url, headers=auth_headers) as source:
+                source.response.raise_for_status()
+                for event in source.iter_sse():
+                    if event.event in ("review.completed", "review.expired", "review.cancelled"):
+                        # Read the canonical decision/terminal state from the service.
+                        return handle_hitl_polling(hitl, send_to_user, auth_headers)
+                    elif event.event == "review.opened":
+                        send_to_user("Review URL loaded; identity not established")
+                    elif event.event == "review.reminder":
+                        send_to_user(f"Reminder: {hitl['review_url']}")
+    except httpx.TransportError:
+        pass
+    return handle_hitl_polling(hitl, send_to_user, auth_headers)
 ```
 
-Support reconnection via `Last-Event-ID` header. Always fall back to polling on failure.
+`handle_hitl_polling` above denotes your polling implementation. The [`httpx-sse` API](https://github.com/florimondmanca/httpx-sse) supports event iteration; implement bounded reconnection via `Last-Event-ID` only when the service supports replay. Fall back to polling on disconnect or transport failure. The local demos do not promise durable replay.
 
 ### SSE Event Types
 
 | Event | Payload | When |
 |-------|---------|------|
-| `review.opened` | `{case_id, opened_at}` | Human opens URL |
+| `review.opened` | `{case_id, opened_at}` | Review URL loaded; human presence not established |
 | `review.in_progress` | `{case_id, progress}` | Human interacts |
 | `review.completed` | `{case_id, completed_at, result}` | Human submits |
 | `review.expired` | `{case_id, expired_at, default_action}` | Timeout |
-| `review.cancelled` | `{case_id, cancelled_at, reason}` | Human cancels |
+| `review.cancelled` | `{case_id, cancelled_at, reason}` | Service cancels the case |
 | `review.reminder` | `{case_id, review_url}` | Reminder triggered |
 
 ## Callback/Webhook
@@ -200,7 +199,7 @@ def verify_hitl_signature(body: bytes, signature_header: str, secret: str) -> bo
     return hmac.compare_digest(expected, signature_header)
 ```
 
-Still maintain polling as fallback — the poll endpoint is the source of truth.
+Still maintain polling as fallback — the service's case state is the source of truth. Verify case correlation and replay handling; a webhook signature alone does not confer execution authorization. The local reference demos do not implement callbacks.
 
 ## Multi-Round Reviews
 
@@ -251,7 +250,7 @@ if hitl["type"] == "input" and "form" in hitl.get("context", {}):
 
 ### Sensitive Fields
 
-Fields with `sensitive: true` (like salary, passwords) MUST NOT be logged or displayed by the agent. Only the human sees these values in the browser.
+Do not log or relay values marked `sensitive: true`. This metadata does not hide the field from an authorized poll consumer: context and `result.data` may contain personal data. Minimize service responses and enforce caller authorization; collect credentials through a separate appropriate authentication flow.
 
 ## Reminders
 
@@ -281,8 +280,12 @@ When a service includes `submit_url` and `submit_token` in the HITL object, the 
 
 ```python
 def has_inline_submit(hitl: dict) -> bool:
-    return "submit_url" in hitl and "submit_token" in hitl
+    # Conservative sample: use the browser for any declared verification policy.
+    return bool(hitl.get("submit_url") and hitl.get("submit_token")
+                and hitl.get("inline_actions") and not hitl.get("verification_policy"))
 ```
+
+A production client may support policy preflight instead: determine whether it can satisfy an allowed requirement branch for `inline_submit`, and otherwise use `review_url`. Never self-attest verification. This sample also uses the browser when optional `inline_actions` is absent instead of inventing buttons.
 
 ### Rendering Decision
 
@@ -338,32 +341,38 @@ def render_hitl_message(hitl: dict, platform: str):
 import httpx
 
 async def handle_inline_action(case_mapping: dict, action: str, user_info: dict):
-    """Called when a human taps a native messaging button."""
+    """After validating the platform callback and its case/recipient binding."""
 
-    response = await httpx.AsyncClient().post(
-        case_mapping["submit_url"],
-        headers={
-            "Authorization": f"Bearer {case_mapping['submit_token']}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "action": action,
-            "data": {},
-            "submitted_via": user_info["submitted_via"],
-            "submitted_by": {
-                "platform": user_info["platform"],
-                "platform_user_id": user_info["platform_user_id"],
-                "display_name": user_info.get("display_name")
+    if action not in case_mapping["inline_actions"]:
+        return {"success": False, "reason": "action_not_inline"}
+    submitted_by = {
+        "platform": user_info["platform"],
+        "platform_user_id": user_info["platform_user_id"]
+    }
+    if user_info.get("display_name") is not None:
+        submitted_by["display_name"] = user_info["display_name"]
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            case_mapping["submit_url"],
+            headers={
+                "Authorization": f"Bearer {case_mapping['submit_token']}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "action": action,
+                "data": {},
+                "submitted_via": user_info["submitted_via"],
+                "submitted_by": submitted_by
             }
-        }
-    )
+        )
 
     if response.status_code == 200:
-        return {"success": True, "result": response.json()}
+        return {"success": True, "decision": response.json()}  # No execution claim
     elif response.status_code == 403:
         # Action not permitted inline → direct to review_url
         error = response.json()
-        return {"success": False, "redirect_url": error.get("review_url")}
+        return {"success": False, "redirect_url": error.get("review_url", case_mapping["review_url"])}
     elif response.status_code == 409:
         return {"success": False, "reason": "already_responded"}
     elif response.status_code == 410:
@@ -376,45 +385,56 @@ async def handle_inline_action(case_mapping: dict, action: str, user_info: dict)
 
 Each messaging platform has different limits for action callback data. The agent must encode enough information to identify the case and action when a button is tapped.
 
-| Platform | Field | Limit | Strategy |
-|----------|-------|-------|----------|
-| **Telegram** | `callback_data` | 64 bytes | `hitl:{sha256(case_id)[:6]}:{action}` + agent-side mapping table |
-| **Slack** | `value` | 2000 chars | Full JSON: `{"case_id":"...","action":"..."}` — no mapping needed |
-| **Discord** | `custom_id` | 100 chars | `hitl:{case_id}:{action}` — usually fits directly |
-| **WhatsApp** | `reply.id` | 256 chars | `hitl_{case_id}_{action}` — usually fits directly |
-| **MS Teams** | `Action.Submit data` | Unbounded JSON | Full metadata in card action data |
+Use opaque, expiring references to agent-side case mappings. Validate the platform callback's authenticity and bind it to the intended recipient and offered action before submitting. Correlation data is not authorization, and messaging metadata remains a claim from the service's perspective. Provider payload limits differ; consult the current provider documentation instead of assuming unrestricted JSON is safe.
+
+For [Telegram inline buttons](https://core.telegram.org/bots/api#inlinekeyboardbutton), `callback_data` is limited to 1–64 bytes. The following local example avoids truncated case hashes and checks the encoded byte length.
 
 **Telegram mapping table example:**
 
 ```python
-import hashlib
+import secrets
+from datetime import datetime, timezone
 
 # Agent-side in-memory mapping (or Redis/SQLite for persistence)
 case_store: dict[str, dict] = {}
 
-def register_case(hitl: dict) -> str:
-    """Generate a 6-char short ID and store the case mapping."""
-    short_id = hashlib.sha256(hitl["case_id"].encode()).hexdigest()[:6]
+def register_case(hitl: dict, recipient_id: str) -> str:
+    """Store a validated case for the intended platform recipient."""
+    short_id = secrets.token_urlsafe(12)
+    while short_id in case_store:
+        short_id = secrets.token_urlsafe(12)
     case_store[short_id] = {
         "case_id": hitl["case_id"],
         "submit_url": hitl["submit_url"],
         "submit_token": hitl["submit_token"],
-        "review_url": hitl["review_url"]
+        "review_url": hitl["review_url"],
+        "inline_actions": hitl["inline_actions"],
+        "expires_at": hitl["expires_at"],
+        "recipient_id": recipient_id
     }
     return short_id
 
 def callback_data(short_id: str, action: str) -> str:
     """Generate Telegram callback_data (max 64 bytes)."""
-    return f"hitl:{short_id}:{action}"  # e.g., "hitl:a1b2c3:confirm" = 20 bytes
+    value = f"hitl:{short_id}:{action}"
+    if len(value.encode("utf-8")) > 64:
+        raise ValueError("Callback data exceeds Telegram's byte limit")
+    return value
 
-def resolve_callback(data: str) -> tuple[dict, str] | None:
-    """Parse callback_data and return (case_mapping, action)."""
-    if not data.startswith("hitl:"):
-        return None
+def resolve_callback(data: str, verified_recipient_id: str) -> tuple[dict, str] | None:
+    """Call only after authenticating the platform callback transport."""
     parts = data.split(":")
+    if len(parts) != 3 or parts[0] != "hitl":
+        return None
     short_id, action = parts[1], parts[2]
     case = case_store.get(short_id)
-    return (case, action) if case else None
+    if not case or case["recipient_id"] != verified_recipient_id:
+        return None
+    expires_at = datetime.fromisoformat(case["expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) >= expires_at:
+        del case_store[short_id]
+        return None
+    return (case, action) if action in case["inline_actions"] else None
 ```
 
 ### Security: Never Leak submit_token
@@ -437,6 +457,8 @@ Store `submit_token` only in the agent's own memory/database. Look it up using t
 - [ ] **Update message after action** — edit original message, remove buttons, show result
 - [ ] **Never leak submit_token** — store only agent-side, never in callback data
 - [ ] **Respect inline_actions** — only render buttons for actions listed in `inline_actions`
+- [ ] **Preflight verification policy** — satisfy an allowed `inline_submit` requirement branch or use the browser; the conservative sample falls back for every declared policy
+- [ ] **Authenticate callbacks** — check platform transport, intended recipient, case correlation, offered action and expiry; never treat a UI payload as proof of identity
 - [ ] **Fallback to URL** — if platform doesn't support buttons or submit_url is absent, use URL-only delivery
 
 ## What NOT to Do
@@ -446,7 +468,7 @@ Store `submit_token` only in the agent's own memory/database. Look it up using t
 - **Do NOT ignore HTTP 202 + HITL** — proceeding without human input violates the protocol.
 - **Do NOT poll too frequently** — respect rate limits (max 60/min). Check `Retry-After` header.
 - **Do NOT store review URLs long-term** — they contain time-limited tokens that expire.
-- **Do NOT log sensitive field values** — fields marked `sensitive: true` are for human eyes only.
+- **Do NOT log or relay sensitive field values** — browser entry alone does not keep them out of service payloads.
 - **Do NOT put `submit_token` in callback data** — it must never transit through third-party messaging servers.
 
 ## Decision Tree
@@ -460,9 +482,9 @@ Agent receives HTTP response
 │   ├── Forward hitl.review_url to human with hitl.prompt
 │   ├── Poll hitl.poll_url (or connect SSE / register callback)
 │   │
-│   ├── completed → use result.action + result.data
+│   ├── completed → consume decision; execution needs separate authorization/result
 │   │   └── Check next_case_id for multi-round
-│   ├── expired → execute default_action, inform human
+│   ├── expired → return expiry, inform human; never infer approval/commit
 │   └── cancelled → inform human, skip/abort
 │
 ├── Status 202 without "hitl" → standard async (not HITL)

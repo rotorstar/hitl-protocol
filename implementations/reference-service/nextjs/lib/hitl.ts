@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.7 — Shared utilities for Next.js reference implementation.
+ * HITL Protocol v0.8 — Utilities for the local single-process Next.js demo.
  *
  * Core logic (tokens, state machine, rate limiting, constants) is imported
  * from @hitl-protocol/core. This file provides framework-specific SSE,
@@ -12,6 +12,7 @@ export {
   transition, canTransition, VALID_TRANSITIONS, TERMINAL_STATES,
   checkRateLimit, clearRateLimit, RATE_LIMIT,
   INLINE_ACTIONS, PROMPTS, SAMPLE_CONTEXTS,
+  ReviewError, parseSubmission, completeCase, expireCase, pollCase, serializeReviewData,
 } from '@hitl-protocol/core';
 export type { ReviewCase, ReviewStatus, ReviewType } from '@hitl-protocol/core';
 
@@ -26,6 +27,11 @@ const store = new Map<string, ReviewCase>();
 
 export function getCase(caseId: string): ReviewCase | undefined {
   return store.get(caseId);
+}
+
+/** Test and local-process lifecycle only; this is not durable storage. */
+export function resetCases(): void {
+  store.clear();
 }
 
 export function setCase(caseId: string, rc: ReviewCase): void {
@@ -53,7 +59,8 @@ function notifySSE(rc: ReviewCase): void {
   const payload = JSON.stringify({ case_id: rc.case_id, status: rc.status, ...(rc.result && { result: rc.result }) });
   const msg = `event: review.${rc.status}\ndata: ${payload}\nid: evt_${Date.now()}\n\n`;
   const encoder = new TextEncoder();
-  controllers.forEach((c) => { try { c.enqueue(encoder.encode(msg)); } catch {} });
+  controllers.forEach((c) => { try { c.enqueue(encoder.encode(msg)); } catch { controllers.delete(c); } });
+  if (controllers.size === 0) sseControllers.delete(rc.case_id);
 }
 
 /** Callback for transition() — handles SSE + cleanup on terminal state. */

@@ -17,7 +17,7 @@ const EXAMPLES_DIR = join(ROOT, 'examples');
 const EXAMPLE_FILES = readdirSync(EXAMPLES_DIR).filter((file) => file.endsWith('.json'));
 
 function loadJson(path) {
-  return JSON.parse(readFileSync(join(ROOT, path), 'utf-8'));
+  return JSON.parse(readFileSync(join(ROOT, path.replace('schemas/', 'schemas/v0.8/')), 'utf-8'));
 }
 
 function loadExample(file) {

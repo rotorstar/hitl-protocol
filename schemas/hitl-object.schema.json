@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.8/hitl-object.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.9/hitl-object.json",
   "title": "HITL Object",
-  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.8",
+  "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.9",
   "type": "object",
   "required": [
     "spec_version",
@@ -17,8 +17,8 @@
   "properties": {
     "spec_version": {
       "type": "string",
-      "const": "0.8",
-      "description": "Protocol version. MUST be '0.8' for this spec."
+      "const": "0.9",
+      "description": "Protocol version. MUST be '0.9' for this spec."
     },
     "case_id": {
       "type": "string",
@@ -60,7 +60,13 @@
       "type": "string",
       "anyOf": [
         {
-          "enum": ["approval", "selection", "input", "confirmation", "escalation"]
+          "enum": [
+            "approval",
+            "selection",
+            "input",
+            "confirmation",
+            "escalation"
+          ]
         },
         {
           "pattern": "^x-"
@@ -79,7 +85,12 @@
     },
     "default_action": {
       "type": "string",
-      "enum": ["skip", "approve", "reject", "abort"],
+      "enum": [
+        "skip",
+        "approve",
+        "reject",
+        "abort"
+      ],
       "description": "Action taken if the review expires without a response."
     },
     "created_at": {
@@ -99,54 +110,74 @@
         "form": {
           "type": "object",
           "description": "Structured form definition for Input-type reviews. Use either 'fields' (single-step) or 'steps' (multi-step), not both.",
-          "properties": {
-            "fields": {
-              "type": "array",
-              "items": {
-                "$ref": "form-field.json"
-              },
-              "description": "Array of form field definitions for single-step forms."
-            },
-            "steps": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["title", "fields"],
-                "properties": {
-                  "title": {
-                    "type": "string",
-                    "description": "Step heading displayed in the wizard UI."
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Subtitle or helper text for the step."
-                  },
-                  "fields": {
-                    "type": "array",
-                    "items": {
-                      "$ref": "form-field.json"
-                    },
-                    "description": "Array of form field definitions for this step."
-                  }
-                },
-                "additionalProperties": false
-              },
-              "description": "Array of wizard steps for multi-step forms."
-            },
-            "session_id": {
-              "type": "string",
-              "description": "Optional session identifier for form state persistence. Enables resume after browser close."
-            }
-          },
           "oneOf": [
             {
-              "required": ["fields"]
+              "type": "object",
+              "title": "SingleStepFormDefinition",
+              "required": [
+                "fields"
+              ],
+              "properties": {
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "form-field.json"
+                  },
+                  "description": "Array of form field definitions for single-step forms."
+                },
+                "steps": false,
+                "session_id": {
+                  "type": "string",
+                  "description": "Optional session identifier for form state persistence. Enables resume after browser close."
+                }
+              },
+              "additionalProperties": false
             },
             {
-              "required": ["steps"]
+              "type": "object",
+              "title": "MultiStepFormDefinition",
+              "required": [
+                "steps"
+              ],
+              "properties": {
+                "fields": false,
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "title",
+                      "fields"
+                    ],
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "description": "Step heading displayed in the wizard UI."
+                      },
+                      "description": {
+                        "type": "string",
+                        "description": "Subtitle or helper text for the step."
+                      },
+                      "fields": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "form-field.json"
+                        },
+                        "description": "Array of form field definitions for this step."
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "description": "Array of wizard steps for multi-step forms."
+                },
+                "session_id": {
+                  "type": "string",
+                  "description": "Optional session identifier for form state persistence. Enables resume after browser close."
+                }
+              },
+              "additionalProperties": false
             }
-          ],
-          "additionalProperties": false
+          ]
         }
       },
       "description": "Arbitrary key-value pairs providing additional context about the review."
@@ -206,12 +237,16 @@
     },
     "verification_policy": {
       "$ref": "verification-policy.json",
-      "description": "Optional service-declared verification requirements for proof_of_human evidence."
+      "description": "Optional verification requirements. The core standardizes proof_of_human; profiles may define x-prefixed requirements for service-verified identity or authorization."
     }
   },
   "dependentRequired": {
-    "submit_url": ["submit_token"],
-    "submit_token": ["submit_url"]
+    "submit_url": [
+      "submit_token"
+    ],
+    "submit_token": [
+      "submit_url"
+    ]
   },
   "additionalProperties": false
 }

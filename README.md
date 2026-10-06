@@ -8,7 +8,7 @@
   </p>
   <p align="center">
     <a href="https://github.com/rotorstar/hitl-protocol/blob/main/LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
-    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.8" src="https://img.shields.io/badge/spec-v0.8_(Draft)-orange.svg"></a>
+    <a href="https://github.com/rotorstar/hitl-protocol/releases"><img alt="Version: 0.9" src="https://img.shields.io/badge/spec-v0.9_(Draft)-orange.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/issues"><img alt="Open Issues" src="https://img.shields.io/github/issues/rotorstar/hitl-protocol.svg"></a>
     <a href="https://github.com/rotorstar/hitl-protocol/pulls"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
   </p>
@@ -24,13 +24,17 @@ Any website or API integrates HITL to become agent-ready: when human input is ne
 
 **No SDK required. No UI framework mandated. Just HTTP + URL + polling.**
 
+**Current contract: [HITL v0.9](spec/v0.9/hitl-protocol.md).** Default schema-package imports select v0.9; explicit `/v0.8` imports preserve historical consumers. Existing HTTP/MCP demos, templates and end-to-end example JSON remain explicitly v0.8 demonstrations.
+
+The optional [Agent Access profile](profiles/agent-access/v0.1/README.md) connects verified initiator, bounded delegation, immutable business operation, owner review and explicit execution. Its [persistent reference service](implementations/agent-access/README.md) implements public signed catalogue reads, real OAuth/DPoP enrollment, browser review, PostgreSQL transactions and local bookings. Public identity, user authorization and human decision remain separate. Both v0.9 and the profile are drafts; broad provider acceptance is not implied.
+
 HITL is deliberately **not** a frontend framework or embedded UI protocol. It standardizes the decision handoff between service, agent, and human. Optional declarative surface interoperability lives in separate profiles above the core, and `review_url` remains the required fallback.
 
 Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110) (HTTP semantics), [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) (timestamps), [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) (auth), [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) (normative language).
 
 ## Who Is This For?
 
-**For Services & Websites** — Add HITL endpoints to make your service accessible to any autonomous agent. You host the review page, you control the UI, you own the data. Sensitive information stays in the browser — never passes through the agent. This repository includes [reference implementations](implementations/reference-service/) in 4 frameworks (Express, Hono, Next.js, FastAPI), [HTML templates](templates/) for all review types, an [OpenAPI spec](schemas/openapi.yaml), and [compliance tests](tests/) — everything needed to integrate.
+**For Services & Websites** — Add HITL endpoints to request human input from an agent. You host the review page and control which fields appear in agent-visible results. Sensitive input requires an explicit data-disclosure policy: structured review results can contain human-entered data. This repository includes [local reference demonstrations](implementations/reference-service/) in 4 frameworks (Express, Hono, Next.js, FastAPI), [HTML templates](templates/), [OpenAPI](schemas/openapi.yaml), and [compliance tests](tests/).
 
 **For Agent Developers** — Handle HTTP 202 responses. Forward the review URL to your user via any channel (CLI, Telegram, Slack, WhatsApp) — or render native messaging buttons for simple decisions (Telegram, Slack, Discord, WhatsApp, Teams). Poll for the structured result. No SDK, no UI rendering, no framework dependency. ~15 lines of code.
 
@@ -96,7 +100,7 @@ sequenceDiagram
         A->>S: GET {poll_url}
         S-->>A: {status: "completed", result: {...}}
     end
-    A->>H: "Applied to 2 selected jobs ✓"
+    A->>H: "Selection recorded"
 ```
 
 For simple decisions (confirm/cancel, approve/reject), agents can render **native messaging buttons** directly in the chat — no browser switch needed:
@@ -114,10 +118,12 @@ sequenceDiagram
     H->>A: Taps [Confirm]
     A->>S: POST {submit_url} {action: "confirm"}
     S-->>A: 200 OK {status: "completed"}
-    A->>H: "Confirmed — 3 emails sent ✓"
+    A->>H: "Confirmation recorded"
 ```
 
 ## Quick Start
+
+`completed` records the review decision. Business execution follows the service's separate authorization contract. The Agent Access profile requires an explicit, freshly authorized commit and does not offer inline submission.
 
 ### For Service Implementors
 
@@ -243,7 +249,7 @@ HITL transport auth and external agent-auth systems solve different problems:
 - HITL covers `review_url`, `poll_url`, optional `submit_url`, and the human decision transport itself.
 - External agent-auth/control-plane systems cover per-agent identity, capability grants, escalation, and revocation.
 
-The current OpenAPI auth model is sufficient for HITL transport boundaries. If a service also binds cases to an agent principal or host, it should advertise that through discovery metadata such as `supports_agent_binding` and external auth/profile documentation.
+`supports_agent_binding` may be advertised only when the service enforces the initiator → stored operation → review → execution chain. Correlation IDs or signatures alone do not establish that guarantee. The [Agent Access OpenAPI 3.2.1 contract](profiles/agent-access/v0.1/openapi.json) declares operation-specific security; the core OpenAPI and historical demos retain their separate transport scope.
 
 ## Protocol Standards Landscape
 
@@ -356,6 +362,7 @@ The specification follows [Semantic Versioning](https://semver.org/). Breaking c
 
 | Version | Status | Date |
 |---------|--------|------|
+| 0.9 | Draft | 2026-10-06 |
 | 0.8 | Draft | 2026-03-26 |
 | 0.7 | Draft | 2026-02-23 |
 | 0.6 | Draft | 2026-02-23 |
@@ -401,7 +408,10 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Full Specification (v0.8)](spec/v0.8/hitl-protocol.md)
+- [Full Specification (v0.9)](spec/v0.9/hitl-protocol.md)
+- [Historical Specification (v0.8)](spec/v0.8/hitl-protocol.md)
+- [Agent Access Profile](profiles/agent-access/v0.1/README.md) — Optional draft public/delegated bindings
+- [Persistent Agent Access Reference](implementations/agent-access/README.md) — OAuth, PostgreSQL, native browser forms and reproducible evals
 - [Quick Start Guide](docs/quick-start.md) — Get started in 5 minutes
 - [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented
 - [JSON Schemas](schemas/) — HITL object, poll response, form field, discovery response

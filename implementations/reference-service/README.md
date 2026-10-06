@@ -7,7 +7,7 @@ Four framework variants implementing the exact same HITL Protocol endpoints. Cho
 | Variant | Framework | Port | Lines | Best For |
 |---------|-----------|------|-------|----------|
 | [`express/`](express/) | Express 5 | 3456 | ~300 | Maximum familiarity, any Node.js project |
-| [`hono/`](hono/) | Hono | 3457 | ~280 | Edge/serverless (Deno, Bun, Cloudflare Workers) |
+| [`hono/`](hono/) | Hono (Node adapter) | 3457 | ~280 | Node.js HTTP service; this example imports Node filesystem and crypto APIs |
 | [`nextjs/`](nextjs/) | Next.js 16 (App Router) | 3459 | ~360 | Full-stack React, server-rendered review pages |
 | [`python/`](python/) | FastAPI | 3458 | ~250 | Python ecosystem |
 
@@ -16,30 +16,39 @@ Four framework variants implementing the exact same HITL Protocol endpoints. Cho
 ### Express 5
 
 ```bash
-cd express && npm install && npm start
+pnpm install && pnpm --filter @hitl-protocol/schemas build && pnpm --filter @hitl-protocol/core build
+pnpm --filter hitl-reference-express start
 curl -X POST http://localhost:3456/api/demo?type=selection
 ```
 
 ### Hono
 
 ```bash
-cd hono && npm install && npm start
+pnpm install && pnpm --filter @hitl-protocol/schemas build && pnpm --filter @hitl-protocol/core build
+pnpm --filter hitl-reference-hono start
 curl -X POST http://localhost:3457/api/demo?type=selection
 ```
 
 ### Next.js
 
 ```bash
-cd nextjs && npm install && npm run dev
+pnpm install && pnpm --filter @hitl-protocol/schemas build && pnpm --filter @hitl-protocol/core build
+pnpm --filter hitl-reference-nextjs dev
 curl -X POST http://localhost:3459/api/demo?type=selection
 ```
 
 ### FastAPI
 
 ```bash
-cd python && pip install -r requirements.txt && uvicorn server:app --port 3458
+cd python && pip install -r requirements.txt && uvicorn server:app --host 127.0.0.1 --port 3458
 curl -X POST http://localhost:3458/api/demo?type=selection
 ```
+
+## Local runtime contract
+
+These demos emit HITL v0.8. Node listeners and the Next.js start/dev scripts bind to loopback. Run FastAPI with the default loopback host; do not expose these examples publicly. They use process-local memory, unauthenticated polling/SSE and possession-based review/submit tokens. They do not verify the reviewer or agent identity and do not execute real deployments, applications or emails.
+
+The Node variants use the shared core completion helper; FastAPI implements the same local rules in Python. Browser and inline bodies are validated separately, `pending → completed` is supported, deadlines are checked on the request and terminal decisions stay immutable. Input validation covers the demo's service-defined form. Inline origin claims are returned in `submission_context`; `responded_by` is omitted because these demos have no identity verifier. The one-response guarantee applies to one process, not a distributed database.
 
 ## Shared Endpoints
 
@@ -138,7 +147,7 @@ Note: The `submit_token` is separate from the review URL token — each is scope
 | SSE | `res.write()` | `streamSSE()` | `ReadableStream` | `StreamingResponse` |
 | Templates | `readFileSync` + replace | `readFileSync` + replace | `dangerouslySetInnerHTML` | `readFileSync` + replace |
 | TypeScript | JavaScript (ES modules) | JavaScript (ES modules) | Native TypeScript | Python (type hints) |
-| Edge ready | No | Yes (Deno/Bun/CF) | Yes (Vercel Edge) | No |
+| Runtime in this demo | Node.js | Node.js (fs/crypto/templates) | Node.js with process-local store | Python |
 | Auto-reload | No | No | Yes (Fast Refresh) | Yes (uvicorn --reload) |
 
 ## Inline Actions by Review Type

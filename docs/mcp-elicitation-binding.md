@@ -1,6 +1,6 @@
 # MCP Elicitation Binding (Informative)
 
-> Status: Informative, non-normative. Applies to HITL Protocol v0.8. Covers two MCP revisions: **2025-11-25** (current stable) and the **2026-07-28 release candidate** (locked 2026-05-21, final publication targeted 2026-07-28 — verify field-level details against the final spec before shipping). Last reviewed: 2026-07-11.
+> Status: Informative, non-normative. Core URL/result mapping applies to HITL v0.8 and v0.9. The runnable local MCP demo implements historical v0.8 with MCP **2025-11-25** only. The [published MCP 2026-07-28 revision](https://blog.modelcontextprotocol.io/posts/2026-07-28/) and its optional Tasks extension have separate mappings below. Last reviewed: 2026-10-06.
 
 MCP standardizes how an out-of-band, URL-based human interaction is handed to the user inside an MCP session — consent, display rules, and a completion/continuation mechanism. It deliberately leaves the page behind that URL undefined.
 
@@ -11,7 +11,9 @@ MCP           = how the handoff reaches the human (inside an MCP session)
 HITL Protocol = what happens at the URL, and how the structured result returns
 ```
 
-Since the 2026-07-28 revision, MCP also standardizes *asynchronous* semantics around that handoff — the [MRTR pattern](https://modelcontextprotocol.io/specification/draft/basic/patterns/mrtr) (SEP-2322) and the [Tasks extension](https://tasks.extensions.modelcontextprotocol.io/) (`io.modelcontextprotocol/tasks`, SEP-2663) with a native `input_required` status and polling. Inside the MCP client/server triangle these overlap with HITL's `poll_url` mechanics. They still do not define the review page, the decision types, or the structured result schema — and they only exist when the service is fronted by an MCP server. When the agent calls a service directly over HTTP, the HITL core flow (202 + `poll_url`) is unchanged and this document does not apply.
+The 2026-07-28 revision uses the [MRTR pattern](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr) for additional client input. The separate [versioned Tasks extension](https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks) adds durable task state and polling. They transport the interaction rather than define HITL's decision or business execution. Bindings B/C are informative and are not implemented by the local MCP demo. Direct HTTP services use the HITL core flow independently of MCP.
+
+Across bindings, `completed` records a decision; it does not establish a human identity or execution success. The optional [Agent Access profile](../profiles/agent-access/v0.1/README.md) separately supplies PKCE/OIDC owner enrollment, DPoP-bound grants and explicit authorized commit. A messaging claim such as `submitted_by` is not a verified `responded_by`.
 
 ## When to use this binding
 
@@ -26,7 +28,7 @@ Use it when the agent talks to your service **through MCP** (e.g. Claude Code, o
 
 ---
 
-## Binding A — MCP 2025-11-25 (current stable)
+## Binding A — MCP 2025-11-25 (local demo binding)
 
 [URL mode elicitation](https://modelcontextprotocol.io/specification/2025-11-25/client/elicitation) in this revision is a server-initiated request with an `elicitationId` and an optional completion notification.
 
@@ -68,7 +70,7 @@ sequenceDiagram
 
 Notes:
 
-- The MCP server is the HITL **agent** in protocol terms: it holds the bearer token for `poll_url` and never forwards it to the MCP client.
+- The MCP server is the HITL **agent** in protocol terms and retains its own service credentials when authenticated polling is required. The local demo's poll endpoint is unauthenticated; it does not implement production reviewer identity or delegated grants.
 - `review_url` (including its review token) is shown to the user by design — the token authorizes exactly one case, scoped and time-limited per HITL §security. This matches MCP's rule that elicitation URLs must not be pre-authenticated for anything beyond the interaction itself.
 - If the MCP client lacks URL mode support (`elicitation.url` capability absent), fall back to returning the HITL object in the tool result text so the agent can relay `review_url` manually — the standard HITL flow.
 
@@ -102,7 +104,7 @@ The MCP server then resolves the pending tool call with the structured HITL resu
 
 ---
 
-## Binding B — MCP 2026-07-28 (Release Candidate): MRTR
+## Binding B — MCP 2026-07-28: MRTR (informative)
 
 The 2026-07-28 revision removes server-initiated requests. Elicitation payloads now ride in the **result** of the client's own call (Multi Round-Trip Requests, [SEP-2322](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2322)). Consequences for this binding:
 
@@ -129,13 +131,13 @@ MRTR assumes the client re-issues reasonably soon after the human consents. A HI
 - **Short-lived cases** (confirmation while the user is present): MRTR is sufficient.
 - **Long-lived cases** (approval queues, multi-round reviews): use the **Tasks binding** below — it has explicit `input_required` + polling semantics designed for exactly this.
 
-> Field names above follow the RC draft ([MRTR pattern](https://modelcontextprotocol.io/specification/draft/basic/patterns/mrtr)). Verify against the final 2026-07-28 spec before shipping.
+> Field names follow the [published MRTR contract](https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr). Supporting this revision requires its complete metadata and client capability contract; the historical demo is not upgraded by this mapping.
 
 ---
 
 ## Binding C — Tasks extension (`io.modelcontextprotocol/tasks`)
 
-The [Tasks extension](https://tasks.extensions.modelcontextprotocol.io/) (SEP-2663, official extension in the 2026-07-28 RC) gives MCP a durable async primitive — explicitly including "human approval gates". It is the closest MCP analog to HITL's core flow, and the natural carrier for long-lived HITL cases:
+The separate [Tasks extension](https://tasks.extensions.modelcontextprotocol.io/specification/2026-07-28/tasks) provides durable asynchronous state. Its client capability contract is required before using these informative mappings:
 
 | HITL concept | Tasks extension concept |
 |---|---|
@@ -144,9 +146,9 @@ The [Tasks extension](https://tasks.extensions.modelcontextprotocol.io/) (SEP-26
 | `status: "pending"` | task status `input_required`, with the URL-mode input request (→ `review_url`) attached |
 | Human decides on review page | MCP server observes the terminal HITL state service-side; task moves to `completed` with the structured result |
 | `expired` / `cancelled` | task `failed` / `cancelled` |
-| Inline submit (`submit_url`) | `tasks/update` with the input response |
+| Client answers outstanding task input | `tasks/update` with `inputResponses`; service-side HITL validation and authorization still apply |
 
-The layering is unchanged: the task transports lifecycle and polling **inside MCP**; the review page, decision types, and result schema remain HITL's. The MCP server still holds the `poll_url` bearer token and never exposes it through task state.
+The task transports lifecycle inside MCP. HITL retains its review and result contract. Task state and `tasks/update` confer no HITL submission or execution rights. Service credentials must not be exposed through task state.
 
 ---
 
@@ -156,11 +158,11 @@ MCP URL mode requirements and HITL's token model reinforce each other (all revis
 
 | MCP requirement (client/server) | HITL property |
 |---|---|
-| Server MUST verify the identity of the user who opens the URL | Review token binds the URL to one case; services SHOULD apply session checks for high-stakes cases (HITL §verification) |
+| Server MUST verify the identity of the user who opens the URL | A case token proves possession only. The service must independently authenticate the user and check case ownership when this binding requires user identity. The local MCP demo does not implement that production identity requirement. |
 | URL MUST NOT be pre-authenticated for a protected resource | Review token authorizes only viewing/submitting this one review — nothing else |
-| Client MUST NOT pre-fetch the URL | HITL services SHOULD treat first GET as human arrival; single-use submit semantics limit damage from crawlers |
-| Client MUST show the full URL / highlight domain | Service-hosted review page: the domain *is* the service the user already trusts |
-| Sensitive data never transits the MCP client | Identical HITL principle: decisions happen in the browser; the agent only sees the structured result |
+| Client MUST NOT pre-fetch the URL | `opened` is an observed URL visit, not proof of human presence or a decision; only a validated submission can complete a case. |
+| Client MUST show the full URL / highlight domain | Display the service-controlled review origin; domain display does not establish trust or reviewer identity |
+| URL mode keeps secret/credential entry out of the MCP client | HITL context and structured results may still contain personal data. Return only caller-authorized data; do not expose credentials through those payloads |
 | `requestState` is opaque and echoed by the client (2026-07-28) | MUST be integrity-protected; MUST NOT embed HITL bearer tokens recoverably — the client round-trips it verbatim |
 
 For proof-of-human flows (HITL v0.8 `verification_policy`), the browser review path is the verification surface — unchanged under all bindings.

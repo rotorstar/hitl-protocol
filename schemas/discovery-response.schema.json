@@ -1,18 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.8/discovery-response.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.9/discovery-response.json",
   "title": "HITL Discovery Response",
-  "description": "Response body for GET /.well-known/hitl.json, as defined by HITL Protocol v0.8.",
+  "description": "Response body for GET /.well-known/hitl.json, as defined by HITL Protocol v0.9.",
   "type": "object",
-  "required": ["hitl_protocol"],
+  "required": [
+    "hitl_protocol"
+  ],
   "properties": {
     "hitl_protocol": {
       "type": "object",
-      "required": ["spec_version"],
+      "required": [
+        "spec_version"
+      ],
       "properties": {
         "spec_version": {
           "type": "string",
-          "const": "0.8",
+          "const": "0.9",
           "description": "Protocol version supported by the service discovery document."
         },
         "service": {
@@ -51,7 +55,11 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["polling", "sse", "callback"]
+                "enum": [
+                  "polling",
+                  "sse",
+                  "callback"
+                ]
               }
             },
             "max_timeout": {

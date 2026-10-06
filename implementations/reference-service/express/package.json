@@ -7,6 +7,6 @@
   },
   "dependencies": {
     "@hitl-protocol/core": "workspace:*",
-    "express": "^5.1.0"
+    "express": "5.2.1"
   }
 }

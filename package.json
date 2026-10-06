@@ -1,20 +1,24 @@
 {
   "private": true,
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@10.34.6",
   "type": "module",
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r --filter \"@hitl-protocol/*\" run test",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "eval:agent-access": "pnpm --filter @hitl-protocol/agent-access-reference eval",
+    "eval:browser": "pnpm --filter @hitl-protocol/agent-access-reference eval:browser",
     "changeset": "changeset",
     "version": "changeset version",
     "publish": "pnpm -r run build && changeset publish",
-    "publish:ci": "node scripts/publish-if-auth.mjs"
+    "publish:ci": "node scripts/publish-if-auth.mjs",
+    "audit:dependencies": "node scripts/audit-dependencies.mjs"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.0"
+    "@changesets/cli": "3.0.3"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=24",
     "pnpm": ">=10"
   },
   "pnpm": {

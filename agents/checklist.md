@@ -2,6 +2,10 @@
 
 This document provides a step-by-step guide for implementing HITL Protocol support in an autonomous agent.
 
+The code snippets illustrate historical **v0.8** local consumers, not a complete authenticated SDK. Use [archived v0.8 schemas](../schemas/v0.8/) or `@hitl-protocol/schemas/v0.8` for those payloads. The [current normative contract is v0.9](../spec/v0.9/hitl-protocol.md), which unversioned schema imports select. Validate service origins, schemas and case correlation before using these snippets; never send credentials to untrusted URLs.
+
+`completed` records a decision, not verified identity or execution success. Only trusted service-side authentication and case authorization can establish `responded_by`; channel metadata remains a claim. The optional draft [Agent Access profile](../profiles/agent-access/v0.1/README.md) separately defines PKCE/OIDC owner enrollment, DPoP-bound grants and fresh explicit commit. URL visits, UI payloads, correlation IDs and timeout defaults confer no execution authority. Local demos do not implement production identity, callbacks, reminders or business execution; SDK support for a newer MCP revision must be verified separately.
+
 ## Architecture Overview
 
 ```
@@ -58,12 +62,12 @@ Agent receives HTTP response from service
 │   ├── On status "completed"
 │   │   ├── Extract result.action and result.data
 │   │   ├── Check for next_case_id (multi-round)
-│   │   └── Continue workflow with structured result
+│   │   └── Consume the decision; execution needs separate authorization/result
 │   │
 │   ├── On status "expired"
-│   │   ├── Read default_action from hitl object
-│   │   ├── Execute default_action (skip/approve/reject/abort)
-│   │   └── Inform human "Review expired, using default: {action}"
+│   │   ├── Return expiry status without a decision/result
+│   │   ├── Never infer approval or commit; recovery follows trusted service policy
+│   │   └── Inform human "Review expired. No decision was recorded."
 │   │
 │   └── On status "cancelled"
 │       ├── Read reason
@@ -84,11 +88,11 @@ The simplest HITL-compliant agent needs only these capabilities:
 
 - [ ] **Detect HTTP 202** — Check response status code for 202
 - [ ] **Parse HITL object** — Extract `hitl` from response body JSON
-- [ ] **Validate required fields** — Ensure `review_url`, `poll_url`, `type`, `prompt`, `case_id` exist
+- [ ] **Validate required fields** — Select the schema by `spec_version`; verify required fields including timestamps and case correlation
 - [ ] **Forward review URL** — Send `hitl.review_url` to the human with `hitl.prompt` as context
 - [ ] **Poll for result** — `GET hitl.poll_url` at 30-second to 5-minute intervals
-- [ ] **Handle `completed`** — Extract `result.action` and `result.data`, continue workflow
-- [ ] **Handle `expired`** — Execute `hitl.default_action` or inform user
+- [ ] **Handle `completed`** — Consume the decision; require separate execution authorization and an authoritative business result before reporting success
+- [ ] **Handle `expired`** — Return expiry and inform the user; never manufacture an action, approval or commit from `default_action`
 - [ ] **Handle `cancelled`** — Inform user, abort or skip depending on workflow
 
 ### Pseudocode
@@ -97,7 +101,7 @@ The simplest HITL-compliant agent needs only these capabilities:
 import time
 import httpx
 
-def handle_response(response, send_to_user):
+def handle_response(response, send_to_user, auth_headers):
     if response.status_code != 202:
         return response.json()  # Normal response
 
@@ -113,29 +117,29 @@ def handle_response(response, send_to_user):
     # Poll for result
     while True:
         time.sleep(30)
-        poll = httpx.get(
+        poll_response = httpx.get(
             hitl["poll_url"],
-            headers={"Authorization": "Bearer <token>"}
-        ).json()
+            headers=auth_headers
+        )
+        if poll_response.status_code == 429:
+            time.sleep(int(poll_response.headers.get("Retry-After", "60")))
+            continue
+        poll_response.raise_for_status()
+        poll = poll_response.json()
+        if poll.get("case_id") != hitl["case_id"]:
+            raise ValueError("Poll response belongs to another case")
 
         status = poll["status"]
 
         if status == "completed":
-            return poll["result"]
+            return poll  # Decision envelope; not an execution result
 
         if status == "expired":
-            return {
-                "action": hitl.get("default_action", "skip"),
-                "data": {},
-                "expired": True
-            }
+            send_to_user("Review expired. No decision was recorded.")
+            return poll  # Never manufacture a default decision on expiry
 
         if status == "cancelled":
-            return {
-                "action": "cancelled",
-                "data": {"reason": poll.get("reason")},
-                "cancelled": True
-            }
+            return poll
 
         # pending, opened, in_progress → keep polling
 ```
@@ -148,43 +152,38 @@ Add real-time status updates without a public endpoint.
 
 - [ ] **Connect to SSE** — If `hitl.events_url` exists, open SSE connection
 - [ ] **Handle events** — Process `review.opened`, `review.in_progress`, `review.completed`, `review.expired`, `review.cancelled`, `review.reminder`
-- [ ] **Reconnection** — Track `Last-Event-ID`, reconnect on disconnect
+- [ ] **Reconnection** — Use bounded reconnection and `Last-Event-ID` only when the service supports replay; local demos do not promise durable replay
 - [ ] **Fallback to polling** — If SSE connection fails, fall back to polling
 
 ### Pseudocode
 
 ```python
-import httpx_sse
+import httpx
+from httpx_sse import connect_sse
 
-def handle_hitl_sse(hitl, send_to_user):
+def handle_hitl_sse(hitl, send_to_user, auth_headers, poll_case):
     events_url = hitl.get("events_url")
     if not events_url:
-        return handle_hitl_polling(hitl, send_to_user)  # Fallback
+        return poll_case(hitl, send_to_user, auth_headers)
 
     try:
-        with httpx_sse.connect(events_url, headers=auth) as sse:
-            for event in sse:
-                if event.event == "review.opened":
-                    send_to_user("Review page opened")
-
-                elif event.event == "review.completed":
-                    data = json.loads(event.data)
-                    return data["result"]
-
-                elif event.event == "review.expired":
-                    data = json.loads(event.data)
-                    return {"action": data["default_action"], "expired": True}
-
-                elif event.event == "review.cancelled":
-                    data = json.loads(event.data)
-                    return {"action": "cancelled", "reason": data.get("reason")}
-
-                elif event.event == "review.reminder":
-                    send_to_user(f"Reminder: {hitl['review_url']}")
-
-    except ConnectionError:
-        return handle_hitl_polling(hitl, send_to_user)  # Fallback
+        with httpx.Client() as client:
+            with connect_sse(client, "GET", events_url, headers=auth_headers) as source:
+                source.response.raise_for_status()
+                for event in source.iter_sse():
+                    if event.event == "review.opened":
+                        send_to_user("Review URL loaded; identity not established")
+                    elif event.event in ("review.completed", "review.expired", "review.cancelled"):
+                        # Poll the canonical case state with caller authorization.
+                        return poll_case(hitl, send_to_user, auth_headers)
+                    elif event.event == "review.reminder":
+                        send_to_user(f"Reminder: {hitl['review_url']}")
+    except httpx.TransportError:
+        pass
+    return poll_case(hitl, send_to_user, auth_headers)
 ```
+
+`poll_case` is your validated polling adapter: it returns the service's canonical case envelope and never converts expiry into a decision. The example uses the documented [`httpx-sse` API](https://github.com/florimondmanca/httpx-sse); disconnects and transport failures fall back to polling. HTTP authentication/authorization failures must be surfaced, not silently retried.
 
 ## Enhanced: Callback Transport
 
@@ -377,9 +376,8 @@ Clear, consistent messaging keeps humans informed without overwhelming them.
 | 202 received | `"{prompt}\n\nPlease review here: {review_url}"` |
 | Status `opened` | (Optional) "Review page opened — waiting for your decision." |
 | Status `in_progress` | (Optional) "Working on it." |
-| Status `completed` | Share result immediately. Do not delay. |
-| Status `expired`, `default_action=skip` | "Review timed out — proceeding with the default. {result summary}" |
-| Status `expired`, `default_action=abort` | "Review timed out. Let me know if you'd like to try again." |
+| Status `completed` | Share the recorded decision; report execution only after authoritative business success |
+| Status `expired` | "Review timed out. No decision was recorded. Let me know if you'd like to try again." |
 | Status `cancelled` | "Review was cancelled. {reason if available}" |
 | `improvement_suggestions` present | "Done! {result summary}. Want me to improve it? I can ask a few questions." |
 | After improvement cycle | "Updated — here's your new result: {url or summary}" |
@@ -418,11 +416,12 @@ def handle_hitl(hitl: dict, send_to_user) -> None:
     if parsed.scheme != "https" or not parsed.netloc:
         raise ValueError("Invalid review URL: must be HTTPS with a valid host")
 
-    # v0.7: Inline buttons for simple decisions (messaging platforms)
-    if "submit_url" in hitl and "submit_token" in hitl:
+    # Conservative sample: policies or undeclared buttons use the browser.
+    if (hitl.get("submit_url") and hitl.get("submit_token")
+            and hitl.get("inline_actions") and not hitl.get("verification_policy")):
         send_inline_buttons(
             prompt=hitl["prompt"],
-            actions=hitl.get("inline_actions", []),
+            actions=hitl["inline_actions"],
             review_url=review_url,       # Always include URL fallback
         )
     else:
@@ -434,6 +433,8 @@ def handle_hitl(hitl: dict, send_to_user) -> None:
 
 > **Remote CLI agents** (SSH): Print the URL for manual opening. Optionally render a QR code with `qrencode -t ANSI <url>` if installed.
 
+For production inline support, preflight the service's `inline_submit` verification requirements and use the browser when no branch can be satisfied. Authenticate platform callbacks, bind them to the recipient/case/offered action and check expiry; UI payloads and claimed channel identities are not verification. See the [Agent Integration Guide](../skills/references/agent-integration.md) for the guarded historical example.
+
 ## What NOT to Do
 
 - **Do NOT render the review UI.** The service hosts and renders the review page. The agent is a messenger.
@@ -441,4 +442,5 @@ def handle_hitl(hitl: dict, send_to_user) -> None:
 - **Do NOT ignore HTTP 202 + HITL.** Proceeding without human input violates the protocol.
 - **Do NOT poll too frequently.** Respect rate limits (max 60/min recommended). Check `Retry-After` header.
 - **Do NOT store review URLs long-term.** URLs contain time-limited opaque tokens. They expire.
+- **Do NOT manufacture expiry decisions.** `default_action` is not human approval or execution authority; trusted service policy determines recovery.
 - **Do NOT loop indefinitely on improvement suggestions.** Cap at `maxAttempts` (2 recommended). Each re-request may create a new resource (new URL, new ID) — share it with the human each time.

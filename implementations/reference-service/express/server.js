@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.7 — Reference Implementation (Express 5)
+ * HITL Protocol v0.8 — Local, single-process demo (Express).
  *
  * Demonstrates all HITL features:
  *   - 5 review types (approval, selection, input, confirmation, escalation)
@@ -29,6 +29,7 @@ import {
   transition, TERMINAL_STATES,
   checkRateLimit, clearRateLimit, RATE_LIMIT,
   INLINE_ACTIONS, PROMPTS, SAMPLE_CONTEXTS,
+  ReviewError, parseSubmission, completeCase, expireCase, pollCase, serializeReviewData,
 } from '@hitl-protocol/core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -92,7 +93,7 @@ const TEMPLATE_MAP = {
 // POST /api/demo?type=selection — Create a HITL review case
 app.post('/api/demo', (req, res) => {
   const type = req.query.type || 'selection';
-  if (!SAMPLE_CONTEXTS[type]) {
+  if (typeof type !== 'string' || !Object.hasOwn(SAMPLE_CONTEXTS, type)) {
     return res.status(400).json({ error: 'invalid_type', message: `Unknown type: ${type}. Use: ${Object.keys(SAMPLE_CONTEXTS).join(', ')}` });
   }
 
@@ -135,7 +136,7 @@ app.post('/api/demo', (req, res) => {
       status: 'human_input_required',
       message: reviewCase.prompt,
       hitl: {
-        spec_version: '0.7',
+        spec_version: '0.8',
         case_id: caseId,
         review_url: `${BASE_URL}/review/${caseId}?token=${token}`,
         poll_url: `${BASE_URL}/api/reviews/${caseId}/status`,
@@ -165,6 +166,7 @@ app.get('/review/:caseId', (req, res) => {
   if (!token || !verifyTokenForPurpose(token, reviewCase, 'review')) {
     return res.status(401).json({ error: 'invalid_token', message: 'Invalid or expired review token.' });
   }
+  expireCase(reviewCase, handleTransition);
 
   // Mark as opened on first visit
   if (reviewCase.status === 'pending') {
@@ -192,9 +194,9 @@ app.get('/review/:caseId', (req, res) => {
     context: reviewCase.context,
   };
 
-  html = html
-    .replace(/\{\{prompt\}\}/g, reviewCase.prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-    .replace('{{hitl_data_json}}', JSON.stringify(hitlData));
+  const safePrompt = reviewCase.prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeData = serializeReviewData(hitlData);
+  html = html.replace(/\{\{(?:prompt|hitl_data_json)\}\}/g, (placeholder) => placeholder === '{{prompt}}' ? safePrompt : safeData);
 
   res.type('html').send(html);
 });
@@ -223,45 +225,21 @@ app.post('/reviews/:caseId/respond', (req, res) => {
     }
   }
 
-  // Check expired
-  if (reviewCase.status === 'expired') {
-    return res.status(410).json({ error: 'case_expired', message: `This review case expired on ${reviewCase.expires_at}.` });
+  try {
+    const submission = parseSubmission(req.body, reviewCase, isInlineSubmit ? 'inline_submit' : 'browser_submit');
+    completeCase(reviewCase, submission, handleTransition);
+    return res.json({ status: 'completed', case_id: reviewCase.case_id, completed_at: reviewCase.completed_at });
+  } catch (error) {
+    if (!(error instanceof ReviewError)) throw error;
+    return res.status(error.status).json({ error: error.code, message: error.message, case_id: reviewCase.case_id });
   }
-
-  // One-time response (409)
-  if (reviewCase.status === 'completed') {
-    return res.status(409).json({ error: 'duplicate_submission', message: 'This review case has already been responded to.' });
-  }
-
-  const { action, data, submitted_via, submitted_by } = req.body;
-  if (!action) return res.status(400).json({ error: 'missing_action', message: 'Request body must include "action".' });
-
-  // v0.7: Validate inline_actions for Bearer path
-  if (isInlineSubmit && reviewCase.inline_actions?.length > 0 && !reviewCase.inline_actions.includes(action)) {
-    return res.status(403).json({
-      error: 'action_not_inline',
-      message: `Action '${action}' is not allowed via inline submit. Use the original hitl.review_url for full review.`,
-      case_id: reviewCase.case_id,
-      review_url: `${BASE_URL}/review/${reviewCase.case_id}`,
-    });
-  }
-
-  reviewCase.result = { action, data: data || {} };
-  reviewCase.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
-  if (submitted_via) reviewCase.submitted_via = submitted_via;
-  transition(reviewCase, 'completed', handleTransition);
-
-  res.json({
-    status: 'completed',
-    case_id: reviewCase.case_id,
-    completed_at: reviewCase.completed_at,
-  });
 });
 
 // GET /api/reviews/:caseId/status — Poll with ETag + Retry-After + Rate Limit
 app.get('/api/reviews/:caseId/status', (req, res) => {
   const reviewCase = store.get(req.params.caseId);
   if (!reviewCase) return res.status(404).json({ error: 'not_found', message: 'Review case not found.' });
+  expireCase(reviewCase, handleTransition);
 
   // Rate limiting
   const rl = checkRateLimit(reviewCase.case_id);
@@ -277,21 +255,7 @@ app.get('/api/reviews/:caseId/status', (req, res) => {
     return res.status(304).set('ETag', reviewCase.etag).end();
   }
 
-  const response = {
-    status: reviewCase.status,
-    case_id: reviewCase.case_id,
-    created_at: reviewCase.created_at,
-    expires_at: reviewCase.expires_at,
-  };
-
-  if (reviewCase.opened_at) response.opened_at = reviewCase.opened_at;
-  if (reviewCase.completed_at) response.completed_at = reviewCase.completed_at;
-  if (reviewCase.expired_at) response.expired_at = reviewCase.expired_at;
-  if (reviewCase.cancelled_at) response.cancelled_at = reviewCase.cancelled_at;
-  if (reviewCase.result) response.result = reviewCase.result;
-  if (reviewCase.responded_by) response.responded_by = reviewCase.responded_by;
-  if (reviewCase.status === 'expired') response.default_action = reviewCase.default_action;
-  if (reviewCase.progress) response.progress = reviewCase.progress;
+  const response = pollCase(reviewCase);
 
   res.set('ETag', reviewCase.etag).set('Retry-After', '30').json(response);
 });
@@ -300,6 +264,7 @@ app.get('/api/reviews/:caseId/status', (req, res) => {
 app.get('/api/reviews/:caseId/events', (req, res) => {
   const reviewCase = store.get(req.params.caseId);
   if (!reviewCase) return res.status(404).json({ error: 'not_found', message: 'Review case not found.' });
+  expireCase(reviewCase, handleTransition);
 
   res.set({
     'Content-Type': 'text/event-stream',
@@ -331,7 +296,7 @@ app.get('/api/reviews/:caseId/events', (req, res) => {
 app.get('/.well-known/hitl.json', (_req, res) => {
   res.set('Cache-Control', 'public, max-age=86400').json({
     hitl_protocol: {
-      spec_version: '0.7',
+      spec_version: '0.8',
       service: { name: 'HITL Reference Service (Express)', description: 'Reference implementation for testing', url: BASE_URL },
       capabilities: {
         review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
@@ -358,7 +323,9 @@ app.get('/.well-known/hitl.json', (_req, res) => {
 // Start
 // ============================================================
 
-app.listen(PORT, () => {
+export { app, store };
+
+if (process.env.HITL_DEMO_TEST !== '1') app.listen(PORT, '127.0.0.1', () => {
   console.log(`HITL Reference Service (Express) running at ${BASE_URL}`);
   console.log(`\nTry it:`);
   console.log(`  curl -X POST ${BASE_URL}/api/demo?type=selection`);

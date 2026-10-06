@@ -1,10 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.8/form-field.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.9/form-field.json",
   "title": "HITL Form Field",
-  "description": "A form field definition used in context.form for Input-type reviews, as defined by HITL Protocol v0.8",
+  "description": "A form field definition used in context.form for Input-type reviews, as defined by HITL Protocol v0.9",
   "type": "object",
-  "required": ["key", "label", "type"],
+  "required": [
+    "key",
+    "label",
+    "type"
+  ],
   "properties": {
     "key": {
       "type": "string",
@@ -19,7 +23,37 @@
     "type": {
       "type": "string",
       "description": "Field type. Standard types: text, textarea, number, date, email, url, boolean, select, multiselect, range. Services MAY extend with x-prefixed custom types.",
-      "examples": ["text", "textarea", "number", "date", "email", "url", "boolean", "select", "multiselect", "range"]
+      "examples": [
+        "text",
+        "textarea",
+        "number",
+        "date",
+        "email",
+        "url",
+        "boolean",
+        "select",
+        "multiselect",
+        "range"
+      ],
+      "anyOf": [
+        {
+          "enum": [
+            "text",
+            "textarea",
+            "number",
+            "date",
+            "email",
+            "url",
+            "boolean",
+            "select",
+            "multiselect",
+            "range"
+          ]
+        },
+        {
+          "pattern": "^x-"
+        }
+      ]
     },
     "required": {
       "type": "boolean",
@@ -35,7 +69,7 @@
       "description": "Help text displayed below or beside the field."
     },
     "default": {
-      "description": "Pre-filled value. MUST NOT contain sensitive data — use default_ref instead."
+      "description": "Pre-filled value. MUST NOT contain sensitive data \u2014 use default_ref instead."
     },
     "default_ref": {
       "type": "string",
@@ -51,7 +85,10 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["value", "label"],
+        "required": [
+          "value",
+          "label"
+        ],
         "properties": {
           "value": {
             "type": "string",
@@ -97,7 +134,11 @@
     },
     "conditional": {
       "type": "object",
-      "required": ["field", "operator", "value"],
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
       "properties": {
         "field": {
           "type": "string",
@@ -105,7 +146,13 @@
         },
         "operator": {
           "type": "string",
-          "enum": ["eq", "neq", "in", "gt", "lt"],
+          "enum": [
+            "eq",
+            "neq",
+            "in",
+            "gt",
+            "lt"
+          ],
           "description": "Comparison operator."
         },
         "value": {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCase, verifyTokenForPurpose, transition, handleTransition, getBaseUrl } from '@/lib/hitl';
+import { getCase, verifyTokenForPurpose, ReviewError, parseSubmission, completeCase, handleTransition } from '@/lib/hitl';
 
 export async function POST(request: Request, { params }: { params: Promise<{ caseId: string }> }) {
   const { caseId } = await params;
@@ -26,34 +26,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ cas
     }
   }
 
-  // Check expired
-  if (rc.status === 'expired') {
-    return NextResponse.json({ error: 'case_expired', message: `This review case expired on ${rc.expires_at}.` }, { status: 410 });
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: 'invalid_json', message: 'Expected JSON.' }, { status: 400 }); }
+  try {
+    const submission = parseSubmission(body, rc, isInlineSubmit ? 'inline_submit' : 'browser_submit');
+    completeCase(rc, submission, handleTransition);
+    return NextResponse.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
+  } catch (error) {
+    if (!(error instanceof ReviewError)) throw error;
+    return NextResponse.json({ error: error.code, message: error.message, case_id: rc.case_id }, { status: error.status });
   }
-
-  // One-time response (409)
-  if (rc.status === 'completed') {
-    return NextResponse.json({ error: 'duplicate_submission', message: 'This review case has already been responded to.' }, { status: 409 });
-  }
-
-  const { action, data, submitted_via, submitted_by } = await request.json();
-  if (!action) return NextResponse.json({ error: 'missing_action', message: 'Request body must include "action".' }, { status: 400 });
-
-  // v0.7: Validate inline_actions for Bearer path
-  if (isInlineSubmit && rc.inline_actions?.length > 0 && !rc.inline_actions.includes(action)) {
-    const base = getBaseUrl();
-    return NextResponse.json({
-      error: 'action_not_inline',
-      message: `Action '${action}' is not allowed via inline submit. Use the original hitl.review_url for full review.`,
-      case_id: rc.case_id,
-      review_url: `${base}/review/${rc.case_id}`,
-    }, { status: 403 });
-  }
-
-  rc.result = { action, data: data || {} };
-  rc.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
-  if (submitted_via) rc.submitted_via = submitted_via;
-  transition(rc, 'completed', handleTransition);
-
-  return NextResponse.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
 }

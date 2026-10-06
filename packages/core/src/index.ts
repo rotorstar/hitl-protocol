@@ -14,6 +14,8 @@ export { generateToken, hashToken, verifyToken, verifyTokenForPurpose } from './
 
 // State machine
 export { VALID_TRANSITIONS, TERMINAL_STATES, canTransition, transition } from './state-machine.js'
+export { ReviewError, parseSubmission, completeCase, expireCase, pollCase, serializeReviewData } from './review.js'
+export type { ValidatedSubmission } from './review.js'
 
 // Rate limiting
 export { RATE_LIMIT, checkRateLimit, clearRateLimit, resetRateLimits } from './rate-limit.js'

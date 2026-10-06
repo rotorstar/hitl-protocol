@@ -10,8 +10,8 @@ compatibility:
   - goose
   - copilot
 metadata:
-  version: "0.8"
-  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.8/hitl-protocol.md"
+  version: "0.9"
+  spec_url: "https://github.com/rotorstar/hitl-protocol/blob/main/spec/v0.9/hitl-protocol.md"
   hitl:
     supported: true
     types: [approval, selection, input, confirmation, escalation]
@@ -19,6 +19,10 @@ metadata:
 ---
 
 # HITL Protocol
+
+The current normative contract is [HITL v0.9](spec/v0.9/hitl-protocol.md). Unversioned `@hitl-protocol/schemas` imports select v0.9. JSON and local service examples below remain explicitly historical v0.8 examples; validate them with `@hitl-protocol/schemas/v0.8` or the [archived schemas](schemas/v0.8/).
+
+`completed` records a decision, not successful business execution or verified human identity. Only the service may populate verified `responded_by` from trusted authentication and case authorization; client-supplied `submitted_by` remains a claim in `submission_context`. The optional draft [Agent Access profile](profiles/agent-access/v0.1/README.md) separately implements PKCE/OIDC owner enrollment, DPoP-bound grants, immutable operation snapshots and fresh authorized commit. Its browser owner session is independent of the agent's credentials. Never infer authority from a URL visit, correlation ID, UI payload or claimed identity.
 
 AI agents increasingly visit websites and services on behalf of their users: searching, booking, applying, purchasing. But some decisions are too important to leave to an agent alone — an agent can hallucinate, misinterpret, or make the wrong call at a critical moment — cancel the wrong insurance policy, book a non-refundable trip to the wrong city, wire money to the wrong account. HITL Protocol ("Human in the Loop") is an open standard that ensures humans stay in control of these moments. The user stays in their favorite messenger — Telegram, WhatsApp, Slack — and either taps a decision button right there or follows a link to a web page with a comfortable UI: cards, forms, buttons. No wall of text. No blind agent decisions. When you encounter a HITL response, tell your user that a decision is needed that should not be made by an agent alone — forward the prompt and make it easy to act: show the review link or render action buttons.
 
@@ -28,7 +32,7 @@ For simple decisions (confirm/cancel, approve/reject), agents can render **nativ
 
 **No SDK required. No UI framework mandated. Just HTTP + URL + polling.**
 
-**[Interactive Playground](https://rotorstar.github.io/hitl-protocol/playground/index.html)** — try all review types, transports, and inline actions live in your browser.
+**[Interactive Playground](https://rotorstar.github.io/hitl-protocol/playground/index.html)** — inspect simulated v0.8 review flows with fictional data; it does not verify identities or execute external actions.
 
 ## Who Are You?
 
@@ -49,22 +53,24 @@ Standard flow (all review types):
 5. Human → Browser:  Opens review_url → rich UI (cards, forms, buttons)
 6. Human → Service:  Makes selection, clicks Submit
 7. Agent → Service:  GET {poll_url} → {status: "completed", result: {action, data}}
-8. Agent → Human:    "Applied to 2 selected jobs."
+8. Agent → Human:    "Selection recorded for 2 jobs."
 
-Inline flow (v0.7 — simple decisions only, when submit_url present):
+Historical v0.8 inline flow (simple decisions only, when submit_url present):
 1. Human → Agent:    "Send my application emails"
 2. Agent → Service:  POST /api/send {emails: [...]}
 3. Service → Agent:  HTTP 202 + hitl object (incl. submit_url, submit_token, inline_actions)
 4. Agent → Human:    Native buttons in chat: [Confirm] [Cancel] [Details →]
 5. Human → Agent:    Taps [Confirm] in chat
-6. Agent → Service:  POST {submit_url} {action: "confirm", submitted_via: "telegram"}
+6. Agent → Service:  POST {submit_url} {action: "confirm", submitted_via: "telegram", submitted_by: {platform: "telegram", platform_user_id: "claimed-user"}}
 7. Service → Agent:  200 OK {status: "completed"}
-8. Agent → Human:    Updates message: "Confirmed — 3 emails sent."
+8. Agent → Human:    Updates message: "Confirmation recorded."
 ```
 
-The agent never renders UI. The service hosts the review page. Sensitive data stays in the browser — never passes through the agent. The inline flow is an optional shortcut for simple decisions.
+The service hosts the canonical review page; inline clients may render permitted messaging controls. Poll results and HITL context are visible to the authorized caller and may contain personal data. Minimize those payloads instead of assuming browser input stays private. Report an action as executed only after the service's business execution contract returns authoritative success.
 
 ## Feature Matrix
+
+This lists protocol capabilities, not features guaranteed by every implementation. The [local v0.8 references](implementations/reference-service/README.md) advertise their actual subset and do not provide reviewer identity verification, reminders, callbacks or business execution.
 
 | Feature | Details |
 |---------|---------|
@@ -91,9 +97,9 @@ The agent never renders UI. The service hosts the review page. Sensitive data st
 | **Confirmation** | `confirm`, `cancel` | No | No | Irreversible action gate (send emails, deploy) |
 | **Escalation** | `retry`, `skip`, `abort` | No | No | Error recovery (deployment failed, API error) |
 
-## HITL Object (HTTP 202 Response Body)
+## Historical v0.8 HITL Object Example
 
-When a service needs human input, it returns HTTP 202 with this structure:
+This v0.8 example accompanies the local demos. New v0.9 services use the current versioned contract:
 
 ```json
 {
@@ -118,12 +124,12 @@ When a service needs human input, it returns HTTP 202 with this structure:
 }
 ```
 
-### Required Fields
+### Historical v0.8 Required Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `spec_version` | `"0.8"` | Protocol version |
-| `case_id` | string | Unique, URL-safe identifier (pattern: `review_{random}`) |
+| `case_id` | string | Unique, URL-safe identifier (e.g. `review_{random}`) |
 | `review_url` | URL | HTTPS URL to review page with opaque bearer token |
 | `poll_url` | URL | Status polling endpoint |
 | `type` | enum | `approval` / `selection` / `input` / `confirmation` / `escalation` / `x-*` |
@@ -139,7 +145,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
 | `default_action` | enum | `skip` / `approve` / `reject` / `abort` — action on expiry |
 | `callback_url` | URL / null | Echoed callback URL if agent provided one |
 | `events_url` | URL | SSE endpoint for real-time status events |
-| `context` | object | Arbitrary data for the review page (not processed by agent) |
+| `context` | object | Service-defined data exposed to the authorized caller and review page |
 | `reminder_at` | datetime / datetime[] | When to re-send the review URL |
 | `previous_case_id` | string | Links to prior case in multi-round chain |
 | `surface` | object | UI format declaration (`format`, `version`) |
@@ -147,7 +153,7 @@ When a service needs human input, it returns HTTP 202 with this structure:
 | `submit_token` | string | Bearer token for `submit_url` authentication (required if `submit_url` set) |
 | `inline_actions` | string[] | Actions permitted via `submit_url` (e.g. `["confirm", "cancel"]`). If absent, all actions for the type are allowed. |
 
-## Poll Response (Completed)
+## Historical v0.8 Poll Response Example
 
 ```json
 {
@@ -157,25 +163,24 @@ When a service needs human input, it returns HTTP 202 with this structure:
   "result": {
     "action": "select",
     "data": {
-      "selected_jobs": ["job-123", "job-456"],
-      "note": "Only remote positions"
+      "selected": ["job_001", "job_003"]
     }
   }
 }
 ```
 
-The `result` object is present only when `status` is `"completed"`. It always contains `action` (string) and `data` (object with type-dependent content).
+The `result` object is present only when `status` is `"completed"`. It contains `action` and may contain a service-defined `data` object. It records the decision; execution success requires a separate authoritative business result.
 
 ### Poll Response Statuses
 
 | Status | Terminal | Description | Key fields |
 |--------|:--------:|-------------|------------|
-| `pending` | No | Case created, human hasn't opened URL | `expires_at` |
-| `opened` | No | Human opened the review URL | `opened_at` |
-| `in_progress` | No | Human is interacting with the form | `progress` (optional) |
-| `completed` | Yes | Human submitted response | `result`, `completed_at`, `responded_by` |
+| `pending` | No | Case created, no recorded interaction | `expires_at` |
+| `opened` | No | Review URL loaded; human presence not established | `opened_at` |
+| `in_progress` | No | Service records interaction progress | `progress` (optional) |
+| `completed` | Yes | Validated decision recorded | `result`, `completed_at`; verified `responded_by` only when available |
 | `expired` | Yes | Timeout reached | `expired_at`, `default_action` |
-| `cancelled` | Yes | Human clicked cancel | `cancelled_at`, `reason` |
+| `cancelled` | Yes | Case cancelled by the service | `cancelled_at`, optional `reason` |
 
 ## State Machine
 
@@ -196,9 +201,13 @@ The `result` object is present only when `status` is `"completed"`. It always co
 
 Terminal states (`completed`, `expired`, `cancelled`) are immutable — no further transitions.
 
+Direct `pending → completed` is valid for an inline response. `in_progress → expired` is also valid. A confirmation action `cancel` completes the case with that decision; cancelling the case itself is a separate lifecycle event.
+
 ## For Services: Quick Start
 
 Return HTTP 202 when human input is needed:
+
+The following is application-specific v0.8 pseudocode, not the complete server. Use the [tested reference handlers](implementations/reference-service/README.md) for validation, token purposes, request-time expiry and atomic completion.
 
 ```javascript
 // Express / Hono / any HTTP framework
@@ -241,7 +250,7 @@ You also need: a review page (any web framework), a poll endpoint (`GET /reviews
 
 ## For Agents: Quick Start
 
-Handle HTTP 202 responses — ~15 lines:
+This illustrative v0.8 client uses the browser fallback whenever a verification policy is declared or no explicit inline actions are supplied. Production clients must also validate responses and handle authentication, timeouts and transport errors.
 
 ```python
 import time, httpx
@@ -251,8 +260,9 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # v0.7: Check for inline submit support
-    if "submit_url" in hitl and "submit_token" in hitl:
+    # Conservative fallback: do not assume a declared policy is satisfied.
+    if (hitl.get("submit_url") and hitl.get("submit_token")
+            and hitl.get("inline_actions") and not hitl.get("verification_policy")):
         # Render native buttons in messaging platform (e.g. Telegram, Slack)
         send_inline_buttons(hitl["prompt"], hitl["inline_actions"], hitl["review_url"])
         # When human taps button → POST to submit_url (see Agent Integration Guide)
@@ -284,7 +294,7 @@ No SDK. No UI rendering. Just HTTP + URL forwarding + polling. See [Agent Integr
 
 Polling is the baseline — every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
 
-## Channel-Native Inline Actions (v0.7)
+## Channel-Native Inline Actions
 
 For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
 
@@ -309,7 +319,7 @@ For simple decisions, agents can render **native messaging buttons** instead of 
 
 v0.8 adds an optional verification layer for decisions where the service needs evidence that a human (not the agent) decided:
 
-- `verification_policy` declares when proof is `optional`, `required`, or step-up-only — and for which paths (`inline_submit`, `browser`).
+- `verification_policy` declares when proof is `optional`, `required`, or step-up-only — and for which paths (`inline_submit`, `browser_submit`).
 - Before rendering inline buttons, agents MUST preflight the policy: if `inline_submit` requires verification the agent cannot satisfy, fall back to `review_url`.
 - `submission_context.verification_result` in poll responses returns normalized, provider-agnostic results. Agents MUST NOT self-attest human verification.
 - Browser review is the preferred step-up path — verification happens on the service-hosted page.
@@ -320,8 +330,8 @@ See [spec Section 13](spec/v0.8/hitl-protocol.md) and Examples 14–16.
 
 If your service is exposed through an MCP server, deliver the `review_url` as a URL mode elicitation. MCP standardizes how the handoff reaches the user; HITL defines what happens at the URL and the shape of the structured result. The mechanism depends on the client's MCP revision:
 
-- **MCP 2025-11-25 (current stable):** send `elicitation/create` (`mode: "url"`) and signal completion via `notifications/elicitation/complete` instead of agent-side polling.
-- **MCP 2026-07-28 (release candidate):** server-initiated elicitation is removed — return `resultType: "input_required"` with the URL-mode payload (MRTR pattern) and resolve when the client re-issues the call; for long-lived cases use the Tasks extension (`io.modelcontextprotocol/tasks`, status `input_required`, `tasks/get` polling).
+- **MCP 2025-11-25:** the local demo implements `elicitation/create` (`mode: "url"`) and `notifications/elicitation/complete` for clients using this historical binding.
+- **MCP 2026-07-28:** the [published specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/) uses MRTR `resultType: "input_required"`; Tasks is a separate optional extension. These mappings are informative and are not implemented by the local MCP demo.
 
 `poll_url` remains the universal fallback in both revisions. See the [MCP Elicitation Binding](docs/mcp-elicitation-binding.md) for per-revision mappings and the runnable [MCP server demo](implementations/mcp-server/) (implements the 2025-11-25 binding).
 
@@ -330,7 +340,7 @@ If your service is exposed through an MCP server, deliver the `review_url` as a 
 - **Does NOT render review UI** — the service hosts and renders the review page. The agent is a messenger.
 - **Does NOT define the review page framework** — any web technology works (React, plain HTML, etc.).
 - **Does NOT replace OAuth** — HITL is for decisions, not authentication.
-- **Does NOT submit on behalf of the human** — unless the human explicitly triggers an inline action button in a messaging platform (v0.7 `submit_url`).
+- **Does NOT establish identity or execution authority** — inline channel metadata and browser presence are not trusted human verification; services enforce their declared policy independently.
 
 ## SKILL.md Extension for Services
 
@@ -347,63 +357,15 @@ metadata:
     info: "May ask user to select preferred jobs or confirm applications."
 ```
 
-See [spec Section 12](spec/v0.8/hitl-protocol.md) for the full field reference.
+See the [current specification](spec/v0.9/hitl-protocol.md) for the full field reference.
 
-### Best Practice: Enforce HITL Choice
+### Service Policy and Optional Preferences
 
-**Problem:** Agents tend to take the efficient path and silently skip HITL — defaulting to no human review. Even though the protocol says agents MUST NOT ignore HTTP 202, nothing prevents an agent from never sending requests that trigger HITL in the first place.
+`prefer_hitl` and `skip_hitl` are optional application preferences, not authorization. A service must reject unauthorized callers and independently decide whether review is required. `skip_hitl: true` cannot bypass policy; missing preferences do not disable review. Validate boolean preferences and reject an ambiguous request setting both to true.
 
-**Solution:** Force agents to make an **explicit choice** per request. Add `prefer_hitl` and `skip_hitl` flags to your API and reject requests that provide neither.
+Prepare the immutable operation before any side effect. Record an authorized decision separately from execution; recheck current grant, policy, operation version and expiry at commit. The Agent Access profile uses its protected prepare/review/commit APIs rather than a preference flag as an execution grant.
 
-Declare this in your SKILL.md:
-
-```yaml
-metadata:
-  hitl:
-    supported: true
-    hitl_required: true
-    types: [selection, confirmation]
-    info: "HITL is required. You MUST send prefer_hitl: true or skip_hitl: true."
-```
-
-Add an **Agent Guidelines** section to your SKILL.md body:
-
-```markdown
-## Agent Guidelines
-
-HITL is required for this service. Every request MUST include exactly one of:
-
-| Parameter | Type | Effect |
-|-----------|------|--------|
-| `prefer_hitl` | boolean | `true` → human reviews via HITL (HTTP 202) |
-| `skip_hitl` | boolean | `true` → direct execution, no human review (HTTP 201) |
-
-You MUST choose one. Omitting both returns 400 `HITL_CHOICE_REQUIRED`.
-Sending both returns 400 validation error.
-
-### Example: With HITL
-
-POST /api/search
-{"query": "Senior Dev Berlin", "prefer_hitl": true}
-
-→ 202 + hitl object (human reviews results)
-
-### Example: Without HITL
-
-POST /api/search
-{"query": "Senior Dev Berlin", "skip_hitl": true}
-
-→ 201 {"results": [...], "hitl_skipped": true}
-
-### Example: Missing choice
-
-POST /api/search
-{"query": "Senior Dev Berlin"}
-
-→ 400 {"error": "HITL_CHOICE_REQUIRED", "message": "You must send prefer_hitl or skip_hitl."}
-```
-
-See [Service Integration Guide — Enforcing HITL Choice](skills/references/service-integration.md#enforcing-hitl-choice) for validation gate implementation.
+See [Service Integration Guide — Applying Service Policy](skills/references/service-integration.md#applying-service-policy) for explicitly application-specific examples.
 
 ### Optional: Quality Improvement Signal
 
@@ -450,9 +412,12 @@ For the complete implementation matrix, see [README RFC Alignment](README.md#rfc
 
 ## Resources
 
-- [Full Specification (v0.8)](spec/v0.8/hitl-protocol.md)
-- [OpenAPI 3.1 Spec](schemas/openapi.yaml) — all endpoints documented
-- [JSON Schemas](schemas/) — HITL object, poll response, form field, verification, submit request definitions
+- [Current Specification (v0.9)](spec/v0.9/hitl-protocol.md)
+- [Historical Specification (v0.8)](spec/v0.8/hitl-protocol.md)
+- [Historical v0.8 OpenAPI](schemas/v0.8/openapi.yaml) — contract for the local examples
+- [Historical v0.8 JSON Schemas](schemas/v0.8/) — validate the examples in this skill
+- [Current v0.9 JSON Schemas](schemas/) — new consumers and version selection
+- [Optional Agent Access Profile](profiles/agent-access/v0.1/README.md) — verified initiator, owner review and explicit execution
 - [Reference Implementations](implementations/reference-service/) — Express 5, Hono, Next.js, FastAPI
 - [MCP Server Demo](implementations/mcp-server/) — HITL via MCP URL mode elicitation
 - [Review Page Templates](templates/) — HTML templates for all 5 review types

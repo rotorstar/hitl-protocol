@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/discovery-response.json",
+  "title": "HITL Discovery Response",
+  "description": "Response body for GET /.well-known/hitl.json, as defined by HITL Protocol v0.8.",
+  "type": "object",
+  "required": ["hitl_protocol"],
+  "properties": {
+    "hitl_protocol": {
+      "type": "object",
+      "required": ["spec_version"],
+      "properties": {
+        "spec_version": {
+          "type": "string",
+          "const": "0.8",
+          "description": "Protocol version supported by the service discovery document."
+        },
+        "service": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "logo_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "contact": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "object",
+          "properties": {
+            "review_types": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "transports": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["polling", "sse", "callback"]
+              }
+            },
+            "max_timeout": {
+              "type": "string"
+            },
+            "default_timeout": {
+              "type": "string"
+            },
+            "supports_reminders": {
+              "type": "boolean"
+            },
+            "supports_multi_round": {
+              "type": "boolean"
+            },
+            "supports_signatures": {
+              "type": "boolean"
+            },
+            "supports_inline_submit": {
+              "type": "boolean"
+            },
+            "supports_agent_binding": {
+              "type": "boolean",
+              "description": "Whether the service can bind review execution to the initiating agent or host via an external auth/control-plane profile."
+            },
+            "supports_surface": {
+              "type": "boolean",
+              "description": "Whether the service publishes optional declarative surface payloads via a separate interop profile in addition to the required review_url fallback."
+            },
+            "surface_formats": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Declarative UI surface formats the service may publish via optional interop profiles."
+            },
+            "surface_profiles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Optional surface interop profiles supported by the service."
+            }
+          },
+          "additionalProperties": false
+        },
+        "endpoints": {
+          "type": "object",
+          "properties": {
+            "reviews_base": {
+              "type": "string",
+              "format": "uri"
+            },
+            "review_page_base": {
+              "type": "string",
+              "format": "uri"
+            },
+            "events_base": {
+              "type": "string",
+              "format": "uri"
+            },
+            "well_known": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "additionalProperties": false
+        },
+        "authentication": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "token_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "scopes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "profiles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "External authentication or agent-binding profiles the service composes with HITL."
+            },
+            "well_known": {
+              "type": "string",
+              "format": "uri",
+              "description": "Optional well-known endpoint for an external auth or agent-binding control plane."
+            },
+            "documentation": {
+              "type": "string",
+              "format": "uri",
+              "description": "Documentation for the service's external auth or agent-binding model."
+            }
+          },
+          "additionalProperties": false
+        },
+        "rate_limits": {
+          "type": "object",
+          "properties": {
+            "poll_min_interval_seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "poll_recommended_interval_seconds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_active_cases_per_agent": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "max_requests_per_minute": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "policies": {
+          "type": "object",
+          "properties": {
+            "data_retention_days": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expired_case_retention_days": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "privacy_policy": {
+              "type": "string",
+              "format": "uri"
+            },
+            "terms_of_service": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "additionalProperties": false
+        },
+        "examples": {
+          "type": "object",
+          "properties": {
+            "documentation": {
+              "type": "string",
+              "format": "uri"
+            },
+            "openapi": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

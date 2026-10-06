@@ -1,5 +1,5 @@
 /**
- * HITL Protocol v0.7 — Reference Implementation (Hono)
+ * HITL Protocol v0.8 — Local, single-process demo (Hono on Node.js).
  *
  * Same features as Express variant. Hono runs on Node.js, Deno, Bun, and Cloudflare Workers.
  *
@@ -31,6 +31,7 @@ import {
   transition, TERMINAL_STATES,
   checkRateLimit, clearRateLimit, RATE_LIMIT,
   INLINE_ACTIONS, PROMPTS, SAMPLE_CONTEXTS,
+  ReviewError, parseSubmission, completeCase, expireCase, pollCase, serializeReviewData,
 } from '@hitl-protocol/core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -52,7 +53,9 @@ function notifySSE(rc) {
   if (!clients) return;
   const payload = JSON.stringify({ case_id: rc.case_id, status: rc.status, ...(rc.result && { result: rc.result }) });
   const msg = `event: review.${rc.status}\ndata: ${payload}\nid: evt_${Date.now()}\n\n`;
-  clients.forEach((w) => { try { w(msg); } catch {} });
+  clients.forEach((w) => {
+    Promise.resolve(w(msg)).catch(() => { clients.delete(w); });
+  });
 }
 
 // Framework-specific side effects after state transition
@@ -72,7 +75,7 @@ const TEMPLATE_MAP = { selection: 'selection.html', approval: 'approval.html', i
 
 app.post('/api/demo', (c) => {
   const type = c.req.query('type') || 'selection';
-  if (!SAMPLE_CONTEXTS[type]) return c.json({ error: 'invalid_type', message: `Unknown type. Use: ${Object.keys(SAMPLE_CONTEXTS).join(', ')}` }, 400);
+  if (!Object.hasOwn(SAMPLE_CONTEXTS, type)) return c.json({ error: 'invalid_type', message: `Unknown type. Use: ${Object.keys(SAMPLE_CONTEXTS).join(', ')}` }, 400);
 
   const caseId = 'review_' + randomBytes(8).toString('hex');
   const token = generateToken();           // review URL token
@@ -95,7 +98,7 @@ app.post('/api/demo', (c) => {
   return c.json({
     status: 'human_input_required', message: rc.prompt,
     hitl: {
-      spec_version: '0.7',
+      spec_version: '0.8',
       case_id: caseId,
       review_url: `${BASE_URL}/review/${caseId}?token=${token}`,
       poll_url: `${BASE_URL}/api/reviews/${caseId}/status`,
@@ -116,13 +119,16 @@ app.get('/review/:caseId', (c) => {
   if (!rc) return c.json({ error: 'not_found', message: 'Not found.' }, 404);
   const token = c.req.query('token');
   if (!token || !verifyTokenForPurpose(token, rc, 'review')) return c.json({ error: 'invalid_token', message: 'Invalid or expired review token.' }, 401);
+  expireCase(rc, handleTransition);
   if (rc.status === 'pending') try { transition(rc, 'opened', handleTransition); } catch {}
 
   let html;
   try { html = readFileSync(join(TEMPLATES_DIR, TEMPLATE_MAP[rc.type]), 'utf-8'); } catch { return c.json({ error: 'template_error' }, 500); }
 
   const hitlData = { case_id: rc.case_id, prompt: rc.prompt, type: rc.type, status: rc.status, token, respond_url: `${BASE_URL}/reviews/${rc.case_id}/respond`, expires_at: rc.expires_at, context: rc.context };
-  html = html.replace(/\{\{prompt\}\}/g, rc.prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).replace('{{hitl_data_json}}', JSON.stringify(hitlData));
+  const safePrompt = rc.prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeData = serializeReviewData(hitlData);
+  html = html.replace(/\{\{(?:prompt|hitl_data_json)\}\}/g, (placeholder) => placeholder === '{{prompt}}' ? safePrompt : safeData);
   return c.html(html);
 });
 
@@ -150,34 +156,22 @@ app.post('/reviews/:caseId/respond', async (c) => {
     }
   }
 
-  // Check expired
-  if (rc.status === 'expired') return c.json({ error: 'case_expired', message: `This review case expired on ${rc.expires_at}.` }, 410);
-  // One-time response (409)
-  if (rc.status === 'completed') return c.json({ error: 'duplicate_submission', message: 'This review case has already been responded to.' }, 409);
-
-  const { action, data, submitted_via, submitted_by } = await c.req.json();
-  if (!action) return c.json({ error: 'missing_action', message: 'Request body must include "action".' }, 400);
-
-  // v0.7: Validate inline_actions for Bearer path
-  if (isInlineSubmit && rc.inline_actions?.length > 0 && !rc.inline_actions.includes(action)) {
-    return c.json({
-      error: 'action_not_inline',
-      message: `Action '${action}' is not allowed via inline submit. Use the original hitl.review_url for full review.`,
-      case_id: rc.case_id,
-      review_url: `${BASE_URL}/review/${rc.case_id}`,
-    }, 403);
+  let body;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'invalid_json', message: 'Expected JSON.' }, 400); }
+  try {
+    const submission = parseSubmission(body, rc, isInlineSubmit ? 'inline_submit' : 'browser_submit');
+    completeCase(rc, submission, handleTransition);
+    return c.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
+  } catch (error) {
+    if (!(error instanceof ReviewError)) throw error;
+    return c.json({ error: error.code, message: error.message, case_id: rc.case_id }, error.status);
   }
-
-  rc.result = { action, data: data || {} };
-  rc.responded_by = submitted_by || { name: 'Demo User', email: 'demo@example.com' };
-  if (submitted_via) rc.submitted_via = submitted_via;
-  transition(rc, 'completed', handleTransition);
-  return c.json({ status: 'completed', case_id: rc.case_id, completed_at: rc.completed_at });
 });
 
 app.get('/api/reviews/:caseId/status', (c) => {
   const rc = store.get(c.req.param('caseId'));
   if (!rc) return c.json({ error: 'not_found' }, 404);
+  expireCase(rc, handleTransition);
 
   const rl = checkRateLimit(rc.case_id);
   c.header('X-RateLimit-Limit', String(RATE_LIMIT));
@@ -187,14 +181,7 @@ app.get('/api/reviews/:caseId/status', (c) => {
   const inm = c.req.header('If-None-Match');
   if (inm && inm === rc.etag) { c.header('ETag', rc.etag); return c.body(null, 304); }
 
-  const resp = { status: rc.status, case_id: rc.case_id, created_at: rc.created_at, expires_at: rc.expires_at };
-  if (rc.opened_at) resp.opened_at = rc.opened_at;
-  if (rc.completed_at) resp.completed_at = rc.completed_at;
-  if (rc.expired_at) resp.expired_at = rc.expired_at;
-  if (rc.cancelled_at) resp.cancelled_at = rc.cancelled_at;
-  if (rc.result) resp.result = rc.result;
-  if (rc.responded_by) resp.responded_by = rc.responded_by;
-  if (rc.status === 'expired') resp.default_action = rc.default_action;
+  const resp = pollCase(rc);
 
   c.header('ETag', rc.etag);
   c.header('Retry-After', '30');
@@ -204,6 +191,7 @@ app.get('/api/reviews/:caseId/status', (c) => {
 app.get('/api/reviews/:caseId/events', (c) => {
   const rc = store.get(c.req.param('caseId'));
   if (!rc) return c.json({ error: 'not_found' }, 404);
+  expireCase(rc, handleTransition);
 
   return streamSSE(c, async (stream) => {
     await stream.writeSSE({ event: `review.${rc.status}`, data: JSON.stringify({ case_id: rc.case_id, status: rc.status }), id: 'evt_init' });
@@ -212,7 +200,9 @@ app.get('/api/reviews/:caseId/events', (c) => {
     const writer = (msg) => stream.write(msg);
     sseClients.get(rc.case_id).add(writer);
 
-    const heartbeat = setInterval(() => { try { stream.write(': heartbeat\n\n'); } catch {} }, 30000);
+    const heartbeat = setInterval(() => {
+      stream.write(': heartbeat\n\n').catch(() => { clearInterval(heartbeat); });
+    }, 30000);
 
     stream.onAbort(() => {
       clearInterval(heartbeat);
@@ -220,8 +210,8 @@ app.get('/api/reviews/:caseId/events', (c) => {
       if (clients) { clients.delete(writer); if (clients.size === 0) sseClients.delete(rc.case_id); }
     });
 
-    // Keep stream open
-    await new Promise(() => {});
+    // Resolve on disconnect so the request callback also releases its captured state.
+    if (!stream.aborted) await new Promise((resolve) => stream.onAbort(resolve));
   });
 });
 
@@ -229,7 +219,7 @@ app.get('/.well-known/hitl.json', (c) => {
   c.header('Cache-Control', 'public, max-age=86400');
   return c.json({
     hitl_protocol: {
-      spec_version: '0.7',
+      spec_version: '0.8',
       service: { name: 'HITL Reference Service (Hono)', description: 'Reference implementation for testing', url: BASE_URL },
       capabilities: {
         review_types: ['approval', 'selection', 'input', 'confirmation', 'escalation'],
@@ -256,7 +246,9 @@ app.get('/.well-known/hitl.json', (c) => {
 // Start
 // ============================================================
 
-serve({ fetch: app.fetch, port: PORT }, () => {
+export { app, store };
+
+if (process.env.HITL_DEMO_TEST !== '1') serve({ fetch: app.fetch, port: PORT, hostname: '127.0.0.1' }, () => {
   console.log(`HITL Reference Service (Hono) running at ${BASE_URL}`);
   console.log(`\nTry: curl -X POST ${BASE_URL}/api/demo?type=selection`);
 });

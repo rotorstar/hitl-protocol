@@ -13,12 +13,9 @@
  *   5. falls back to the plain HITL flow (relay review_url + poll_review tool)
  *      for clients without URL elicitation support
  *
- * Requires an MCP client with elicitation support (e.g. Claude Code >= 2.1.76).
- *
- * MCP revision note: implements Binding A (MCP 2025-11-25, current stable).
- * The 2026-07-28 revision removes elicitationId + notifications/elicitation/complete
- * (replaced by MRTR / Tasks extension) — see docs/mcp-elicitation-binding.md,
- * Bindings B/C. Migration planned once the final spec + SDK support land.
+ * Requires an MCP client negotiating the 2025-11-25 URL elicitation binding.
+ * See docs/mcp-elicitation-binding.md for the versioned transport contract.
+ * This local teaching demo records decisions and does not send emails.
  *
  * Usage:
  *   pnpm install
@@ -32,7 +29,7 @@ import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { generateToken, hashToken, verifyToken } from '@hitl-protocol/core';
+import { generateToken, hashToken, verifyToken, transition, TERMINAL_STATES, parseSubmission, completeCase, expireCase, pollCase, ReviewError } from '@hitl-protocol/core';
 
 const PORT = process.env.PORT || 3789;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -48,7 +45,7 @@ const log = (...args) => console.error('[hitl-mcp-demo]', ...args);
 const cases = new Map(); // caseId → review case
 
 function createCase({ prompt, summary }) {
-  const caseId = `review_${randomUUID().slice(0, 8)}`;
+  const caseId = `review_${randomUUID()}`;
   const token = generateToken();
   const now = new Date();
   const reviewCase = {
@@ -57,19 +54,21 @@ function createCase({ prompt, summary }) {
     type: 'confirmation',
     prompt,
     summary,
+    context: { description: summary },
     token_hash: hashToken(token),
+    inline_actions: [],
+    default_action: 'abort',
+    version: 1,
+    etag: '"v1-pending"',
     created_at: now.toISOString(),
     expires_at: new Date(now.getTime() + CASE_TIMEOUT_MS).toISOString(),
     result: null,
-    responded_at: null,
+    responded_by: null,
     decided: null, // resolver for the in-process completion promise
   };
   reviewCase.completion = new Promise((resolve) => { reviewCase.decided = resolve; });
   reviewCase.expirationTimer = setTimeout(() => {
-    if (reviewCase.status === 'pending') {
-      reviewCase.status = 'expired';
-      reviewCase.decided();
-    }
+    expireCase(reviewCase, finishCase);
   }, CASE_TIMEOUT_MS);
   cases.set(caseId, reviewCase);
   return {
@@ -82,21 +81,32 @@ function createCase({ prompt, summary }) {
       type: 'confirmation',
       prompt,
       timeout: '15m',
-      default_action: 'cancel',
+      default_action: 'abort',
       created_at: reviewCase.created_at,
       expires_at: reviewCase.expires_at,
     },
   };
 }
 
+function finishCase(reviewCase) {
+  if (TERMINAL_STATES.includes(reviewCase.status)) {
+    clearTimeout(reviewCase.expirationTimer);
+    reviewCase.decided();
+  }
+}
+
 function settleCase(reviewCase, action) {
-  if (reviewCase.status !== 'pending') return false;
-  clearTimeout(reviewCase.expirationTimer);
-  reviewCase.status = action === 'confirm' ? 'completed' : 'cancelled';
-  reviewCase.result = { action };
-  reviewCase.responded_at = new Date().toISOString();
-  reviewCase.decided();
-  return true;
+  const submission = parseSubmission({ action }, reviewCase, 'browser_submit');
+  completeCase(reviewCase, submission, finishCase);
+}
+
+function cancelCase(reviewCase) {
+  expireCase(reviewCase, finishCase);
+  if (!TERMINAL_STATES.includes(reviewCase.status)) transition(reviewCase, 'cancelled', finishCase);
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function reviewPage(reviewCase, token) {
@@ -119,10 +129,10 @@ function reviewPage(reviewCase, token) {
 </head>
 <body>
   <div class="card">
-    <h1>${reviewCase.prompt}</h1>
-    <div class="summary">${reviewCase.summary}</div>
+    <h1>${escapeHtml(reviewCase.prompt)}</h1>
+    <div class="summary">${escapeHtml(reviewCase.summary)}</div>
     <form method="POST" action="/review/${reviewCase.case_id}/respond">
-      <input type="hidden" name="token" value="${token}">
+      <input type="hidden" name="token" value="${escapeHtml(token)}">
       <button class="confirm" name="action" value="confirm">Confirm</button>
       <button class="cancel" name="action" value="cancel">Cancel</button>
     </form>
@@ -132,8 +142,8 @@ function reviewPage(reviewCase, token) {
 </html>`;
 }
 
-function resultPage(status) {
-  const headline = status === 'completed' ? 'Confirmed ✓' : status === 'cancelled' ? 'Cancelled' : 'Expired';
+function resultPage(reviewCase) {
+  const headline = reviewCase.status === 'completed' ? (reviewCase.result?.action === 'confirm' ? 'Confirmation recorded ✓' : 'Cancellation recorded') : reviewCase.status === 'cancelled' ? 'Cancelled' : 'Expired';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>${headline}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:420px;margin:48px auto;text-align:center}</style></head>
 <body><h1>${headline}</h1><p>You can close this window and return to your agent.</p></body></html>`;
@@ -154,7 +164,9 @@ const httpServer = createServer((req, res) => {
     if (!reviewCase || !token || !verifyToken(token, reviewCase.token_hash)) {
       return send(404, '<h1>Review not found</h1>');
     }
-    if (reviewCase.status !== 'pending') return send(200, resultPage(reviewCase.status));
+    expireCase(reviewCase, finishCase);
+    if (TERMINAL_STATES.includes(reviewCase.status)) return send(200, resultPage(reviewCase));
+    if (reviewCase.status === 'pending') transition(reviewCase, 'opened');
     return send(200, reviewPage(reviewCase, token));
   }
 
@@ -163,8 +175,15 @@ const httpServer = createServer((req, res) => {
   if (req.method === 'POST' && match) {
     const reviewCase = cases.get(match[1]);
     let body = '';
-    req.on('data', (chunk) => { body += chunk; });
+    let size = 0;
+    let tooLarge = false;
+    req.on('data', (chunk) => {
+      size += Buffer.byteLength(chunk);
+      if (size > 16384) { tooLarge = true; body = ''; return; }
+      if (!tooLarge) body += chunk;
+    });
     req.on('end', () => {
+      if (tooLarge) return send(413, '<h1>Request too large</h1>');
       const form = new URLSearchParams(body);
       const token = form.get('token');
       const action = form.get('action');
@@ -172,8 +191,11 @@ const httpServer = createServer((req, res) => {
         return send(404, '<h1>Review not found</h1>');
       }
       if (!['confirm', 'cancel'].includes(action)) return send(400, '<h1>Invalid action</h1>');
-      if (!settleCase(reviewCase, action)) return send(409, resultPage(reviewCase.status));
-      send(200, resultPage(reviewCase.status));
+      try { settleCase(reviewCase, action); } catch (error) {
+        if (!(error instanceof ReviewError)) throw error;
+        return send(error.status, resultPage(reviewCase));
+      }
+      send(200, resultPage(reviewCase));
     });
     return;
   }
@@ -183,9 +205,8 @@ const httpServer = createServer((req, res) => {
   if (req.method === 'GET' && match) {
     const reviewCase = cases.get(match[1]);
     if (!reviewCase) return send(404, JSON.stringify({ error: 'not_found' }), 'application/json');
-    const poll = { case_id: reviewCase.case_id, status: reviewCase.status };
-    if (reviewCase.result) poll.result = reviewCase.result;
-    if (reviewCase.responded_at) poll.responded_at = reviewCase.responded_at;
+    expireCase(reviewCase, finishCase);
+    const poll = pollCase(reviewCase);
     return send(200, JSON.stringify(poll), 'application/json');
   }
 
@@ -208,15 +229,15 @@ mcpServer.registerTool(
   'send_emails',
   {
     description:
-      'Send prepared application emails. Irreversible — requires explicit human confirmation ' +
-      'via a HITL Protocol review page before anything is sent.',
+      'Demonstrate reviewing prepared application emails via a HITL Protocol page. ' +
+      'Records confirmation only; this local demo never sends emails.',
     inputSchema: {
       count: z.number().int().min(1).max(20).describe('How many prepared emails to send'),
       recipient_hint: z.string().optional().describe('Short description of the recipients'),
     },
   },
   async ({ count, recipient_hint }) => {
-    const summary = `Send ${count} application email${count === 1 ? '' : 's'}${recipient_hint ? ` to ${recipient_hint}` : ''}.\nThis action cannot be undone.`;
+    const summary = `Review sending ${count} application email${count === 1 ? '' : 's'}${recipient_hint ? ` to ${recipient_hint}` : ''}.\nThis local demo records the decision and sends no email.`;
     const { reviewCase, hitl } = createCase({ prompt: 'Confirm sending emails', summary });
 
     if (!clientSupportsUrlElicitation()) {
@@ -246,7 +267,7 @@ mcpServer.registerTool(
     });
 
     if (consent.action !== 'accept') {
-      settleCase(reviewCase, 'cancel');
+      cancelCase(reviewCase);
       return { content: [{ type: 'text', text: `User ${consent.action}ed the review request. Nothing was sent.` }] };
     }
 
@@ -254,11 +275,11 @@ mcpServer.registerTool(
     await reviewCase.completion;
     await notifyComplete().catch((err) => log('completion notification failed:', err.message));
 
-    if (reviewCase.status === 'completed') {
+    if (reviewCase.status === 'completed' && reviewCase.result.action === 'confirm') {
       return {
         content: [{
           type: 'text',
-          text: `Human confirmed on the review page — ${count} email${count === 1 ? '' : 's'} sent. ` +
+          text: `Confirmation recorded for ${count} email${count === 1 ? '' : 's'}. This local demo does not send emails. ` +
             `Structured result: ${JSON.stringify({ case_id: hitl.case_id, ...reviewCase.result })}`,
         }],
       };
@@ -281,9 +302,8 @@ mcpServer.registerTool(
   async ({ case_id }) => {
     const reviewCase = cases.get(case_id);
     if (!reviewCase) return { content: [{ type: 'text', text: `Unknown case_id: ${case_id}` }], isError: true };
-    const poll = { case_id, status: reviewCase.status };
-    if (reviewCase.result) poll.result = reviewCase.result;
-    if (reviewCase.responded_at) poll.responded_at = reviewCase.responded_at;
+    expireCase(reviewCase, finishCase);
+    const poll = pollCase(reviewCase);
     return { content: [{ type: 'text', text: JSON.stringify(poll, null, 2) }] };
   },
 );
@@ -292,7 +312,9 @@ mcpServer.registerTool(
 // Startup
 // ============================================================
 
-httpServer.listen(PORT, async () => {
+export { createCase, settleCase, cancelCase, cases, httpServer };
+
+if (process.env.HITL_DEMO_TEST !== '1') httpServer.listen(PORT, '127.0.0.1', async () => {
   log(`HITL review service listening on ${BASE_URL}`);
   const transport = new StdioServerTransport();
   await mcpServer.connect(transport);

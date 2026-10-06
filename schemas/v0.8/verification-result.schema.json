@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hitl-protocol.org/schemas/v0.8/verification-result.json",
+  "title": "Verification Result",
+  "description": "Normalized verification outcome for HITL Protocol v0.8. Raw provider payloads must not be returned here.",
+  "type": "object",
+  "required": ["satisfied"],
+  "properties": {
+    "satisfied": {
+      "type": "boolean",
+      "description": "Whether the declared verification policy was satisfied."
+    },
+    "verified_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["proof_type", "provider"],
+        "properties": {
+          "proof_type": {
+            "type": "string",
+            "description": "Normalized proof type that was accepted."
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider that produced the accepted evidence."
+          },
+          "assurance_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Service-defined assurance level after provider verification."
+          },
+          "bound_to_case": {
+            "type": "boolean",
+            "description": "Whether the service verified binding to the HITL case_id."
+          },
+          "bound_to_action": {
+            "type": "boolean",
+            "description": "Whether the service verified binding to the submitted action."
+          },
+          "fresh": {
+            "type": "boolean",
+            "description": "Whether the evidence satisfied the service freshness window."
+          },
+          "single_use_enforced": {
+            "type": "boolean",
+            "description": "Whether the service enforced single-use semantics for the accepted evidence."
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp at which the provider verification result was accepted."
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Normalized accepted evidence only. No provider proof material or secrets."
+    },
+    "missing_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Human-readable identifiers for requirement branches that were not satisfied."
+    }
+  },
+  "additionalProperties": false
+}

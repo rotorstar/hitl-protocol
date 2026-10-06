@@ -11,6 +11,7 @@
     "rootDir": "src",
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "types": ["node"],
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true

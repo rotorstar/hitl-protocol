@@ -7,8 +7,10 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "vitest": "^4.0.0",
-    "ajv": "^8.17.0",
-    "ajv-formats": "^3.0.0"
+    "@hitl-protocol/schemas": "workspace:*",
+    "vitest": "5.0.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "vite": "8.3.3"
   }
 }

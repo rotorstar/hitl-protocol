@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "profile": {
+      "type": "string",
+      "const": "hitl-agent-access/0.1"
+    },
+    "binding": {
+      "type": "string",
+      "const": "delegated-api"
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "operation_version": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "snapshot_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "execution_mode": {
+      "type": "string",
+      "const": "explicit_commit"
+    }
+  },
+  "required": [
+    "profile",
+    "binding",
+    "operation_id",
+    "operation_version",
+    "snapshot_digest",
+    "execution_mode"
+  ],
+  "additionalProperties": false,
+  "$id": "https://hitl-protocol.org/profiles/agent-access/v0.1/agent-access-context.json"
+}

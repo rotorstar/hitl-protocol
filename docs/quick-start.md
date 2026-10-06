@@ -2,6 +2,8 @@
 
 **For service implementors.** You have a web API. Autonomous agents call it. When a human decision is needed, your service returns HTTP 202 with a HITL object.
 
+This guide runs the historical local **v0.8** demos. Use the [archived v0.8 schemas](../schemas/v0.8/) or `@hitl-protocol/schemas/v0.8` for those payloads. The [current v0.9 contract](../spec/v0.9/hitl-protocol.md) is the schema package default. The separate draft [Agent Access reference](../implementations/agent-access/README.md) demonstrates PKCE/OIDC owner enrollment, DPoP grants, immutable operations and explicit authorized execution.
+
 ## Why HITL Protocol?
 
 Autonomous agents (Claude Code, OpenClaw, Goose, Codex) communicate with humans via text channels — CLI, Telegram, Slack. When a human decision is needed, agents dump text and parse freeform responses. This works for yes/no. It fails for:
@@ -21,8 +23,8 @@ Autonomous agents (Claude Code, OpenClaw, Goose, Codex) communicate with humans 
 | **Rich UI stays with you** | Your review page, your branding, your UX |
 | **Structured data** | Typed, validated responses instead of freeform text |
 | **Human stays in the loop** | You control when human decisions are required |
-| **Audit trail** | `responded_by` documents who decided |
-| **Sensitive data protection** | Human enters PII directly in browser, never through agent |
+| **Audit trail** | Record decision facts; verified `responded_by` requires trusted service-side identity and case authorization |
+| **Data minimization** | The service controls what context and result data reach the caller; browser entry alone does not keep PII out of poll results |
 
 ## Architecture
 
@@ -45,7 +47,7 @@ sequenceDiagram
         A->>S: GET {poll_url}
         S-->>A: {status: "completed", result: {...}}
     end
-    A->>H: "Done — applied to 2 jobs"
+    A->>H: "Selection recorded for 2 jobs"
 ```
 
 ### Polling Detail (with ETag)
@@ -201,8 +203,8 @@ flowchart TD
     N -->|in_progress| P[Optional: show progress]
     P --> M
     N -->|completed| Q[Extract result.data]
-    Q --> R[Continue workflow]
-    N -->|expired| S[Apply default_action]
+    Q --> R[Continue subject to service authorization]
+    N -->|expired| S[Handle expiry under service policy;<br/>do not infer approval]
     N -->|cancelled| T[Handle cancellation]
 ```
 
@@ -211,91 +213,28 @@ flowchart TD
 ### Express 5
 
 ```bash
-cd implementations/reference-service/express
-npm install && npm start
+pnpm install
+pnpm --filter @hitl-protocol/schemas build
+pnpm --filter @hitl-protocol/core build
+pnpm --filter hitl-reference-express start
 ```
 
-**5 steps to add HITL to your Express API:**
+The [actual Express demo](../implementations/reference-service/express/server.js) contains the complete local flow. It emits v0.8 and uses the shared `parseSubmission`, `completeCase`, `expireCase` and `pollCase` helpers. Read and adapt that tested implementation rather than copying an abbreviated handler that omits token checks or mutation guards.
 
-```javascript
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
-
-// 1. Generate a token
-const token = randomBytes(32).toString('base64url');
-const tokenHash = createHash('sha256').update(token).digest();
-
-// 2. Return HTTP 202 with HITL object
-app.post('/api/jobs/search', (req, res) => {
-  res.status(202).json({
-    status: 'human_input_required',
-    message: '5 matching jobs found.',
-    hitl: {
-      spec_version: '0.7',
-      case_id: 'review_abc123',
-      review_url: `https://yourservice.com/review/abc123?token=${token}`,
-      poll_url: 'https://api.yourservice.com/reviews/abc123/status',
-      type: 'selection',
-      prompt: 'Select which jobs to apply for',
-      timeout: '24h',
-      default_action: 'skip',
-      created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 86400000).toISOString(),
-    }
-  });
-});
-
-// 3. Serve review page (verify token first)
-app.get('/review/:caseId', (req, res) => {
-  const candidate = createHash('sha256').update(req.query.token).digest();
-  if (!timingSafeEqual(candidate, storedHash)) return res.status(401).end();
-  // Serve your HTML review page
-});
-
-// 4. Accept human response (one-time, 409 on duplicate)
-app.post('/reviews/:caseId/respond', (req, res) => {
-  if (reviewCase.status === 'completed') return res.status(409).json({error: 'duplicate_submission'});
-  reviewCase.result = req.body;
-  reviewCase.status = 'completed';
-  res.json({ status: 'completed' });
-});
-
-// 5. Poll endpoint (ETag + Retry-After)
-app.get('/api/reviews/:caseId/status', (req, res) => {
-  if (req.get('If-None-Match') === reviewCase.etag) return res.status(304).end();
-  res.set('ETag', reviewCase.etag).set('Retry-After', '30').json(reviewCase);
-});
-```
+The examples bind to loopback and use process-local storage. A production service must add caller and reviewer authentication, case ownership and durable atomic storage. A review token proves possession; `opened` is a URL visit, and `completed` records a decision. Neither implies a human identity check or successful business execution.
 
 ### Hono
 
 ```bash
-cd implementations/reference-service/hono
-npm install && npm start
+pnpm --filter hitl-reference-hono start
 ```
 
-Same 5 steps, different API:
-
-```javascript
-import { Hono } from 'hono';
-
-const app = new Hono();
-
-app.post('/api/jobs/search', (c) => {
-  return c.json({ status: 'human_input_required', hitl: {...} }, 202, { 'Retry-After': '30' });
-});
-
-app.get('/api/reviews/:caseId/status', (c) => {
-  const inm = c.req.header('If-None-Match');
-  if (inm === rc.etag) return c.body(null, 304);
-  return c.json(rc, 200, { 'ETag': rc.etag, 'Retry-After': '30' });
-});
-```
+Use the [actual Hono Node handlers](../implementations/reference-service/hono/server.js). This variant imports Node filesystem and crypto APIs; it is not an Edge/Deno/Worker implementation. Its poll handler resolves expiry before conditional ETag responses and serializes the public poll contract, not the private store record.
 
 ### Next.js (App Router)
 
 ```bash
-cd implementations/reference-service/nextjs
-npm install && npm run dev
+pnpm --filter hitl-reference-nextjs dev
 ```
 
 File-based routes:
@@ -316,7 +255,7 @@ app/
 ```bash
 cd implementations/reference-service/python
 pip install -r requirements.txt
-uvicorn server:app --port 3458
+uvicorn server:app --host 127.0.0.1 --port 3458
 ```
 
 ```python
@@ -361,21 +300,22 @@ curl -s "$POLL_URL" | jq '.status'  # "completed"
 
 ## Minimal Implementation Checklist
 
-Your service needs exactly 3 things:
+The historical handoff needs these pieces:
 
 1. **API endpoint** → Return HTTP 202 + `hitl` object when human input is needed
 2. **Review page** → HTML page served at `review_url`, token-protected
 3. **Poll endpoint** → Return current status at `poll_url`
+4. **Response endpoint** → Validate the decision, recheck expiry and accept exactly one terminal response
 
-That's it. SSE, callbacks, rate limiting, ETag — all optional enhancements.
+Production identity, authorization, persistence and execution controls remain service responsibilities. `completed` is not business success. In the Agent Access profile, a recent authenticated OIDC owner session records the decision and a fresh DPoP-authorized commit performs execution. Agent-provided `responded_by` is never a substitute for reviewer authentication.
 
 ## Next Steps
 
-- [Full Specification](../spec/v0.7/hitl-protocol.md)
-- [JSON Schemas](../schemas/) for validation
-- [OpenAPI Spec](../schemas/openapi.yaml) for API documentation
+- [Current Specification](../spec/v0.9/hitl-protocol.md)
+- [Historical v0.8 JSON Schemas](../schemas/v0.8/) for the examples in this guide
+- [Historical v0.8 OpenAPI](../schemas/v0.8/openapi.yaml) for the demo contract
+- [Current Schemas](../schemas/) for v0.9 and explicit version selection
 - [Review Page Templates](../templates/) — drop-in HTML templates
 - [Reference Implementations](../implementations/reference-service/) — working code in 4 frameworks
 - [Examples](../examples/) — 12 complete end-to-end flows
 - [Agent Checklist](../agents/checklist.md) — for agent implementors
-- [Best-Practice 2026 Fixplan + Matrix](./best-practice-2026-fixplan.md)

@@ -2,19 +2,19 @@
   "name": "hitl-reference-nextjs",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3459",
+    "dev": "next dev --hostname 127.0.0.1 --port 3459",
     "build": "next build",
-    "start": "next start --port 3459"
+    "start": "next start --hostname 127.0.0.1 --port 3459"
   },
   "dependencies": {
     "@hitl-protocol/core": "workspace:*",
-    "next": "^16.0.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "typescript": "^5.7.0"
+    "@types/node": "24.19.1",
+    "@types/react": "19.3.0",
+    "typescript": "7.0.2"
   }
 }

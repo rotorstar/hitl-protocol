@@ -41,6 +41,7 @@ function makeCase(status: ReviewStatus = 'pending'): ReviewCase {
 describe('State Machine — Valid Transitions', () => {
   const validTransitions: [ReviewStatus, ReviewStatus][] = [
     ['pending', 'opened'],
+    ['pending', 'completed'],
     ['pending', 'expired'],
     ['pending', 'cancelled'],
     ['opened', 'in_progress'],
@@ -85,7 +86,6 @@ describe('State Machine — Invalid Transitions', () => {
     ['in_progress', 'pending'],
     ['in_progress', 'opened'],
     ['pending', 'in_progress'],
-    ['pending', 'completed'],
   ]
 
   invalidTransitions.forEach(([from, to]) => {

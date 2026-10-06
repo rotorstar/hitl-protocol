@@ -15,17 +15,46 @@
     "./discovery-response.schema.json": "./schemas/discovery-response.schema.json",
     "./verification-policy.schema.json": "./schemas/verification-policy.schema.json",
     "./verification-result.schema.json": "./schemas/verification-result.schema.json",
-    "./submission-context.schema.json": "./schemas/submission-context.schema.json"
+    "./submission-context.schema.json": "./schemas/submission-context.schema.json",
+    "./v0.8": {
+      "types": "./dist/v0.8.d.ts",
+      "import": "./dist/v0.8.js"
+    },
+    "./v0.9": {
+      "types": "./dist/v0.9.d.ts",
+      "import": "./dist/v0.9.js"
+    },
+    "./v0.8/hitl-object.schema.json": "./schemas/v0.8/hitl-object.schema.json",
+    "./v0.8/poll-response.schema.json": "./schemas/v0.8/poll-response.schema.json",
+    "./v0.8/form-field.schema.json": "./schemas/v0.8/form-field.schema.json",
+    "./v0.8/submit-request.schema.json": "./schemas/v0.8/submit-request.schema.json",
+    "./v0.8/discovery-response.schema.json": "./schemas/v0.8/discovery-response.schema.json",
+    "./v0.8/verification-policy.schema.json": "./schemas/v0.8/verification-policy.schema.json",
+    "./v0.8/verification-result.schema.json": "./schemas/v0.8/verification-result.schema.json",
+    "./v0.8/submission-context.schema.json": "./schemas/v0.8/submission-context.schema.json",
+    "./v0.9/hitl-object.schema.json": "./schemas/v0.9/hitl-object.schema.json",
+    "./v0.9/poll-response.schema.json": "./schemas/v0.9/poll-response.schema.json",
+    "./v0.9/form-field.schema.json": "./schemas/v0.9/form-field.schema.json",
+    "./v0.9/submit-request.schema.json": "./schemas/v0.9/submit-request.schema.json",
+    "./v0.9/discovery-response.schema.json": "./schemas/v0.9/discovery-response.schema.json",
+    "./v0.9/verification-policy.schema.json": "./schemas/v0.9/verification-policy.schema.json",
+    "./v0.9/verification-result.schema.json": "./schemas/v0.9/verification-result.schema.json",
+    "./v0.9/submission-context.schema.json": "./schemas/v0.9/submission-context.schema.json"
   },
   "files": [
     "dist",
     "schemas"
   ],
   "scripts": {
-    "prebuild": "node scripts/copy-schemas.js",
-    "pretest": "node scripts/copy-schemas.js",
-    "build": "tsup",
-    "test": "vitest run"
+    "prebuild": "pnpm run generate",
+    "pretest": "pnpm run generate",
+    "build": "tsup && tsc --emitDeclarationOnly --project tsconfig.build.json",
+    "test": "vitest run",
+    "generate": "node scripts/copy-schemas.js && node scripts/generate-types.js",
+    "typecheck": "tsc --noEmit",
+    "test:pack": "node scripts/verify-pack.mjs",
+    "generate:profile": "node scripts/generate-profile.js",
+    "check:profile": "node scripts/generate-profile.js --check"
   },
   "keywords": [
     "hitl",
@@ -53,13 +82,16 @@
     "access": "public"
   },
   "dependencies": {
-    "ajv": "^8.17.0",
-    "ajv-formats": "^3.0.0"
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
   },
   "devDependencies": {
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.0",
-    "vitest": "^4.0.0"
+    "@types/node": "24.19.1",
+    "tsup": "8.5.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "json-schema-to-typescript": "16.0.0",
+    "vite": "8.3.3"
   },
   "engines": {
     "node": ">=20"
