@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-06
+
+Repository release of **HITL Protocol v0.9 (Draft)**. The optional Agent Access profile remains **v0.1 (Draft)**. GitHub release versions, the wire `spec_version` (`0.9`) and npm package versions are separate; npm publication remains managed through Changesets.
+
+### Added
+
+- [HITL v0.9 specification](spec/v0.9/hitl-protocol.md) with explicit service-owned cases, independent reviewer authentication/authorization, immutable first decisions, direct completion and a separate business execution boundary.
+- Optional [Agent Access v0.1 profile](profiles/agent-access/v0.1/README.md) with public signed requests and delegated OAuth/DPoP access, an immutable operation snapshot, authenticated owner review and fresh explicit commit.
+- [Persistent Agent Access reference](implementations/agent-access/README.md) with PostgreSQL, real Keycloak/OIDC enrollment, bounded grants, native browser forms, idempotent operations and transactional local bookings.
+- Real HTTP, OAuth, database and browser evals for consent, ownership, revocation, replay, expiry and execution; generated profile schemas are checked for drift.
+- Illustrated [v0.9 animation](https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html) with horizontal Job search, Shopping and Research tabs, editable human selections, messenger buttons, concrete next steps and separate follow-up confirmations.
+- Reproducible cropped README previews, light/dark animation screenshots and [visual/feature comparisons](docs/animation-review/README.md).
+
+### Changed
+
+- Canonical root schemas and source schema-package defaults now select v0.9. Public TypeScript types and runtime validators derive from those schemas; terminal poll responses and form/submission alternatives use disjoint branches. The complete explicit v0.8 export graph and archived contracts remain available.
+- Refreshed the [existing playground](https://rotorstar.github.io/hitl-protocol/playground/index.html) for v0.9 while retaining all eight tabs and controls, including native messaging actions, verification step-up and detailed wire examples.
+- Unified both HTML pages around the orange/slate palette, locally bundled Inter and JetBrains Mono fonts, accessible keyboard controls, shareable URL state, responsive layouts and reduced motion.
+- Updated README examples, specification links, repository structure, version-handling guidance, font licence notices and screenshot references. Historical HTTP/MCP demonstrations, templates and end-to-end JSON examples remain explicitly scoped to v0.8.
+- Gated npm release automation on successful complete CI for the exact main-branch commit, with explicit handling of unconfigured npm credentials.
+
+### Fixed
+
+- Corrected review deadline handling, direct completion and immutable terminal decisions in the shared local demo helpers.
+- Hardened the Agent Access reference's replay/cache deadlines, session and CSRF rotation, admission limits, authorization freshness and rendering; public identity, reviewer consent and execution authority remain distinct.
+
+### Verification
+
+- Complete CI: build, types, dependency audit, unit/schema/pack checks, Node/Python compliance and Agent Access HTTP/OAuth/PostgreSQL/browser evals.
+- Animation: 29 outcome variants and 85 schema-valid wire messages; playground: 226 configurations and 552 schema-valid wire messages. Browser checks pass in Chromium, Firefox and WebKit.
+- Live HTML, font and screenshot assets were checked against the deployed source, including README crops, light/dark previews and actual human-selection interactions.
+
 ## [0.8.0] - 2026-07-11
 
 The v0.8 spec draft landed 2026-03-26; this release also includes the MCP binding and standards-landscape updates from June/July 2026.
