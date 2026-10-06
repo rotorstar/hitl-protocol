@@ -20,6 +20,8 @@ This version improves contract accuracy, outcomes, keyboard access, responsive l
 
 Detailed type, lifecycle and transport reference stays in the [existing playground](../../playground/index.html). The animation links to it directly.
 
+The root README uses dedicated crops of the current explorer in [light](../../assets/hitl-flow-v0.9-preview.png) and [dark](../../assets/hitl-flow-v0.9-preview-dark.png) mode. They include story tabs, playback, the messenger and selectable jobs. The full-page comparison screenshots above remain separate; `pnpm capture:animation` regenerates both sizes. See the [README audit](../readme-review.md).
+
 The final version adds understandable job, research and product stories, with interactive choices and concrete follow-up actions. It restores an illustrated architecture as the primary surface. Human, autonomous agent, service API, messenger, service-owned browser review and the HITL case hub stay visible together. Colored connection paths accumulate as the flow advances; packets follow the current route. The service ownership boundary and separate execution gate are explicit. Playback controls remain beside the graphic; the payload inspector opens on demand.
 
 ![Final architecture in dark mode](../../assets/hitl-flow-v0.9-dark.png)

@@ -48,7 +48,7 @@ Built on established Internet standards: [RFC 9110](https://www.rfc-editor.org/r
 
 **For humans:** You're either excluded from agent workflows entirely, or squeezed through text-only channels.
 
-**For regulated workflows:** The EU AI Act's human-oversight requirements for high-risk systems ([Article 14](https://artificialintelligenceact.eu/article/14/)) apply from August 2026 — oversight has to be demonstrable, not promised. A HITL case is auditable protocol state: who decided what, when, with a structured, validated result.
+**For regulated workflows:** The EU AI Act includes [human-oversight requirements for high-risk systems (Article 14)](https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-14). Under the [updated application timeline](https://digital-strategy.ec.europa.eu/en/news/ai-omnibus-enters-force), the relevant high-risk rules apply from **2 December 2027** for Annex III systems and **2 August 2028** for Annex I product systems. A service-owned HITL case can record the structured decision and its timestamp; identifying the reviewer requires the service's authentication and authorization policy.
 
 **HITL Protocol closes this gap** with one standardized flow that works across all services, all agents, and all messaging channels.
 
@@ -66,7 +66,7 @@ HITL Protocol answers a different question: **how does a service the agent calls
 | **Portability** | Locked to one framework | Any agent, plain HTTP |
 | **Where the state lives** | Agent context / prompt | Service-side protocol state |
 
-That last row matters more than it looks. In February 2026, a Meta director watched an agent delete 200+ emails after her *"don't action until I tell you"* instruction was silently lost to context compaction. Prompt-based approvals can be compacted, drowned out, or forgotten. A HITL case is protocol state on the service side — the action does not happen until a structured decision arrives, no matter what the agent's context window does.
+That last row matters more than it looks. Prompt-based instructions can be compacted, drowned out, or forgotten. A HITL case stores the review decision on the service side, independently of the agent's context window. The service must still enforce its separate business authorization and execution boundary; `completed` records a decision, not an executed action.
 
 The same applies to MCP's newer plumbing: URL-mode elicitation and the 2026-07-28 Tasks extension (`input_required` + polling) standardize how an *MCP server* hands a pending decision to *its* client — inside one MCP session. HITL standardizes that moment at the open HTTP layer, for any agent with or without MCP, and defines the typed decision behind the URL.
 
@@ -75,17 +75,19 @@ Use both: let your agent runtime gate its own dangerous actions, and let service
 ## The Solution
 
 <p align="center">
-  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">
+  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html#story=jobs&amp;flow=browser&amp;step=6">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/hitl-flow-v0.9-dark.png">
-      <img src="assets/hitl-flow-v0.9.png" alt="HITL Protocol v0.9 — Animated architecture with human, agent, service, messaging channel and service-hosted review" width="1000">
+      <source media="(prefers-color-scheme: dark)" srcset="assets/hitl-flow-v0.9-preview-dark.png">
+      <img src="assets/hitl-flow-v0.9-preview.png" alt="HITL v0.9 job-search review — story tabs, playback, human and assistant, job platform, messenger button and selectable positions" width="1000">
     </picture>
   </a>
   <br>
-  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html">▶ Explore the v0.9 Interactive Architecture</a>
+  <a href="https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html#story=jobs&amp;flow=browser&amp;step=6">▶ Explore the v0.9 Interactive Architecture</a>
 </p>
 
 Choose **Job search**, **Shopping** or **Research** in the horizontal tabs, then explore **browser review**, **optional inline decisions**, and the **Agent Access prepare → review → commit** flow across 29 outcome variants. The animated architecture includes an optional payload inspector, shareable steps, keyboard controls, light/dark themes, and reduced motion. [Screenshots and feature comparison](docs/animation-review/README.md).
+
+The preview shows the current job-selection step. Choose positions, save the selection and continue to application drafts; sending requires a separate confirmation. The examples run locally in the browser with illustrative data. The animation and playground share their orange/slate palette and locally bundled Inter / JetBrains Mono fonts.
 
 ```mermaid
 sequenceDiagram
@@ -97,7 +99,7 @@ sequenceDiagram
     H->>A: "Find me jobs in Berlin"
     A->>S: POST /api/search
     S-->>A: HTTP 202 + hitl object
-    A->>H: "Found 5 jobs. Review here: [URL]"
+    A->>H: "Found 3 jobs. Review here: [URL]"
     H->>P: Opens URL in browser
     P-->>H: Rich UI (cards, forms, buttons)
     H->>P: Makes selection, submits
@@ -132,14 +134,14 @@ sequenceDiagram
 
 ### For Service Implementors
 
-Return HTTP 202 with a `hitl` object when human input is needed:
+Return HTTP 202 with a v0.9 `hitl` object when human input is needed. This illustrative response describes a selection review; the service hosts the page and authorizes the reviewer when its policy requires it:
 
 ```json
 {
   "status": "human_input_required",
-  "message": "5 matching jobs found. Please select which ones to apply for.",
+  "message": "3 matching jobs found. Please select which ones to apply for.",
   "hitl": {
-    "spec_version": "0.8",
+    "spec_version": "0.9",
     "case_id": "review_abc123",
     "review_url": "https://yourservice.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     "poll_url": "https://api.yourservice.com/v1/reviews/abc123/status",
@@ -147,8 +149,8 @@ Return HTTP 202 with a `hitl` object when human input is needed:
     "prompt": "Select which jobs to apply for",
     "timeout": "24h",
     "default_action": "skip",
-    "created_at": "2026-02-22T10:00:00Z",
-    "expires_at": "2026-02-23T10:00:00Z"
+    "created_at": "2026-10-06T10:00:00Z",
+    "expires_at": "2026-10-07T10:00:00Z"
   }
 }
 ```
@@ -163,7 +165,11 @@ response = httpx.post("https://api.jobboard.com/search", json=query)
 if response.status_code == 202:
     hitl = response.json()["hitl"]
 
-    # v0.8: Check for inline submit support and optional proof preflight
+    # Validate using the advertised version; never silently accept an unknown draft.
+    if hitl["spec_version"] != "0.9":
+        raise ValueError("Unsupported HITL version")
+
+    # Optional inline submit support and verification preflight
     if "submit_url" in hitl and "submit_token" in hitl:
         if (
             "verification_policy" in hitl
@@ -192,6 +198,8 @@ if response.status_code == 202:
 
 No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
+This is a schematic handoff. Validate the full HITL and poll bodies against the [matching schemas](schemas/README.md), use authenticated polling, and honor retry/error handling. Inline `403 action_not_inline`, `verification_required` or `verification_failed` responses fall back to the original `review_url`. An expired timeout default is not human approval; business execution requires independent current authorization.
+
 **Ready to integrate?** This repository provides everything you need: [reference implementations](implementations/reference-service/) in 4 frameworks (Express 5, Hono, Next.js, FastAPI), [HTML review templates](templates/) for all 5 types, an [OpenAPI 3.1 spec](schemas/openapi.yaml), [JSON Schemas](schemas/) for validation, and [compliance test suites](tests/) in Node.js and Python.
 
 ## Five Review Types
@@ -204,9 +212,9 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 | **Confirmation** | confirm, cancel | No | No | Irreversible action gate (send emails) |
 | **Escalation** | retry, skip, abort | No | No | Error recovery (deployment failed) |
 
-**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.8/hitl-protocol.md#103-input) for details.
+**Input forms** support structured field definitions via `context.form` — including typed fields (text, number, date, select, range, ...), validation rules, conditional visibility, and multi-step wizard flows. See [Spec Section 10.3](spec/v0.9/hitl-protocol.md#103-input) for details.
 
-**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [spec](spec/v0.8/hitl-protocol.md)).
+**Multi-round workflows:** Approval reviews support iterative cycles — submit, request edits, resubmit, approve. Each accepted decision stays immutable; a revision creates a new linked case. Agents can chain multiple HITL interactions for complex multi-step processes (see `previous_case_id` / `next_case_id` in the [v0.9 spec](spec/v0.9/hitl-protocol.md#153-content-review--approval-with-edit-cycle)).
 
 **Quality improvement signals:** Services can include `improvement_suggestions` in successful responses — structured hints agents act on by asking the human targeted questions and re-submitting enriched data. The agent always shares the primary result first, then optionally offers up to 2 improvement cycles. See [Agent Checklist — Quality Improvement Loop](agents/checklist.md#enhanced-quality-improvement-loop) and [Example 13](examples/13-quality-improvement-loop.json).
 
@@ -220,9 +228,9 @@ No SDK. No library. No UI rendering. Just HTTP + URL forwarding + polling.
 
 Polling is the baseline. Every HITL-compliant service MUST support it. SSE and callbacks are optional enhancements.
 
-## Channel-Native Inline Actions (v0.8)
+## Channel-Native Inline Actions
 
-For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed.
+For simple decisions, agents can render **native messaging buttons** instead of sending a URL. The human taps a button directly in the chat — no browser switch needed. Introduced in earlier drafts, inline submission remains optional in [v0.9](spec/v0.9/hitl-protocol.md#75-inline-submit-optional).
 
 **How it works:** The service includes `submit_url` + `submit_token` in the HITL object. The agent detects these fields, preflights any `verification_policy` declared for `inline_submit`, and renders platform-native buttons only if the inline path is both UI-compatible and policy-satisfiable. When the human taps a button, the agent POSTs the action to `submit_url`.
 
@@ -236,16 +244,16 @@ For simple decisions, agents can render **native messaging buttons** instead of 
 
 Always include a URL fallback button (e.g. "Details →") linking to `review_url` — the human can always switch to the full review page. See [Agent Integration Guide](skills/references/agent-integration.md) for platform-specific rendering patterns (Telegram, Slack, Discord, WhatsApp, Teams).
 
-## Verification Evidence (v0.8)
+## Verification Evidence
 
-v0.8 adds an optional verification layer for Proof of Human flows:
+The optional verification layer introduced in v0.8 remains available in [v0.9](spec/v0.9/hitl-protocol.md#76-verification-evidence-extension-optional):
 
 - `verification_policy` lets the service declare when proof is optional, required, or step-up-only.
 - `verification_evidence` can be relayed only on agent-authenticated `submit_url` requests.
 - `submission_context.verification_result` returns only normalized, provider-agnostic results to the polling agent.
 - Browser review remains the preferred step-up path for high-stakes actions, and browser-path verification is always service-hosted.
 
-The normative v0.8 core standardizes only `proof_of_human`. Identity, authorization, and agent binding remain separate concerns.
+The normative v0.9 core standardizes only `proof_of_human`. Identity, authorization, and agent binding remain separate concerns. A review URL is not proof of reviewer identity; services authenticate and authorize a named reviewer when their policy requires it.
 
 ## Agent Auth Composition
 
@@ -289,63 +297,79 @@ hitl-protocol/
 ├── CHANGELOG.md                       ← Version history
 ├── SECURITY.md                        ← Security reporting
 │
-├── spec/v0.8/
-│   └── hitl-protocol.md              ← Full specification (normative)
+├── spec/
+│   ├── v0.9/hitl-protocol.md          ← Current draft specification
+│   └── v0.8/hitl-protocol.md          ← Historical draft
 │
 ├── schemas/
-│   ├── hitl-object.schema.json       ← JSON Schema: HITL object
-│   ├── poll-response.schema.json     ← JSON Schema: Poll response
-│   ├── form-field.schema.json        ← JSON Schema: Form field definitions
+│   ├── hitl-object.schema.json        ← JSON Schema: HITL object
+│   ├── poll-response.schema.json      ← JSON Schema: Poll response
+│   ├── form-field.schema.json         ← JSON Schema: Form field definitions
 │   ├── discovery-response.schema.json ← JSON Schema: discovery response
-│   └── openapi.yaml                  ← OpenAPI 3.1 spec (all endpoints)
+│   ├── openapi.yaml                   ← Current core OpenAPI 3.1 transport
+│   └── v0.8/                          ← Archived schemas and OpenAPI for demos
 │
-├── examples/                          ← 16 end-to-end example flows
+├── examples/                          ← 16 historical v0.8 example flows
+│
+├── packages/
+│   ├── schemas/                       ← Schema-derived v0.9 types and validators
+│   ├── core/                          ← Shared local demo helpers
+│   └── agent-access/                  ← Optional profile runtime and schemas
 │
 ├── profiles/
 │   ├── README.md                      ← Optional interoperability profiles
-│   └── surface-interop/
-│       └── v0.1/
-│           ├── README.md              ← Surface interop profile spec
-│           └── surface-interop-profile.schema.json
+│   ├── agent-access/v0.1/             ← Draft public/delegated agent bindings
+│   └── surface-interop/v0.1/          ← Optional declarative surface profile
 │
 ├── templates/                         ← Review page HTML templates
-│   ├── approval.html                 ← Approval review page
-│   ├── selection.html                ← Selection review page
-│   ├── input.html                    ← Input form (multi-step wizard)
-│   ├── confirmation.html             ← Confirmation review page
-│   └── escalation.html              ← Escalation review page
+│   ├── approval.html                  ← Approval review page
+│   ├── selection.html                 ← Selection review page
+│   ├── input.html                     ← Input form (multi-step wizard)
+│   ├── confirmation.html              ← Confirmation review page
+│   └── escalation.html                ← Escalation review page
 │
 ├── implementations/
-│   ├── README.md                     ← Known implementations
-│   ├── mcp-server/                   ← MCP URL mode elicitation demo
-│   └── reference-service/            ← Reference implementations
-│       ├── express/                  ← Express 5 (Node.js)
-│       ├── hono/                     ← Hono (Edge/Deno/Bun)
-│       ├── nextjs/                   ← Next.js App Router (TypeScript)
-│       └── python/                   ← FastAPI (Python)
+│   ├── README.md                      ← Known implementations
+│   ├── mcp-server/                    ← Historical v0.8 MCP elicitation demo
+│   ├── agent-access/                  ← Persistent v0.9 OAuth/DPoP/PostgreSQL reference
+│   └── reference-service/             ← Historical v0.8 local demonstrations
+│       ├── express/                   ← Express 5 (Node.js)
+│       ├── hono/                      ← Hono (Node.js in this demonstration)
+│       ├── nextjs/                    ← Next.js App Router (TypeScript)
+│       └── python/                    ← FastAPI (Python)
 │
 ├── docs/
-│   ├── quick-start.md                ← Quick Start Guide (5 frameworks)
-│   ├── sdk-guide.md                  ← SDK Design Guide
-│   ├── mcp-elicitation-binding.md    ← HITL via MCP URL mode elicitation
-│   ├── feature-matrix.md             ← Evidence-backed comparison matrix
-│   └── flow-verification.md          ← Mermaid flow verification
+│   ├── quick-start.md                 ← Historical demo Quick Start (5 frameworks)
+│   ├── sdk-guide.md                   ← SDK Design Guide
+│   ├── mcp-elicitation-binding.md     ← HITL via MCP URL mode elicitation
+│   ├── feature-matrix.md              ← Evidence-backed comparison matrix
+│   ├── flow-verification.md           ← Mermaid flow verification
+│   ├── animation-review/              ← Original/current animation comparison
+│   ├── playground-review/             ← v0.8/v0.9 playground comparison
+│   └── readme-review.md               ← README image/content audit
 │
 ├── tests/                             ← Compliance test suites
-│   ├── node/                         ← Vitest (schema + state machine)
-│   └── python/                       ← pytest (schema + state machine)
+│   ├── node/                          ← Vitest (schema + state machine)
+│   └── python/                        ← pytest (schema + state machine)
 │
 ├── agents/
-│   └── checklist.md                  ← Agent implementation checklist
+│   └── checklist.md                   ← Agent implementation checklist
 │
 ├── skills/
-│   ├── README.md                     ← Skill publishing guide
-│   └── references/                   ← Detailed integration guides
-│       ├── service-integration.md   ← For service builders
-│       └── agent-integration.md     ← For agent developers
+│   ├── README.md                      ← Skill publishing guide
+│   └── references/                    ← Detailed integration guides
+│       ├── service-integration.md     ← For service builders
+│       └── agent-integration.md       ← For agent developers
 │
 ├── playground/
-│   └── index.html                    ← Interactive playground
+│   └── index.html                     ← Detailed v0.9 playground (8 tabs)
+│
+├── assets/
+│   ├── hitl-protocol-flow.html        ← Illustrated v0.9 animation (3 stories)
+│   ├── hitl-typography.css            ← Shared local font definitions
+│   └── fonts/                         ← Inter / JetBrains Mono and licences
+│
+├── scripts/                           ← Browser checks and reproducible captures
 │
 └── .github/                           ← Issue + PR templates
 ```
@@ -353,19 +377,21 @@ hitl-protocol/
 ## Interactive Playground
 
 <p align="center">
-  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html">
-    <img src="assets/hitl-playground-v0.9.png" alt="HITL Protocol v0.9 Interactive Playground" width="800">
+  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html#tab=protocol">
+    <img src="assets/hitl-playground-v0.9-preview.png" alt="HITL v0.9 playground overview — eight tabs, service ownership, immutable decisions, separate execution and all six lifecycle statuses" width="1000">
   </a>
 </p>
 <p align="center">
-  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html"><strong>Try the v0.9 Interactive Playground →</strong></a>
+  <a href="https://rotorstar.github.io/hitl-protocol/playground/index.html#tab=protocol"><strong>Try the v0.9 Interactive Playground →</strong></a>
 </p>
 
-The detailed playground preserves its eight use-case tabs and controls, with updated v0.9 examples, reviewer authorization, immutable decisions and verification step-up. [Before/after screenshots and checks](docs/playground-review/README.md).
+The detailed playground preserves all eight tabs: **Protocol**, **Job Search**, **Deploy**, **Content**, **Agent Deal**, **Input Form**, **Inline** and **Compare**. Existing controls explore v0.9 wire examples, five review types, multi-round cases, three transports, native messenger buttons and verification step-up. Its overview explains reviewer authorization, immutable decisions and separate execution. All 226 configurations and 552 wire messages pass the browser/schema checks. [Before/after screenshots and checks](docs/playground-review/README.md).
+
+Both README previews are captured from the current HTML with the same local fonts. Run `pnpm capture:animation` and `pnpm capture:playground` to regenerate the cropped previews and full comparison screenshots. [README audit and capture sources](docs/readme-review.md).
 
 ## Versioning
 
-The specification follows [Semantic Versioning](https://semver.org/). Breaking changes increment the major version. The `spec_version` field in all HITL objects enables forward compatibility.
+The specification uses [Semantic Versioning](https://semver.org/). Before 1.0, a minor draft may change normative semantics. Validate the advertised `spec_version`; unknown versions must not be silently interpreted as supported. Poll and submit bodies use the initiating case's versioned contract. See [v0.9 versioning](spec/v0.9/hitl-protocol.md#versioning).
 
 | Version | Status | Date |
 |---------|--------|------|
@@ -381,10 +407,10 @@ HITL Protocol aligns with established Internet standards where applicable:
 
 | RFC | Scope in HITL Protocol | Where Implemented |
 |-----|------------------------|-------------------|
-| **[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)** | HTTP semantics (`202 Accepted`, `304 Not Modified`, `ETag`, `If-None-Match`, `Retry-After`) | [Spec v0.8](spec/v0.8/hitl-protocol.md), [OpenAPI](schemas/openapi.yaml), reference implementations |
-| **[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)** + **[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)** | Normative requirement language (`MUST`, `SHOULD`, `MAY`) | [Spec terminology conventions](spec/v0.8/hitl-protocol.md#4-terminology) |
+| **[RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)** | HTTP semantics (`202 Accepted`, `304 Not Modified`, `ETag`, `If-None-Match`, `Retry-After`) | [Spec v0.9](spec/v0.9/hitl-protocol.md), [OpenAPI](schemas/openapi.yaml), version-labelled reference implementations |
+| **[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)** + **[RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)** | Normative requirement language (`MUST`, `SHOULD`, `MAY`) | [Spec terminology conventions](spec/v0.9/hitl-protocol.md#4-terminology) |
 | **[RFC 3339](https://www.rfc-editor.org/rfc/rfc3339)** | Timestamp formats (`created_at`, `expires_at`, status timestamps) | [JSON Schemas](schemas/), [OpenAPI](schemas/openapi.yaml) |
-| **[RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)** | Bearer token usage and security boundaries for API auth and inline submit auth | [Spec security sections](spec/v0.8/hitl-protocol.md), [OpenAPI security schemes](schemas/openapi.yaml) |
+| **[RFC 6750](https://www.rfc-editor.org/rfc/rfc6750)** | Bearer token usage and security boundaries for API auth and inline submit auth | [Spec security sections](spec/v0.9/hitl-protocol.md#13-security-considerations), [OpenAPI security schemes](schemas/openapi.yaml) |
 
 
 ## Contributing
@@ -400,7 +426,7 @@ We welcome contributions from anyone building autonomous agent systems. See [CON
 
 ## Adopters & Ecosystem
 
-The [HITL Protocol skill on ClawHub](https://clawhub.ai/skills/hitl-protocol) (`openclaw skills install hitl-protocol`) teaches OpenClaw agents the protocol — **850+ installs and counting**.
+The [HITL Protocol skill on ClawHub](https://clawhub.ai/skills/hitl-protocol) (`openclaw skills install hitl-protocol`) teaches OpenClaw agents the protocol.
 
 Building with HITL Protocol? [Open an issue](https://github.com/rotorstar/hitl-protocol/issues/new?template=implementation-report.md) to be listed here.
 
@@ -411,7 +437,7 @@ Building with HITL Protocol? [Open an issue](https://github.com/rotorstar/hitl-p
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) for details.
+Code and specification: Apache License 2.0 — see [LICENSE](LICENSE). The bundled Inter and JetBrains Mono fonts retain their [SIL Open Font License 1.1 notices](assets/fonts/README.md).
 
 ## Links
 
@@ -419,16 +445,17 @@ Apache License 2.0 — see [LICENSE](LICENSE) for details.
 - [Historical Specification (v0.8)](spec/v0.8/hitl-protocol.md)
 - [Agent Access Profile](profiles/agent-access/v0.1/README.md) — Optional draft public/delegated bindings
 - [Persistent Agent Access Reference](implementations/agent-access/README.md) — OAuth, PostgreSQL, native browser forms and reproducible evals
-- [Quick Start Guide](docs/quick-start.md) — Get started in 5 minutes
+- [Quick Start Guide](docs/quick-start.md) — Run the historical v0.8 demonstrations
 - [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented
 - [JSON Schemas](schemas/) — HITL object, poll response, form field, discovery response
-- [Review Page Templates](templates/) — HTML templates for all 5 review types
-- [Reference Implementations](implementations/reference-service/) — Express, Hono, Next.js, FastAPI
-- [MCP Server Demo](implementations/mcp-server/) — HITL via MCP URL mode elicitation (works in Claude Code)
+- [Review Page Templates](templates/) — Historical demo HTML templates for all 5 review types
+- [Reference Implementations](implementations/reference-service/) — Historical v0.8 Express, Hono, Next.js and FastAPI demos
+- [MCP Server Demo](implementations/mcp-server/) — Historical v0.8 HITL via MCP 2025-11-25 URL elicitation
 - [MCP Elicitation Binding](docs/mcp-elicitation-binding.md) — Informative binding for MCP delivery
-- [Examples](examples/) — 16 end-to-end flows (including proof-of-human inline submit, step-up fallback, and browser-verified approval)
+- [Examples](examples/) — 16 historical v0.8 flows, including verification and step-up
 - [Compliance Tests](tests/) — Schema + state machine tests (Node.js + Python)
-- [Interactive Playground](playground/)
+- [Interactive Architecture](https://rotorstar.github.io/hitl-protocol/assets/hitl-protocol-flow.html) — Illustrated v0.9 stories and human choices
+- [Interactive Playground](https://rotorstar.github.io/hitl-protocol/playground/index.html) — Detailed v0.9 examples and controls
 - [Agent Implementation Checklist](agents/checklist.md)
 - [Agent Skill (SKILL.md)](SKILL.md) — Teach agents the HITL Protocol
 - [SDK Design Guide](docs/sdk-guide.md) — Build a community SDK

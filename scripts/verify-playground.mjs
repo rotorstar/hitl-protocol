@@ -171,6 +171,14 @@ try {
     await page.setViewportSize({width:1440,height:1000}); await page.goto(url); await page.evaluate(() => document.fonts.ready); await page.evaluate(()=>scrollTo(0,0));
     await page.screenshot({path:resolve(ROOT,'docs/playground-review/after.png')});
     await page.screenshot({path:resolve(ROOT,'assets/hitl-playground-v0.9.png')});
+    // Crop to the actual overview: tabs, v0.9 cards and complete lifecycle.
+    const overviewClip = await page.evaluate(() => {
+      const navigation = document.querySelector('.nav-inner').getBoundingClientRect();
+      const section = document.getElementById('tab-0').getBoundingClientRect();
+      const lifecycle = document.querySelector('#tab-0 h2').nextElementSibling.getBoundingClientRect();
+      return { x: section.left, y: navigation.top + scrollY, width: section.width, height: lifecycle.bottom - navigation.top + 16 };
+    });
+    await page.screenshot({path:resolve(ROOT,'assets/hitl-playground-v0.9-preview.png'),clip:overviewClip,fullPage:true,animations:'disabled'});
     await configure(page,6,{'uc7-platform':'telegram','uc7-action':'confirm'},{'uc7-step-up':true}); await page.evaluate(()=>scrollTo(0,0));
     await page.screenshot({path:resolve(ROOT,'docs/playground-review/after-inline.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844}); await page.screenshot({path:'/tmp/hitl-playground-mobile.png',fullPage:true});

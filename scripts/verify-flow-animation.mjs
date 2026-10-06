@@ -340,13 +340,14 @@ try {
 
   if (process.argv.includes('--capture')) {
     await mkdir(resolve(ROOT, 'assets'), { recursive: true });
-    await visit(animatedPage, '#flow=browser&step=6');
+    await visit(animatedPage, '#story=jobs&flow=browser&step=6');
     await animatedPage.locator('#reduce-motion').check();
     await animatedPage.evaluate(() => scrollTo(0, 0));
     for (const theme of ['light', 'dark']) {
       await animatedPage.locator('#theme').selectOption(theme);
       await animatedPage.evaluate(() => scrollTo(0, 0));
       await animatedPage.screenshot({ path: resolve(ROOT, `assets/hitl-flow-v0.9${theme === 'dark' ? '-dark' : ''}.png`), fullPage: true });
+      await animatedPage.locator('#explorer').screenshot({ path: resolve(ROOT, `assets/hitl-flow-v0.9-preview${theme === 'dark' ? '-dark' : ''}.png`), animations: 'disabled' });
     }
     await animatedPage.locator('#theme').selectOption('light');
     for(const story of ['research','purchase']) {

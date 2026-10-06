@@ -28,6 +28,8 @@ After:
 
 ![Refreshed v0.9 playground](after.png)
 
+The root README uses a [dedicated current overview crop](../../assets/hitl-playground-v0.9-preview.png) with all eight tabs, v0.9 cards and the complete lifecycle. `pnpm capture:playground` regenerates that crop and these full comparison screenshots. See the [README audit](../readme-review.md).
+
 Sources: [canonical HITL v0.9](../../spec/v0.9/hitl-protocol.md), [schemas](../../schemas/), [verification example](../../examples/15-step-up-verification.json), [Agent Access v0.1](../../profiles/agent-access/v0.1/README.md), [MDN accessible tabs](https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Roles/tab_role), [current MCP elicitation](https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation).
 
 ## Verification result
