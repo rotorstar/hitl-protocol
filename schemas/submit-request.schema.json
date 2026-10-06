@@ -1,15 +1,27 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.8/submit-request.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.9/submit-request.json",
   "title": "Inline Submit Request",
-  "description": "Request body for agent-submitted responses via submit_url, as defined by HITL Protocol v0.8",
+  "description": "Request body for agent-submitted responses via submit_url, as defined by HITL Protocol v0.9",
   "type": "object",
-  "required": ["action", "submitted_via", "submitted_by"],
+  "required": [
+    "action",
+    "submitted_via",
+    "submitted_by"
+  ],
   "properties": {
     "action": {
       "type": "string",
       "description": "The action taken by the human via a native messaging button. MUST be a valid action for the review type and listed in inline_actions if specified.",
-      "examples": ["confirm", "cancel", "approve", "reject", "retry", "skip", "abort"]
+      "examples": [
+        "confirm",
+        "cancel",
+        "approve",
+        "reject",
+        "retry",
+        "skip",
+        "abort"
+      ]
     },
     "data": {
       "type": "object",
@@ -37,14 +49,23 @@
     },
     "submitted_by": {
       "type": "object",
-      "required": ["platform", "platform_user_id"],
+      "required": [
+        "platform",
+        "platform_user_id"
+      ],
       "properties": {
         "platform": {
           "type": "string",
           "description": "Platform identifier.",
           "anyOf": [
             {
-              "enum": ["telegram", "slack", "discord", "whatsapp", "teams"]
+              "enum": [
+                "telegram",
+                "slack",
+                "discord",
+                "whatsapp",
+                "teams"
+              ]
             },
             {
               "pattern": "^x-"
@@ -73,19 +94,27 @@
   "$defs": {
     "verificationEvidence": {
       "type": "object",
-      "required": ["proof_type", "provider", "format", "presentation", "binding"],
+      "required": [
+        "proof_type",
+        "provider",
+        "format",
+        "presentation",
+        "binding"
+      ],
       "properties": {
         "proof_type": {
           "type": "string",
           "anyOf": [
             {
-              "enum": ["proof_of_human"]
+              "enum": [
+                "proof_of_human"
+              ]
             },
             {
               "pattern": "^x-"
             }
           ],
-          "description": "Normative core value in v0.8 is proof_of_human."
+          "description": "Normative core value in v0.9 is proof_of_human."
         },
         "provider": {
           "type": "string",
@@ -95,7 +124,12 @@
           "type": "string",
           "anyOf": [
             {
-              "enum": ["provider_opaque", "jwt", "zkp", "attestation"]
+              "enum": [
+                "provider_opaque",
+                "jwt",
+                "zkp",
+                "attestation"
+              ]
             },
             {
               "pattern": "^x-"

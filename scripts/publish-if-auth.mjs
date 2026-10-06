@@ -1,13 +1,15 @@
 import { spawnSync } from 'node:child_process'
 
-const npmToken = process.env.NPM_TOKEN
+const npmToken = process.env.NODE_AUTH_TOKEN
 
 if (!npmToken) {
-  console.log('Skipping npm publish in CI: NPM_TOKEN is not configured.')
+  console.log('Skipping npm publish in CI: NODE_AUTH_TOKEN is not configured.')
   process.exit(0)
 }
 
-const result = spawnSync('pnpm', ['run', 'publish'], {
+// CI already built the evaluated checkout before introducing registry credentials.
+// Never expose those credentials to a second workspace/demo build.
+const result = spawnSync('pnpm', ['exec', 'changeset', 'publish'], {
   stdio: 'inherit',
   shell: process.platform === 'win32',
   env: process.env,

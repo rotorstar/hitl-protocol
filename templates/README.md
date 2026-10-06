@@ -14,7 +14,7 @@ Self-contained HTML templates for all five HITL review types. Built with [Pico C
 
 ## Features
 
-- **WCAG 2.2 AA** — Labels, keyboard navigation, `aria-describedby` for errors, `role="alert"` for status
+- **Accessibility target: WCAG 2.2 AA** — Labels, keyboard navigation, error descriptions and status semantics are included; conformance requires browser and manual testing in the consuming application.
 - **Dark Mode** — `prefers-color-scheme` auto-detect + manual toggle + `localStorage` persistence
 - **Form Validation** — Validate on blur, `aria-invalid` + error messages, positive feedback
 - **Mobile-first** — Pico CSS responsive grid, `min-width` breakpoints
@@ -29,7 +29,7 @@ The server replaces these variables before serving the HTML:
 | Variable | Type | Description |
 |----------|------|-------------|
 | `{{prompt}}` | string | Used in `<title>` and heading. HTML-escape before injection. |
-| `{{hitl_data_json}}` | JSON | Injected into `<script type="application/json" id="hitl-data">`. Contains all review data. |
+| `{{hitl_data_json}}` | JSON | Injected into `<script type="application/json" id="hitl-data">`. Contains review data. Serialize with `serializeReviewData` from `@hitl-protocol/core`, which encodes `<` as a JSON Unicode escape to prevent script-data breakouts. |
 
 ### `hitl_data_json` Structure
 
@@ -50,9 +50,12 @@ The `status` field determines the template state:
 
 | Status | Behavior |
 |--------|----------|
-| `pending`, `opened` | Show active review UI |
+| `pending`, `opened`, `in_progress` | Show active review UI |
 | `expired` | Show expired banner, hide form |
 | `completed` | Show already-responded banner, hide form |
+| `cancelled` | Show cancellation message, hide form |
+
+These local v0.8 templates do not fetch `default_ref` values. The `sensitive` flag currently adds a CSS class rather than masking the value; consumers must implement the required privacy controls before using sensitive fields. Wizard and accessibility behavior need browser verification in the consuming application.
 
 ### Context by Review Type
 
@@ -133,52 +136,47 @@ Multi-step wizard uses `form.steps` instead of `form.fields`:
 
 ```javascript
 import { readFileSync } from 'fs';
+import { verifyTokenForPurpose, expireCase, serializeReviewData } from '@hitl-protocol/core';
 
 const template = readFileSync('templates/selection.html', 'utf-8');
 
 app.get('/review/:caseId', (req, res) => {
   const reviewCase = getCase(req.params.caseId);
+  const token = req.query.token;
+  if (!reviewCase || typeof token !== 'string' || !verifyTokenForPurpose(token, reviewCase, 'review')) {
+    return res.status(404).end();
+  }
+  // Apply any additional reviewer authorization before exposing case data.
+  expireCase(reviewCase);
   const hitlData = {
     case_id: reviewCase.case_id,
     prompt: reviewCase.prompt,
     type: reviewCase.type,
     status: reviewCase.status,
-    token: req.query.token,
+    token,
     respond_url: `/reviews/${reviewCase.case_id}/respond`,
     expires_at: reviewCase.expires_at,
     context: reviewCase.context
   };
 
-  const html = template
-    .replace('{{prompt}}', escapeHtml(reviewCase.prompt))
-    .replace('{{hitl_data_json}}', JSON.stringify(hitlData));
+  const safePrompt = reviewCase.prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeData = serializeReviewData(hitlData);
+  const html = template.replace(/\{\{(?:prompt|hitl_data_json)\}\}/g,
+    (placeholder) => placeholder === '{{prompt}}' ? safePrompt : safeData);
 
-  res.type('html').send(html);
+  res.set('Cache-Control', 'no-store').type('html').send(html);
 });
 ```
 
-### FastAPI (Jinja2)
+The replacement runs once over the original template: text containing replacement metacharacters or literal template placeholders stays data. JSON inside a script element must escape `<`, including when the element has `type="application/json"`.
 
-```python
-from fastapi.templating import Jinja2Templates
+### FastAPI
 
-templates = Jinja2Templates(directory="templates")
-
-@app.get("/review/{case_id}")
-async def review_page(case_id: str, token: str, request: Request):
-    case = get_case(case_id)
-    return templates.TemplateResponse("selection.html", {
-        "request": request,
-        "prompt": case.prompt,
-        "hitl_data_json": json.dumps({...})
-    })
-```
-
-> **Note:** For Jinja2, replace `{{var}}` syntax with `{{ var }}` (spaces) or configure a custom delimiter.
+The [FastAPI renderer](../implementations/reference-service/python/server.py) verifies the review token, HTML-escapes the prompt, serializes JSON with `<` escaped as `\u003c`, and substitutes placeholders with a single callback pass. When adapting to Jinja2, use its JSON-aware [`tojson` filter](https://jinja.palletsprojects.com/en/stable/templates/#jinja-filters.tojson) for script data; raw JSON and generic HTML escaping are not interchangeable in that context.
 
 ### Next.js (Server Components)
 
-Next.js reference implementations use `.tsx` Server Components instead of HTML templates. The data is passed as props, not template variables. See `implementations/reference-service/nextjs/`.
+The [Next.js local demo](../implementations/reference-service/nextjs/app/review/[caseId]/page.tsx) reads the same HTML templates in a Server Component and applies the same escaped, single-pass substitution before rendering. It requires Node filesystem access and a full browser load of the review URL; consumers replacing this with React components must implement and verify their own interactive controls.
 
 ## Supported Field Types
 

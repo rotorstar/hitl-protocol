@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const url = new URL(request.url);
   const type = (url.searchParams.get('type') || 'selection') as ReviewType;
 
-  if (!SAMPLE_CONTEXTS[type]) {
+  if (!Object.hasOwn(SAMPLE_CONTEXTS, type)) {
     return NextResponse.json(
       { error: 'invalid_type', message: `Use: ${Object.keys(SAMPLE_CONTEXTS).join(', ')}` },
       { status: 400 },
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     status: 'human_input_required', message: rc.prompt,
     hitl: {
-      spec_version: '0.7', case_id: caseId,
+      spec_version: '0.8', case_id: caseId,
       review_url: `${base}/review/${caseId}?token=${token}`,
       poll_url: `${base}/api/reviews/${caseId}/status`,
       // v0.7: Inline submit (only for types that support it)

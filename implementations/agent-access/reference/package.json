@@ -1,0 +1,39 @@
+{
+  "name": "@hitl-protocol/agent-access-reference",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.evals.json",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "db:init": "tsx src/db-init.ts",
+    "test": "vitest run src",
+    "eval": "vitest run evals --exclude '**/browser.spec.ts' --no-file-parallelism --reporter=default --reporter=json --outputFile=.eval/http-results.json",
+    "eval:browser": "playwright test",
+    "agent": "tsx src/agent-client.ts"
+  },
+  "dependencies": {
+    "@hitl-protocol/agent-access": "workspace:*",
+    "@hitl-protocol/schemas": "workspace:*",
+    "@hono/node-server": "2.1.3",
+    "hono": "4.13.13",
+    "jose": "6.2.12",
+    "oauth4webapi": "3.8.8",
+    "pg": "8.23.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.19.1",
+    "@types/pg": "8.23.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "vite": "8.3.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

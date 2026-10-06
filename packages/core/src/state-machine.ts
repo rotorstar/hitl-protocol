@@ -1,18 +1,18 @@
 /**
  * HITL Protocol state machine.
- * 6 states, 13 valid transitions, 3 terminal states.
+ * 6 states, 11 valid transitions, 3 terminal states.
  *
  * The onTransition callback decouples framework-specific side effects
  * (SSE notification, cleanup timers) from the pure state machine logic.
  */
 
-import type { ReviewStatus } from '@hitl-protocol/schemas'
+import type { ReviewStatus } from '@hitl-protocol/schemas/v0.8'
 
 import type { ReviewCase } from './types.js'
 
 /** Valid transitions per state. */
 export const VALID_TRANSITIONS: Readonly<Record<ReviewStatus, readonly ReviewStatus[]>> = {
-  pending: ['opened', 'expired', 'cancelled'],
+  pending: ['opened', 'completed', 'expired', 'cancelled'],
   opened: ['in_progress', 'completed', 'expired', 'cancelled'],
   in_progress: ['completed', 'expired', 'cancelled'],
   completed: [],

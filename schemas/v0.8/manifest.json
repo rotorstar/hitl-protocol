@@ -1,0 +1,19 @@
+{
+  "discovery-response.json": "a80438e0fff2562cdcdf6d07fb8faee8e8636f20e4b048e9f4b48b87c6810d30",
+  "discovery-response.schema.json": "a80438e0fff2562cdcdf6d07fb8faee8e8636f20e4b048e9f4b48b87c6810d30",
+  "form-field.json": "0fbac6f838f4f2630a396bb5b568ce76b67106d08c6288dc36d1537ef74945c9",
+  "form-field.schema.json": "0fbac6f838f4f2630a396bb5b568ce76b67106d08c6288dc36d1537ef74945c9",
+  "hitl-object.json": "cc63a48a4e86d8a5412ad8e5543acdf5cc326dfb332e5d26aa10db9e5f88f8e4",
+  "hitl-object.schema.json": "cc63a48a4e86d8a5412ad8e5543acdf5cc326dfb332e5d26aa10db9e5f88f8e4",
+  "openapi.yaml": "626e6207723db1deca19c3a7e3d3ed6521f0b7b4abb7add83add891150efa29e",
+  "poll-response.json": "5c150d71a335491c389d40134e135e5960f0379d667c56d368f9a07420280328",
+  "poll-response.schema.json": "5c150d71a335491c389d40134e135e5960f0379d667c56d368f9a07420280328",
+  "submission-context.json": "685a3bb9ae806e15242e65ff1ea03d01bfda483eccc65282da8b3ec886ab2ea5",
+  "submission-context.schema.json": "685a3bb9ae806e15242e65ff1ea03d01bfda483eccc65282da8b3ec886ab2ea5",
+  "submit-request.json": "d5f59b52435bd307e582caa5024c530f73f0790882e8c1ecaf90fb41824e4242",
+  "submit-request.schema.json": "d5f59b52435bd307e582caa5024c530f73f0790882e8c1ecaf90fb41824e4242",
+  "verification-policy.json": "d15bb4ceae360c4883448ac663ad1caa48b23893435123ac7495882180cefaf0",
+  "verification-policy.schema.json": "d15bb4ceae360c4883448ac663ad1caa48b23893435123ac7495882180cefaf0",
+  "verification-result.json": "d7d5cbee6c76ed49cf04c44505076534f7beb284954609daa9fd2f9793dc2da5",
+  "verification-result.schema.json": "d7d5cbee6c76ed49cf04c44505076534f7beb284954609daa9fd2f9793dc2da5"
+}

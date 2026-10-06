@@ -20,7 +20,7 @@ import {
   verificationPolicySchema,
   verificationResultSchema,
   submissionContextSchema,
-} from './index.js'
+} from './v0.8.js'
 
 import type {
   HitlObject,
@@ -34,7 +34,7 @@ import type {
   VerificationPolicy,
   VerificationResult,
   SubmissionContext,
-} from './index.js'
+} from './v0.8.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const EXAMPLES_DIR = join(__dirname, '..', '..', '..', 'examples')

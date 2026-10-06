@@ -2,6 +2,8 @@
 
 This guide is for **service and website builders** who want to make their service accessible to autonomous agents via HITL Protocol.
 
+It describes the historical **v0.8** review flow used by the local reference services. For the v0.9 operation-bound agent access profile, use the [current specification](../../spec/v0.9/hitl-protocol.md). The local v0.8 demos do not implement production identity verification, durable storage or authorized business execution.
+
 ## When to Return HTTP 202
 
 Return HTTP 202 (not 200) when:
@@ -12,48 +14,45 @@ Return HTTP 202 (not 200) when:
 
 Return HTTP 200 when the operation completes without human input.
 
-## Enforcing HITL Choice
+## Applying Service Policy
 
-Agents default to the efficient path — skipping human review entirely. To prevent this, require agents to explicitly declare their intent via `prefer_hitl` or `skip_hitl` flags in every request.
+Treat `prefer_hitl` and `skip_hitl` as optional application-specific preferences. Neither flag authorizes an action or bypasses a required review. Server-derived authorization and policy determine whether execution is allowed and whether review is required. Prepare an immutable operation before requesting review; do not execute the side effect first.
 
 ### Decision Matrix
 
 | `prefer_hitl` | `skip_hitl` | Result |
 |:-:|:-:|--------|
-| `true` | — | HTTP 202 + HITL object (human reviews) |
-| — | `true` | HTTP 201 + `hitl_skipped: true` (direct execution) |
-| — | — | HTTP 400 `HITL_CHOICE_REQUIRED` |
+| `true` | — | HTTP 202 if the caller is authorized; otherwise HTTP 403 |
+| — | `true` | Direct execution only if current authorization and policy permit it; otherwise HTTP 202 |
+| — | — | Service policy chooses execution or review; unauthorized callers receive HTTP 403 |
 | `true` | `true` | HTTP 400 validation error (mutually exclusive) |
 
 ### Validation Gate (JavaScript)
 
+Application-specific pseudocode: `prepareAction` must have no business side effects; `evaluateServicePolicy` must use trusted authorization and service policy.
+
 ```javascript
 app.post('/api/action', async (req, res) => {
-  const { prefer_hitl, skip_hitl, ...params } = req.body;
+  const { prefer_hitl = false, skip_hitl = false, ...params } = req.body;
 
   // Reject ambiguous requests
-  if (prefer_hitl && skip_hitl) {
+  if (typeof prefer_hitl !== 'boolean' || typeof skip_hitl !== 'boolean' || (prefer_hitl && skip_hitl)) {
     return res.status(400).json({
       error: 'VALIDATION_ERROR',
-      message: 'prefer_hitl and skip_hitl are mutually exclusive.',
-    });
-  }
-  if (!prefer_hitl && !skip_hitl) {
-    return res.status(400).json({
-      error: 'HITL_CHOICE_REQUIRED',
-      message: 'You must send prefer_hitl: true or skip_hitl: true.',
+      message: 'Preferences must be booleans and cannot both be true.',
     });
   }
 
-  const result = await executeAction(params);
-
-  if (skip_hitl) {
-    // Direct execution — no human review
-    return res.status(201).json({ ...result, hitl_skipped: true });
+  const operation = await prepareAction(params);
+  const policy = await evaluateServicePolicy(operation, req);
+  if (!policy.allowed) return res.status(403).json({ error: 'FORBIDDEN' });
+  if (!prefer_hitl && !policy.requires_review) {
+    const result = await executeAction(operation);
+    return res.status(201).json({ ...result, hitl_skipped: skip_hitl });
   }
 
-  // HITL flow — create review case
-  const hitl = await createReviewCase(result);
+  // Persist the operation binding; execution follows a separate authorized commit.
+  const hitl = await createReviewCase(operation);
   return res.status(202).json({
     status: 'human_input_required',
     message: hitl.prompt,
@@ -64,6 +63,8 @@ app.post('/api/action', async (req, res) => {
 
 ### Validation Gate (Python)
 
+The same application-specific policy boundary applies; the named preparation/policy functions are illustrative, not repository APIs.
+
 ```python
 @app.post("/api/action")
 async def action(request: Request):
@@ -71,23 +72,22 @@ async def action(request: Request):
     prefer_hitl = body.get("prefer_hitl", False)
     skip_hitl = body.get("skip_hitl", False)
 
-    if prefer_hitl and skip_hitl:
+    if not isinstance(prefer_hitl, bool) or not isinstance(skip_hitl, bool) or (prefer_hitl and skip_hitl):
         return JSONResponse(status_code=400, content={
             "error": "VALIDATION_ERROR",
-            "message": "prefer_hitl and skip_hitl are mutually exclusive.",
-        })
-    if not prefer_hitl and not skip_hitl:
-        return JSONResponse(status_code=400, content={
-            "error": "HITL_CHOICE_REQUIRED",
-            "message": "You must send prefer_hitl: true or skip_hitl: true.",
+            "message": "Preferences must be booleans and cannot both be true.",
         })
 
-    result = await execute_action(body)
+    params = {key: value for key, value in body.items() if key not in ("prefer_hitl", "skip_hitl")}
+    operation = await prepare_action(params)
+    policy = await evaluate_service_policy(operation, request)
+    if not policy.allowed:
+        return JSONResponse(status_code=403, content={"error": "FORBIDDEN"})
+    if not prefer_hitl and not policy.requires_review:
+        result = await execute_action(operation)
+        return JSONResponse(status_code=201, content={**result, "hitl_skipped": skip_hitl})
 
-    if skip_hitl:
-        return JSONResponse(status_code=201, content={**result, "hitl_skipped": True})
-
-    hitl = await create_review_case(result)
+    hitl = await create_review_case(operation)
     return JSONResponse(status_code=202, content={
         "status": "human_input_required",
         "message": hitl["prompt"],
@@ -97,25 +97,25 @@ async def action(request: Request):
 
 ### HITL Continuation Chains
 
-When a HITL flow triggers a follow-up request (e.g. `next_case_id`), the agent is already in a HITL context. In this case, neither flag is needed — derive `prefer_hitl` automatically:
+When a HITL flow triggers a follow-up request (e.g. `next_case_id`), the agent is already in a HITL context. In this case, neither flag is needed — derive `prefer_hitl` after authenticating the caller and checking ownership of the stored previous case. A caller-supplied ID alone grants no rights:
 
 ```javascript
-// If request contains a previous case_id, it's a HITL continuation
-const isHitlContinuation = !!req.body.previous_case_id;
+// Only a persisted, caller-owned previous case establishes a continuation.
+const previousCase = await findOwnedCase(req.body.previous_case_id, authenticatedCaller);
+const isHitlContinuation = Boolean(previousCase);
 const effectivePreferHitl = prefer_hitl || isHitlContinuation;
 ```
 
 ### Documenting in Your SKILL.md
 
-Add this to your service's SKILL.md so agents know the requirement upfront:
+An application-specific metadata example makes the service policy explicit:
 
 ```yaml
 metadata:
   hitl:
     supported: true
-    hitl_required: true
     types: [selection, confirmation]
-    info: "HITL is required. You MUST send prefer_hitl: true or skip_hitl: true."
+    info: "Service policy determines whether review is required. Optional preferences never bypass authorization or required review."
 ```
 
 ## Implementation Checklist
@@ -131,33 +131,9 @@ metadata:
 - [ ] Set appropriate timeout and default_action
 - [ ] Return `Retry-After` header on rate limit (429)
 
-## HITL Object — Complete Field Reference
+## Versioned Data Contracts
 
-### Required Fields
-
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| `spec_version` | string | Must be `"0.5"` | Protocol version |
-| `case_id` | string | Pattern: `^[a-zA-Z0-9_-]+$` | Unique identifier. Recommended: `review_{random}` |
-| `review_url` | URL | HTTPS only, includes opaque token | URL to the review page |
-| `poll_url` | URL | HTTPS recommended | Status polling endpoint |
-| `type` | enum | `approval` / `selection` / `input` / `confirmation` / `escalation` / `x-*` | Review type |
-| `prompt` | string | Max 500 chars | What the human needs to decide |
-| `created_at` | datetime | ISO 8601 | When the case was created |
-| `expires_at` | datetime | ISO 8601 | When the case expires |
-
-### Optional Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `timeout` | duration | How long review stays open. ISO 8601 (`PT24H`, `P7D`) or shorthand (`24h`, `7d`) |
-| `default_action` | enum | `skip` / `approve` / `reject` / `abort` — action taken on expiry |
-| `callback_url` | URL / null | Echo of agent's callback URL, or null |
-| `events_url` | URL | SSE endpoint for real-time events |
-| `context` | object | Arbitrary data for the review page. For `input` type, MAY include `form` |
-| `reminder_at` | datetime / datetime[] | When to send reminder(s) |
-| `previous_case_id` | string | Links to prior case in multi-round chain |
-| `surface` | object | UI format declaration: `{format: "json-render", version: "1.0"}` |
+Use the canonical [v0.8 HITL object schema](../../schemas/v0.8/hitl-object.schema.json), [submit schema](../../schemas/v0.8/submit-request.schema.json) and [poll schema](../../schemas/v0.8/poll-response.schema.json), with explicit `@hitl-protocol/schemas/v0.8` imports. The emitted `spec_version` is `"0.8"`. Field constraints, defaults and optional extensions come from those schemas rather than a second table in this guide. New v0.9 consumers use the separate [v0.9 schemas](../../schemas/README.md); do not mix their contracts.
 
 ## Security: Token Generation
 
@@ -183,9 +159,9 @@ function verifyToken(incomingToken, storedHash) {
 }
 ```
 
-**Why opaque tokens instead of JWT?**
-- 43 chars vs 241 chars — shorter URLs, no LLM tokenizer corruption
-- Bearer model — URL sharing is delegation by design
+**Properties of the local opaque token model:**
+- 32 random bytes produce a 43-character base64url token
+- Possession model — sharing the URL shares its capability; it does not authenticate a human or establish approval authority
 - SHA-256 hash storage — compromised DB doesn't leak tokens
 
 ## State Machine
@@ -195,65 +171,31 @@ All valid transitions:
 | From | To | Trigger |
 |------|----|---------|
 | *(created)* | `pending` | Service creates case |
-| `pending` | `opened` | Human opens review URL |
+| `pending` | `opened` | Review URL is loaded; this is not evidence of human presence |
+| `pending` | `completed` | A validated response completes the case, including inline submission |
 | `pending` | `expired` | Timeout reached |
-| `pending` | `cancelled` | Human clicks cancel |
+| `pending` | `cancelled` | Service cancels the case |
 | `opened` | `in_progress` | Human starts interacting with form |
 | `opened` | `completed` | Human submits response |
 | `opened` | `expired` | Timeout reached |
-| `opened` | `cancelled` | Human clicks cancel |
+| `opened` | `cancelled` | Service cancels the case |
 | `in_progress` | `completed` | Human submits response |
-| `in_progress` | `cancelled` | Human clicks cancel |
+| `in_progress` | `expired` | Timeout reached |
+| `in_progress` | `cancelled` | Service cancels the case |
 
 **Terminal states** (`completed`, `expired`, `cancelled`) are **immutable** — no transitions out.
+
+For confirmation reviews, a submitted `cancel` is a completed decision with `result.action: "cancel"`; it is distinct from cancelling the review case itself.
 
 **Optional intermediate states:** `opened` and `in_progress` are optional. Services that don't track page views may transition directly from `pending` to terminal states.
 
 ## Poll Endpoint Implementation
 
-```
-GET /v1/reviews/{caseId}/status
-Authorization: Bearer <agent-token>  (or other auth)
-```
+The local route is `GET /api/reviews/{caseId}/status`. Use the tested [Express implementation](../../implementations/reference-service/express/server.js), [Hono implementation](../../implementations/reference-service/hono/server.js), [Next.js route](../../implementations/reference-service/nextjs/app/api/reviews/[caseId]/status/route.ts) or [FastAPI implementation](../../implementations/reference-service/python/server.py) as the v0.8 producer example.
 
-Return the current status with appropriate fields per state:
+Resolve request-time expiry before checking the ETag and serialize only fields guaranteed by the canonical poll schema. Node consumers share [`pollCase`](../../packages/core/src/review.ts). `submission_context` contains claimed channel metadata; populate `responded_by` only from a trusted identity verifier.
 
-```javascript
-app.get('/v1/reviews/:caseId/status', (req, res) => {
-  const rc = store.get(req.params.caseId);
-  if (!rc) return res.status(404).json({ error: 'Case not found' });
-
-  const response = { status: rc.status, case_id: rc.case_id };
-
-  // Always include timestamps
-  if (rc.created_at) response.created_at = rc.created_at;
-  if (rc.expires_at) response.expires_at = rc.expires_at;
-  if (rc.opened_at) response.opened_at = rc.opened_at;
-
-  // Terminal state fields
-  if (rc.status === 'completed') {
-    response.completed_at = rc.completed_at;
-    response.result = rc.result; // { action, data }
-    if (rc.responded_by) response.responded_by = rc.responded_by;
-    if (rc.next_case_id) response.next_case_id = rc.next_case_id;
-  }
-  if (rc.status === 'expired') {
-    response.expired_at = rc.expired_at;
-    response.default_action = rc.default_action;
-  }
-  if (rc.status === 'cancelled') {
-    response.cancelled_at = rc.cancelled_at;
-    if (rc.reason) response.reason = rc.reason;
-  }
-
-  // Progress tracking (optional, for multi-step Input forms)
-  if (rc.status === 'in_progress' && rc.progress) {
-    response.progress = rc.progress;
-  }
-
-  res.json(response);
-});
-```
+The local demos deliberately leave polling unauthenticated. A production service must authenticate the caller and enforce case ownership before returning status or result data. A case ID alone is not authorization.
 
 ### Rate Limiting
 
@@ -270,14 +212,14 @@ The review page is hosted by your service. Use any web framework. Requirements:
 3. **Collect response** — submit human's decision to response endpoint
 4. **One response only** — return 409 Conflict on duplicate submission
 
-The agent never sees or renders this page. All sensitive data stays in the browser.
+The service renders the canonical review page. Agents can also load URLs, so a page view alone is not human verification. Include only data that the initiating caller is authorized to read in the HITL object and poll result.
 
 HTML templates for all 5 review types are available in [templates/](../../templates/).
 
 ## Response Endpoint
 
 ```
-POST /v1/reviews/{caseId}/respond
+POST /reviews/{caseId}/respond?token=<review-token>
 Content-Type: application/json
 ```
 
@@ -285,8 +227,7 @@ Content-Type: application/json
 {
   "action": "select",
   "data": {
-    "selected_jobs": ["job-123", "job-456"],
-    "note": "Only remote positions"
+    "selected": ["job_001", "job_003"]
   }
 }
 ```
@@ -383,38 +324,11 @@ For `input`-type reviews, include a `form` object in `context`:
 
 Use `fields` (single-step) **or** `steps` (multi-step), never both.
 
-### Field Types
+### Form Contract and Local Consumer Limits
 
-| Type | HTML equiv | Value type | Notes |
-|------|-----------|------------|-------|
-| `text` | `<input type="text">` | string | Single-line |
-| `textarea` | `<textarea>` | string | Multi-line |
-| `number` | `<input type="number">` | number | Integer or decimal |
-| `date` | `<input type="date">` | string (ISO 8601) | Date picker |
-| `email` | `<input type="email">` | string | Email validation |
-| `url` | `<input type="url">` | string | URL validation |
-| `boolean` | `<input type="checkbox">` | boolean | Toggle |
-| `select` | `<select>` | string | Single choice, requires `options` |
-| `multiselect` | `<select multiple>` | string[] | Multiple choices, requires `options` |
-| `range` | `<input type="range">` | number | Slider, requires `validation.min`/`max` |
-| `x-*` | Custom | Any | Service-defined custom types |
+Use the canonical [v0.8 form field schema](../../schemas/v0.8/form-field.schema.json) for field types, names, constraints and optional properties. These form examples illustrate protocol capabilities; the local reference services create the single-step salary/date/work-authorization demo form.
 
-### Field Properties
-
-| Property | Type | Required | Description |
-|----------|------|----------|-------------|
-| `key` | string | Yes | Unique field ID. Pattern: `^[a-zA-Z][a-zA-Z0-9_]*$` |
-| `label` | string | Yes | Human-readable label (max 200 chars) |
-| `type` | string | Yes | Field type from table above |
-| `required` | boolean | No | Must be filled before submission (default: false) |
-| `placeholder` | string | No | Placeholder text |
-| `hint` | string | No | Help text displayed below field |
-| `default` | any | No | Pre-filled value. MUST NOT contain sensitive data |
-| `default_ref` | URL | No | URL to securely fetch pre-fill (requires token) |
-| `sensitive` | boolean | No | Mask input, suppress logging (default: false) |
-| `options` | array | For select/multiselect | `[{value, label}, ...]` |
-| `validation` | object | No | `{minLength, maxLength, pattern, min, max}` |
-| `conditional` | object | No | `{field, operator, value}`. Operators: `eq`, `neq`, `in`, `gt`, `lt` |
+The input template has wizard rendering code, but the local FastAPI validator covers its demo form rather than arbitrary wizard definitions. The template does not fetch `default_ref`; `sensitive` currently adds a CSS class without masking. Production consumers must implement privacy controls and verify their supported form flows rather than infer them from an optional schema field.
 
 ### Progress Tracking (Optional)
 
@@ -445,16 +359,17 @@ Event types:
 
 | Event | When | Data |
 |-------|------|------|
-| `review.opened` | Human opens URL | `{case_id, opened_at}` |
-| `review.in_progress` | Human starts interacting | `{case_id, progress}` |
-| `review.completed` | Human submits | `{case_id, completed_at, result}` |
-| `review.expired` | Timeout reached | `{case_id, expired_at, default_action}` |
-| `review.cancelled` | Human cancels | `{case_id, cancelled_at, reason}` |
-| `review.reminder` | Reminder triggered | `{case_id, review_url}` |
+| `review.opened` | Review URL loads | `{case_id, status}` |
+| `review.in_progress` | Service tracks interaction | `{case_id, status}` |
+| `review.completed` | Validated submission completes the case | `{case_id, status, result}` for the transition event |
+| `review.expired` | Timeout reached | `{case_id, status}` |
+| `review.cancelled` | Service cancels the case | `{case_id, status}` |
 
-Support `Last-Event-ID` for reconnection. Include `id` in each event.
+Local demos emit the current state on connection and include event IDs, but do not persist an event replay buffer or honor `Last-Event-ID` for historical replay. Use the poll endpoint for the authoritative full result and timestamps after reconnection. Reminder events are not implemented by these demos.
 
 ## Callback/Webhook (Optional)
+
+The local demos do not implement callback delivery. Keep the historical v0.8 payload contract when integrating with them, and apply the current [callback authentication, replay and destination-security requirements](../../spec/v0.9/hitl-protocol.md#callback-destination-security) to any production callback implementation. An untrusted callback can only wake bounded authenticated polling; it cannot supply an authoritative decision or polling URL.
 
 When the agent includes `hitl_callback_url` in the original request:
 
@@ -474,7 +389,7 @@ Content-Type: application/json
   "completed_at": "2026-02-22T10:15:00Z",
   "result": {
     "action": "select",
-    "data": { "selected_jobs": ["job-123"] }
+    "data": { "selected": ["job_001"] }
   }
 }
 ```
@@ -485,19 +400,20 @@ Expose a `.well-known/hitl.json` endpoint:
 
 ```json
 {
-  "hitl_protocol": "0.5",
-  "service": {
-    "name": "JobBoard Pro",
-    "description": "Job search and application service"
-  },
-  "review_types": ["selection", "confirmation"],
-  "review_base_url": "https://jobboard.example.com/review",
-  "api_base_url": "https://api.jobboard.example.com/v1",
-  "timeout_default": "24h",
-  "features": {
-    "callback": true,
-    "signed_responses": false,
-    "edit_grace_period": "5m"
+  "hitl_protocol": {
+    "spec_version": "0.8",
+    "service": { "name": "JobBoard Pro", "url": "https://jobboard.example.com" },
+    "capabilities": {
+      "review_types": ["selection", "confirmation"],
+      "transports": ["polling", "sse"],
+      "default_timeout": "PT24H",
+      "supports_signatures": false,
+      "supports_agent_binding": false
+    },
+    "endpoints": {
+      "review_page_base": "https://jobboard.example.com/review",
+      "reviews_base": "https://api.jobboard.example.com/v1/reviews"
+    }
   }
 }
 ```
@@ -514,7 +430,7 @@ For iterative edit cycles:
 
 ## SKILL.md Extension
 
-Declare HITL support in your service's SKILL.md frontmatter (see [spec Section 12](../../spec/v0.5/hitl-protocol.md)):
+Declare HITL support in your service's SKILL.md frontmatter (see the [v0.8 specification](../../spec/v0.8/hitl-protocol.md)):
 
 ```yaml
 metadata:
@@ -541,13 +457,13 @@ Working implementations in 4 frameworks:
 | Framework | Path | Language |
 |-----------|------|----------|
 | Express 5 | [implementations/reference-service/express/](../../implementations/reference-service/express/) | Node.js |
-| Hono | [implementations/reference-service/hono/](../../implementations/reference-service/hono/) | Edge/Deno/Bun |
+| Hono | [implementations/reference-service/hono/](../../implementations/reference-service/hono/) | Node.js in this example |
 | Next.js | [implementations/reference-service/nextjs/](../../implementations/reference-service/nextjs/) | TypeScript |
 | FastAPI | [implementations/reference-service/python/](../../implementations/reference-service/python/) | Python |
 
 ## Common Implementation Mistakes
 
-Real-world audits of services implementing HITL v0.7 have revealed recurring patterns. Avoid these:
+The local runtime tests check these integration mistakes:
 
 ### Mistake 1: Accepting Both Tokens Interchangeably (Security Critical)
 
@@ -579,7 +495,7 @@ See [Spec Section 7.5](../../spec/v0.7/hitl-protocol.md) — `submit_token` MUST
 
 **Right:** Two distinct formats depending on the auth path:
 - **Inline submit (Bearer header):** `{ action, data, submitted_via, submitted_by }` — flat
-- **Review page (body/URL token):** `{ action, data }` or your existing format
+- **Review page (URL token):** `{ action, data }`
 
 See [Spec Section 7.5.1](../../spec/v0.7/hitl-protocol.md) for the inline submit request body.
 
@@ -587,12 +503,12 @@ See [Spec Section 7.5.1](../../spec/v0.7/hitl-protocol.md) for the inline submit
 
 **Wrong:** Returning `422 Unprocessable Entity` when an action is not in `inline_actions`.
 
-**Right:** Return **403 Forbidden** with `review_url` in the error body:
+**Right:** Return **403 Forbidden** and direct the consumer to the original `hitl.review_url`. An error may also include a `review_url` hint; the local demos do not return that hint:
 ```json
 {
   "error": "action_not_inline",
-  "message": "Action 'edit' requires the review page.",
-  "review_url": "https://yourservice.com/review/abc123?token=..."
+  "message": "Use the original HITL review URL for this action.",
+  "case_id": "review_abc123"
 }
 ```
 
@@ -602,10 +518,10 @@ This lets the agent fall back to the browser flow gracefully. The human can comp
 
 Validate your HITL objects and poll responses:
 
-- [hitl-object.schema.json](../../schemas/hitl-object.schema.json)
-- [poll-response.schema.json](../../schemas/poll-response.schema.json)
-- [form-field.schema.json](../../schemas/form-field.schema.json)
-- [OpenAPI 3.1 spec](../../schemas/openapi.yaml)
+- [v0.8 HITL object schema](../../schemas/v0.8/hitl-object.schema.json)
+- [v0.8 poll schema](../../schemas/v0.8/poll-response.schema.json)
+- [v0.8 form schema](../../schemas/v0.8/form-field.schema.json)
+- [v0.8 OpenAPI document](../../schemas/v0.8/openapi.yaml)
 
 ## Compliance Tests
 

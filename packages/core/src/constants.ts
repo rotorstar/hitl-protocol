@@ -1,8 +1,8 @@
 /**
- * Protocol constants and sample data for HITL Protocol v0.7.
+ * Protocol constants and sample data for the local HITL Protocol v0.8 demos.
  */
 
-import type { ReviewType } from '@hitl-protocol/schemas'
+import type { ReviewType } from '@hitl-protocol/schemas/v0.8'
 
 /** Actions allowed per review type for inline submit (v0.7). */
 export const INLINE_ACTIONS: Readonly<Record<ReviewType, readonly string[]>> = {

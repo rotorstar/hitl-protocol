@@ -1,0 +1,2166 @@
+{
+  "format_version": 1,
+  "description": "Shared Node/Python observations against canonical v0.8/v0.9 schemas. Inputs are test data; versions choose explicit contracts. Supported dispatch applies only to HITL and discovery. No schema is duplicated here.",
+  "cases": [
+    {
+      "id": "0.8:hitl-object:valid-contract",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:hitl-object:missing-required-fields",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:valid-contract",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "completed",
+        "case_id": "review_contract_1",
+        "completed_at": "2026-10-06T10:05:00Z",
+        "result": {
+          "action": "confirm"
+        },
+        "submission_context": {
+          "mode": "browser_submit",
+          "verification_result": {
+            "satisfied": true,
+            "verified_evidence": [
+              {
+                "proof_type": "x-hitl-agent-access-reviewer",
+                "provider": "reference-oidc",
+                "verified_at": "2026-10-06T10:05:00Z",
+                "bound_to_case": true,
+                "bound_to_action": true,
+                "fresh": true,
+                "single_use_enforced": true
+              }
+            ]
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:missing-required-fields",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:submit-request:valid-contract",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submit-request:missing-required-fields",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:discovery-response:valid-contract",
+      "version": "0.8",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.8",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:discovery-response:missing-required-fields",
+      "version": "0.8",
+      "schema": "discovery-response",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:form-field:valid-contract",
+      "version": "0.8",
+      "schema": "form-field",
+      "input": {
+        "key": "full_name",
+        "label": "Full name",
+        "type": "text",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:form-field:missing-required-fields",
+      "version": "0.8",
+      "schema": "form-field",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:verification-policy:valid-contract",
+      "version": "0.8",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "provider_opaque"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:verification-policy:missing-required-fields",
+      "version": "0.8",
+      "schema": "verification-policy",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:verification-result:valid-contract",
+      "version": "0.8",
+      "schema": "verification-result",
+      "input": {
+        "satisfied": true,
+        "verified_evidence": [
+          {
+            "proof_type": "x-hitl-agent-access-reviewer",
+            "provider": "reference-oidc",
+            "verified_at": "2026-10-06T10:05:00Z",
+            "bound_to_case": true,
+            "bound_to_action": true,
+            "fresh": true,
+            "single_use_enforced": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:verification-result:missing-required-fields",
+      "version": "0.8",
+      "schema": "verification-result",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:submission-context:valid-contract",
+      "version": "0.8",
+      "schema": "submission-context",
+      "input": {
+        "mode": "browser_submit",
+        "verification_result": {
+          "satisfied": true,
+          "verified_evidence": [
+            {
+              "proof_type": "x-hitl-agent-access-reviewer",
+              "provider": "reference-oidc",
+              "verified_at": "2026-10-06T10:05:00Z",
+              "bound_to_case": true,
+              "bound_to_action": true,
+              "fresh": true,
+              "single_use_enforced": true
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submission-context:missing-required-fields",
+      "version": "0.8",
+      "schema": "submission-context",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:reject-advertised-0.9",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:discovery-response:reject-advertised-0.9",
+      "version": "0.8",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.9",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:reject-advertised-1.0",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "1.0",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:discovery-response:reject-advertised-1.0",
+      "version": "0.8",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "1.0",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:invalid-timestamp",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "not-a-timestamp",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:invalid-uri",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "not a URI",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:review-type-x-custom-review",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "x-custom-review",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:hitl-object:review-type-custom-review",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "custom-review",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:state-pending",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "pending",
+        "case_id": "review_contract_1"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:state-opened",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "opened",
+        "case_id": "review_contract_1"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:state-in_progress",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "in_progress",
+        "case_id": "review_contract_1"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:state-expired",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "expired_at": "2026-10-06T10:15:00Z",
+        "default_action": "abort"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:state-cancelled",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "cancelled",
+        "case_id": "review_contract_1",
+        "cancelled_at": "2026-10-06T10:05:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:completed-missing-result",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "completed",
+        "case_id": "review_contract_1",
+        "completed_at": "2026-10-06T10:05:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:completed-missing-completed_at",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "completed",
+        "case_id": "review_contract_1",
+        "result": {
+          "action": "confirm"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:expired-missing-expired_at",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "default_action": "abort"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:expired-missing-default_action",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "expired_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:cancelled-missing-cancelled_at",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "cancelled",
+        "case_id": "review_contract_1"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:poll-response:decision-before-completion",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "pending",
+        "case_id": "review_contract_1",
+        "result": {
+          "action": "confirm"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:poll-response:unknown-expiry-default",
+      "version": "0.8",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "expired_at": "2026-10-06T10:15:00Z",
+        "default_action": "cancel"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submission-context:inline-origin",
+      "version": "0.8",
+      "schema": "submission-context",
+      "input": {
+        "mode": "inline_submit",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submission-context:inline-missing-origin",
+      "version": "0.8",
+      "schema": "submission-context",
+      "input": {
+        "mode": "inline_submit"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:submission-context:unknown-mode",
+      "version": "0.8",
+      "schema": "submission-context",
+      "input": {
+        "mode": "automated"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:submission-context:invalid-linked-verification",
+      "version": "0.8",
+      "schema": "submission-context",
+      "input": {
+        "mode": "browser_submit",
+        "verification_result": {
+          "satisfied": "true"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:form-single-step",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {
+            "fields": [
+              {
+                "key": "full_name",
+                "label": "Full name",
+                "type": "text",
+                "required": true,
+                "validation": {
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              }
+            ]
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:hitl-object:form-multi-step",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {
+            "steps": [
+              {
+                "title": "Details",
+                "fields": [
+                  {
+                    "key": "full_name",
+                    "label": "Full name",
+                    "type": "text",
+                    "required": true,
+                    "validation": {
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:hitl-object:form-neither-layout",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {}
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:hitl-object:form-both-layouts",
+      "version": "0.8",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {
+            "fields": [],
+            "steps": []
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:form-field:field-type-x-custom-field",
+      "version": "0.8",
+      "schema": "form-field",
+      "input": {
+        "key": "full_name",
+        "label": "Full name",
+        "type": "x-custom-field",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:form-field:field-type-custom-field",
+      "version": "0.8",
+      "schema": "form-field",
+      "input": {
+        "key": "full_name",
+        "label": "Full name",
+        "type": "custom-field",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:verification-policy:proof-type-x-reviewer-session",
+      "version": "0.8",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "x-reviewer-session",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "provider_opaque"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:verification-policy:proof-type-reviewer-session",
+      "version": "0.8",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "reviewer-session",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "provider_opaque"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:verification-policy:presentation-x-service-session",
+      "version": "0.8",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "x-service-session"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:verification-policy:presentation-service-session",
+      "version": "0.8",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "service-session"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:submit-request:channel-x-native-client",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "x-native-client",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submit-request:channel-native-client",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "native-client",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:submit-request:platform-x-native-client",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "x-native-client",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submit-request:platform-native-client",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "native-client",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.8:submit-request:evidence-format-x-provider-presentation",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        },
+        "verification_evidence": [
+          {
+            "proof_type": "x-reviewer-session",
+            "provider": "fixture-provider",
+            "format": "x-provider-presentation",
+            "presentation": "opaque-fixture",
+            "binding": {
+              "case_id": "review_contract_1",
+              "action": "confirm"
+            }
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "id": "0.8:submit-request:evidence-format-provider-presentation",
+      "version": "0.8",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        },
+        "verification_evidence": [
+          {
+            "proof_type": "x-reviewer-session",
+            "provider": "fixture-provider",
+            "format": "provider-presentation",
+            "presentation": "opaque-fixture",
+            "binding": {
+              "case_id": "review_contract_1",
+              "action": "confirm"
+            }
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "id": "supported:hitl-object:accept-0.8",
+      "version": "supported",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "supported:discovery-response:accept-0.8",
+      "version": "supported",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.8",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:hitl-object:valid-contract",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:hitl-object:missing-required-fields",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:valid-contract",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "completed",
+        "case_id": "review_contract_1",
+        "completed_at": "2026-10-06T10:05:00Z",
+        "result": {
+          "action": "confirm"
+        },
+        "submission_context": {
+          "mode": "browser_submit",
+          "verification_result": {
+            "satisfied": true,
+            "verified_evidence": [
+              {
+                "proof_type": "x-hitl-agent-access-reviewer",
+                "provider": "reference-oidc",
+                "verified_at": "2026-10-06T10:05:00Z",
+                "bound_to_case": true,
+                "bound_to_action": true,
+                "fresh": true,
+                "single_use_enforced": true
+              }
+            ]
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:poll-response:missing-required-fields",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:submit-request:valid-contract",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:submit-request:missing-required-fields",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:discovery-response:valid-contract",
+      "version": "0.9",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.9",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:discovery-response:missing-required-fields",
+      "version": "0.9",
+      "schema": "discovery-response",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:form-field:valid-contract",
+      "version": "0.9",
+      "schema": "form-field",
+      "input": {
+        "key": "full_name",
+        "label": "Full name",
+        "type": "text",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:form-field:missing-required-fields",
+      "version": "0.9",
+      "schema": "form-field",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:verification-policy:valid-contract",
+      "version": "0.9",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "provider_opaque"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:verification-policy:missing-required-fields",
+      "version": "0.9",
+      "schema": "verification-policy",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:verification-result:valid-contract",
+      "version": "0.9",
+      "schema": "verification-result",
+      "input": {
+        "satisfied": true,
+        "verified_evidence": [
+          {
+            "proof_type": "x-hitl-agent-access-reviewer",
+            "provider": "reference-oidc",
+            "verified_at": "2026-10-06T10:05:00Z",
+            "bound_to_case": true,
+            "bound_to_action": true,
+            "fresh": true,
+            "single_use_enforced": true
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:verification-result:missing-required-fields",
+      "version": "0.9",
+      "schema": "verification-result",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:submission-context:valid-contract",
+      "version": "0.9",
+      "schema": "submission-context",
+      "input": {
+        "mode": "browser_submit",
+        "verification_result": {
+          "satisfied": true,
+          "verified_evidence": [
+            {
+              "proof_type": "x-hitl-agent-access-reviewer",
+              "provider": "reference-oidc",
+              "verified_at": "2026-10-06T10:05:00Z",
+              "bound_to_case": true,
+              "bound_to_action": true,
+              "fresh": true,
+              "single_use_enforced": true
+            }
+          ]
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:submission-context:missing-required-fields",
+      "version": "0.9",
+      "schema": "submission-context",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:reject-advertised-0.8",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.8",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:discovery-response:reject-advertised-0.8",
+      "version": "0.9",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.8",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:reject-advertised-1.0",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "1.0",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:discovery-response:reject-advertised-1.0",
+      "version": "0.9",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "1.0",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:invalid-timestamp",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "not-a-timestamp",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:invalid-uri",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "not a URI",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:review-type-x-custom-review",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "x-custom-review",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:hitl-object:review-type-custom-review",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "custom-review",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:state-pending",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "pending",
+        "case_id": "review_contract_1"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:poll-response:state-opened",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "opened",
+        "case_id": "review_contract_1"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:poll-response:state-in_progress",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "in_progress",
+        "case_id": "review_contract_1"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:poll-response:state-expired",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "expired_at": "2026-10-06T10:15:00Z",
+        "default_action": "abort"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:poll-response:state-cancelled",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "cancelled",
+        "case_id": "review_contract_1",
+        "cancelled_at": "2026-10-06T10:05:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:poll-response:completed-missing-result",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "completed",
+        "case_id": "review_contract_1",
+        "completed_at": "2026-10-06T10:05:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:completed-missing-completed_at",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "completed",
+        "case_id": "review_contract_1",
+        "result": {
+          "action": "confirm"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:expired-missing-expired_at",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "default_action": "abort"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:expired-missing-default_action",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "expired_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:cancelled-missing-cancelled_at",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "cancelled",
+        "case_id": "review_contract_1"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:decision-before-completion",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "pending",
+        "case_id": "review_contract_1",
+        "result": {
+          "action": "confirm"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:poll-response:unknown-expiry-default",
+      "version": "0.9",
+      "schema": "poll-response",
+      "input": {
+        "status": "expired",
+        "case_id": "review_contract_1",
+        "expired_at": "2026-10-06T10:15:00Z",
+        "default_action": "cancel"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:submission-context:inline-origin",
+      "version": "0.9",
+      "schema": "submission-context",
+      "input": {
+        "mode": "inline_submit",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:submission-context:inline-missing-origin",
+      "version": "0.9",
+      "schema": "submission-context",
+      "input": {
+        "mode": "inline_submit"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:submission-context:unknown-mode",
+      "version": "0.9",
+      "schema": "submission-context",
+      "input": {
+        "mode": "automated"
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:submission-context:invalid-linked-verification",
+      "version": "0.9",
+      "schema": "submission-context",
+      "input": {
+        "mode": "browser_submit",
+        "verification_result": {
+          "satisfied": "true"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:form-single-step",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {
+            "fields": [
+              {
+                "key": "full_name",
+                "label": "Full name",
+                "type": "text",
+                "required": true,
+                "validation": {
+                  "minLength": 1,
+                  "maxLength": 100
+                }
+              }
+            ]
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:hitl-object:form-multi-step",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {
+            "steps": [
+              {
+                "title": "Details",
+                "fields": [
+                  {
+                    "key": "full_name",
+                    "label": "Full name",
+                    "type": "text",
+                    "required": true,
+                    "validation": {
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:hitl-object:form-neither-layout",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {}
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:hitl-object:form-both-layouts",
+      "version": "0.9",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z",
+        "context": {
+          "form": {
+            "fields": [],
+            "steps": []
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:form-field:field-type-x-custom-field",
+      "version": "0.9",
+      "schema": "form-field",
+      "input": {
+        "key": "full_name",
+        "label": "Full name",
+        "type": "x-custom-field",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:form-field:field-type-custom-field",
+      "version": "0.9",
+      "schema": "form-field",
+      "input": {
+        "key": "full_name",
+        "label": "Full name",
+        "type": "custom-field",
+        "required": true,
+        "validation": {
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:verification-policy:proof-type-x-reviewer-session",
+      "version": "0.9",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "x-reviewer-session",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "provider_opaque"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:verification-policy:proof-type-reviewer-session",
+      "version": "0.9",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "reviewer-session",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "provider_opaque"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:verification-policy:presentation-x-service-session",
+      "version": "0.9",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "x-service-session"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:verification-policy:presentation-service-session",
+      "version": "0.9",
+      "schema": "verification-policy",
+      "input": {
+        "mode": "required",
+        "required_for": [
+          "browser_submit"
+        ],
+        "requirements": {
+          "any_of": [
+            {
+              "all_of": [
+                {
+                  "proof_type": "proof_of_human",
+                  "provider": "fixture-provider",
+                  "presentation_formats": [
+                    "service-session"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "binding": {
+          "case_id": true,
+          "action": true,
+          "freshness_seconds": 300,
+          "single_use": true
+        },
+        "fallback": {
+          "on_missing": "reject",
+          "on_invalid": "reject"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:submit-request:channel-x-native-client",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "x-native-client",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:submit-request:channel-native-client",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "native-client",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:submit-request:platform-x-native-client",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "x-native-client",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:submit-request:platform-native-client",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "native-client",
+          "platform_user_id": "fixture_user_1"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:submit-request:evidence-format-x-provider-presentation",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        },
+        "verification_evidence": [
+          {
+            "proof_type": "x-reviewer-session",
+            "provider": "fixture-provider",
+            "format": "x-provider-presentation",
+            "presentation": "opaque-fixture",
+            "binding": {
+              "case_id": "review_contract_1",
+              "action": "confirm"
+            }
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "id": "0.9:submit-request:evidence-format-provider-presentation",
+      "version": "0.9",
+      "schema": "submit-request",
+      "input": {
+        "action": "confirm",
+        "submitted_via": "telegram_inline_button",
+        "submitted_by": {
+          "platform": "telegram",
+          "platform_user_id": "fixture_user_1"
+        },
+        "verification_evidence": [
+          {
+            "proof_type": "x-reviewer-session",
+            "provider": "fixture-provider",
+            "format": "provider-presentation",
+            "presentation": "opaque-fixture",
+            "binding": {
+              "case_id": "review_contract_1",
+              "action": "confirm"
+            }
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "id": "supported:hitl-object:accept-0.9",
+      "version": "supported",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "0.9",
+        "case_id": "review_contract_1",
+        "type": "confirmation",
+        "prompt": "Confirm this proposal",
+        "review_url": "https://service.example/review/review_contract_1?token=fixture-access",
+        "poll_url": "https://service.example/reviews/review_contract_1",
+        "created_at": "2026-10-06T10:00:00Z",
+        "expires_at": "2026-10-06T10:15:00Z"
+      },
+      "valid": true
+    },
+    {
+      "id": "supported:discovery-response:accept-0.9",
+      "version": "supported",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.9",
+          "service": {
+            "name": "Fixture service",
+            "url": "https://service.example"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": true
+    },
+    {
+      "id": "supported:hitl-object:unknown-version",
+      "version": "supported",
+      "schema": "hitl-object",
+      "input": {
+        "spec_version": "1.0"
+      },
+      "valid": false
+    },
+    {
+      "id": "supported:hitl-object:missing-version",
+      "version": "supported",
+      "schema": "hitl-object",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "supported:hitl-object:non-object",
+      "version": "supported",
+      "schema": "hitl-object",
+      "input": null,
+      "valid": false
+    },
+    {
+      "id": "supported:discovery-response:unknown-version",
+      "version": "supported",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "1.0"
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "supported:discovery-response:missing-version",
+      "version": "supported",
+      "schema": "discovery-response",
+      "input": {},
+      "valid": false
+    },
+    {
+      "id": "supported:discovery-response:non-object",
+      "version": "supported",
+      "schema": "discovery-response",
+      "input": null,
+      "valid": false
+    },
+    {
+      "id": "0.8:discovery-response:invalid-service-uri",
+      "version": "0.8",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.8",
+          "service": {
+            "name": "Fixture service",
+            "url": "not a URI"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": false
+    },
+    {
+      "id": "0.9:discovery-response:invalid-service-uri",
+      "version": "0.9",
+      "schema": "discovery-response",
+      "input": {
+        "hitl_protocol": {
+          "spec_version": "0.9",
+          "service": {
+            "name": "Fixture service",
+            "url": "not a URI"
+          },
+          "capabilities": {
+            "review_types": [
+              "confirmation"
+            ],
+            "transports": [
+              "polling"
+            ],
+            "supports_agent_binding": true
+          },
+          "authentication": {
+            "type": "oauth2",
+            "profiles": [
+              "hitl-agent-access/0.1"
+            ],
+            "well_known": "https://service.example/.well-known/oauth-protected-resource"
+          }
+        }
+      },
+      "valid": false
+    }
+  ]
+}

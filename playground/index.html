@@ -279,7 +279,7 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
 <div class="header">
   <img src="../assets/logo.svg" alt="HITL Protocol Logo" style="height:64px;margin-bottom:12px">
   <h1>HITL Protocol <span>Interactive Playground</span></h1>
-  <p>The Open Standard for Human Decisions in Agent Workflows &mdash; v0.7</p>
+  <p>HITL v0.8 &mdash; illustrative local playground; all data and outcomes are simulated</p>
   <div class="rfc-strip" aria-label="RFC alignment hints">
     <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc9110" target="_blank" rel="noopener noreferrer">RFC 9110</a>
     <a class="rfc-pill" href="https://www.rfc-editor.org/rfc/rfc3339" target="_blank" rel="noopener noreferrer">RFC 3339</a>
@@ -339,11 +339,11 @@ details[open] summary{background:var(--bg2);border-color:var(--border2)}
       <div class="sm-state completed">completed</div>
     </div>
     <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:10px">
-      <div style="font-size:12px;color:var(--dim)">Also: pending/opened &rarr; <span class="badge badge-red" style="font-size:10px">expired</span></div>
+      <div style="font-size:12px;color:var(--dim)">Also: any non-terminal &rarr; <span class="badge badge-red" style="font-size:10px">expired</span></div>
       <div style="font-size:12px;color:var(--dim)">Also: any non-terminal &rarr; <span style="color:var(--dim);font-weight:600;background:var(--bg3);padding:2px 8px;border-radius:10px;font-size:10px">cancelled</span></div>
     </div>
     <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:12px">
-      <strong style="color:var(--text2)">opened</strong> and <strong style="color:var(--text2)">in_progress</strong> are optional intermediate states. Terminal states have glow borders.
+      <strong style="color:var(--text2)">opened</strong> and <strong style="color:var(--text2)">in_progress</strong> are optional intermediate states; inline submissions can transition directly from pending to completed. Terminal states have glow borders.
     </div>
   </div>
 
@@ -777,7 +777,7 @@ function getCheck(id) { const c = document.getElementById(id); return c ? c.chec
 
 // --- HITL Object Anatomy ---
 document.getElementById('hitl-anatomy').innerHTML = hl({
-  "spec_version": "0.7",
+  "spec_version": "0.8",
   "case_id": "review_abc123def456",
   "review_url": "https://service.example.com/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
   "poll_url": "https://api.service.example.com/v1/reviews/abc123/status",
@@ -810,7 +810,7 @@ function renderUC1() {
   if (wdlControls) wdlControls.style.display = wdl ? 'block' : 'none';
 
   const hitlObj = {
-    spec_version: "0.7",
+    spec_version: "0.8",
     case_id: "review_job_sel_7f3a9b",
     review_url: "https://jobboard.example.com/review/job_sel_7f3a9b?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://api.jobboard.example.com/v1/reviews/job_sel_7f3a9b/status",
@@ -1006,7 +1006,7 @@ function renderUC2() {
   const audit = getCheck('uc2-audit');
 
   const hitlObj = {
-    spec_version: "0.7",
+    spec_version: "0.8",
     case_id: "review_deploy_v210",
     review_url: "https://ci.company.com/review/deploy_v210?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...",
     poll_url: "https://ci.company.com/api/reviews/deploy_v210/status",
@@ -1061,21 +1061,21 @@ function renderUC2() {
         Audit Trail
       </div>
       <div class="audit-body">
-        Every deployment approval is fully auditable. The <code style="background:rgba(124,58,237,0.1);color:var(--purple)">responded_by</code> field records who approved,
+        A production deployment review needs independently authenticated identity and durable audit data. The <code style="background:rgba(124,58,237,0.1);color:var(--purple)">responded_by</code> field records who approved,
         <code style="background:rgba(124,58,237,0.1);color:var(--purple)">completed_at</code> records when, and the optional
-        <code style="background:rgba(124,58,237,0.1);color:var(--purple)">signature</code> provides cryptographic non-repudiation.
-        This audit chain is immutable and can be verified independently.
+        <code style="background:rgba(124,58,237,0.1);color:var(--purple)">signature</code> proves signed payload integrity and its issuer; it does not prove a human decision.
+        This playground displays sample audit fields. A real service must persist immutable decisions and verify signatures using a trusted key.
       </div>
     </div>` : '';
 
   // Verify signature button
   const verifyHtml = signed && !timeout ? `
     <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
-      <button class="verify-btn" onclick="this.innerHTML='<svg width=16 height=16 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Verified against ci.company.com/.well-known/jwks.json';this.style.background='var(--green)';this.style.boxShadow='0 4px 16px rgba(5,150,105,0.3)'">
+      <button class="verify-btn" onclick="this.innerHTML='<svg width=16 height=16 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Simulated verification display; no cryptographic check runs';this.style.background='var(--green)';this.style.boxShadow='0 4px 16px rgba(5,150,105,0.3)'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Verify Signature
+        Simulate Signature Check
       </button>
-      <span style="font-size:11px;color:var(--dim)">Validates RS256 response signature against JWKS endpoint</span>
+      <span style="font-size:11px;color:var(--dim)">Illustration only; no signature verification or network request runs</span>
     </div>` : '';
 
   document.getElementById('uc2-main').innerHTML = `
@@ -1363,12 +1363,12 @@ function renderUC4() {
     case_id: 'review_deal_001',
     status: 'completed',
     result: results[decision][cat],
-    responded_by: { name: 'Infrastructure Lead', email: 'infra-lead@company.com', role: 'budget_owner' },
+    responded_by: { name: 'Infrastructure Lead', email: 'infra-lead@company.com' },
     completed_at: '2026-02-20T14:08:00Z'
   };
   if (signed) {
     // Response signature (RS256, Section 13.4) — signs the response payload, NOT the URL token
-    uc4ResultObj.signature = {
+    uc4ResultObj.result.signature = {
       algorithm: 'RS256',
       value: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNlX2lk...',
       signed_at: '2026-02-20T14:08:00Z',
@@ -1378,11 +1378,11 @@ function renderUC4() {
 
   const verifyBtnHtml = signed ? `
     <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
-      <button class="verify-btn" onclick="this.innerHTML='<svg width=16 height=16 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Verified against platform.company.com/.well-known/jwks.json';this.style.background='var(--green)';this.style.boxShadow='0 4px 16px rgba(5,150,105,0.3)'">
+      <button class="verify-btn" onclick="this.innerHTML='<svg width=16 height=16 viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg> Simulated verification display; no cryptographic check runs';this.style.background='var(--green)';this.style.boxShadow='0 4px 16px rgba(5,150,105,0.3)'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Verify Signature
+        Simulate Signature Check
       </button>
-      <span style="font-size:11px;color:var(--dim)">Validates RS256 response signature against JWKS endpoint</span>
+      <span style="font-size:11px;color:var(--dim)">Illustration only; no signature verification or network request runs</span>
     </div>` : '';
 
   // SSE timeline for transport=sse
@@ -1468,7 +1468,7 @@ function renderUC4() {
       <div class="step-title">HITL Case Created — HTTP 202</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:8px">ADL bridge creates a HITL case. The deal enters <code>NEGOTIATING</code> state.</div>
       <div class="json-block" data-copy="uc4-hitl">${hl({
-        spec_version: '0.7',
+        spec_version: '0.8',
         case_id: 'review_deal_001',
         review_url: 'https://platform.company.com/review/deal_infra_q2?token=K7xR2mN4pQ8sT1vW3xY5zA9bC...',
         poll_url: 'https://platform.company.com/api/v1/hitl/review_deal_001/status',
@@ -1632,7 +1632,7 @@ function renderUC5() {
 
   // Build HITL object
   const hitlObj = {
-    spec_version: '0.7',
+    spec_version: '0.8',
     case_id: 'review_input_q1w2e3r4',
     review_url: 'https://service.example.com/review/input_q1w2e3r4?token=R5sT7uV9wX1yZ3aB5cD7eF9gH1iJ3kL5mN7oP9q',
     poll_url: 'https://api.service.example.com/v1/reviews/input_q1w2e3r4/status',
@@ -1866,7 +1866,7 @@ function renderUC7() {
   const platformSubmittedVia = { telegram: 'telegram_inline_button', slack: 'slack_block_action', discord: 'discord_component' };
 
   const hitl = {
-    spec_version: '0.7',
+    spec_version: '0.8',
     case_id: 'review_confirm_s5t6u7v8',
     review_url: 'https://mailcraft.example/review/confirm_s5t6u7v8?token=X2yZ4aB6cD8eF0gH2i...',
     poll_url: 'https://api.mailcraft.example/v1/reviews/confirm_s5t6u7v8/status',
@@ -1931,7 +1931,7 @@ function renderUC7() {
   if (action === 'details') {
     // Fallback to browser
     steps.push(stepCard('human', 'Human &rarr; Browser', `Human taps <strong>"Details &rarr;"</strong> URL button &rarr; opens <code>review_url</code> in browser. Full review page with context. Standard flow continues (poll for result).`));
-    steps.push(stepCard('agent', 'Agent &rarr; Service (polling)', `<code>GET poll_url</code> &mdash; Agent polls until human submits via browser`, { status: 'completed', case_id: hitl.case_id, result: { action: 'confirm', data: {} }, responded_by: { name: 'Alex Mueller' } }));
+    steps.push(stepCard('agent', 'Agent &rarr; Service (polling)', `<code>GET poll_url</code> &mdash; Agent polls until human submits via browser`, { status: 'completed', case_id: hitl.case_id, completed_at: '2026-02-20T14:08:00Z', result: { action: 'confirm', data: {} }, submission_context: { mode: 'browser_submit' } }));
   } else {
     // Inline submit
     const submitBody = {
@@ -1950,13 +1950,11 @@ function renderUC7() {
     steps.push(stepCard('agent', 'Agent &rarr; Service (submit_url)', `<code>POST submit_url</code> &mdash; Agent forwards the inline action with platform identity
       <div style="margin-top:4px;font-size:11px;color:var(--dim)">Authorization: Bearer {submit_token} &mdash; separate from review_url token</div>`, submitBody));
 
-    const serviceResponse = action === 'confirm'
-      ? { status: 'completed', case_id: hitl.case_id, result: { action: 'confirm', data: { emails_sent: 3 } }, responded_by: { name: 'Alex Mueller' } }
-      : { status: 'completed', case_id: hitl.case_id, result: { action: 'cancel', data: {} }, responded_by: { name: 'Alex Mueller' } };
+    const serviceResponse = { status: 'completed', case_id: hitl.case_id, completed_at: '2026-02-20T14:08:00Z', result: { action, data: {} }, submission_context: { mode: 'inline_submit', submitted_via: submitBody.submitted_via, submitted_by: submitBody.submitted_by } };
 
-    steps.push(stepCard('service', 'Service &rarr; Agent', `<code>200 OK</code> &mdash; ${action === 'confirm' ? 'Emails sent! No polling needed.' : 'Cancelled. No emails sent.'}`, serviceResponse));
+    steps.push(stepCard('service', 'Service &rarr; Agent', `<code>200 OK</code> &mdash; ${action === 'confirm' ? 'Decision recorded; execution remains a service responsibility.' : 'Cancelled. No emails sent.'}`, serviceResponse));
 
-    const resultText = action === 'confirm' ? '3 application emails sent to TechFlow, Klarna, and Zalando.' : 'Email sending cancelled.';
+    const resultText = action === 'confirm' ? 'Simulated confirmation recorded; no emails are sent by this playground.' : 'Email sending cancelled.';
     const resultIcon = action === 'confirm' ? '&#10003;' : '&#10005;';
     steps.push(`<div class="step-card agent">
       <div class="step-title"><span class="badge badge-blue">Agent</span> Agent updates ${platformNames[platform]} message</div>

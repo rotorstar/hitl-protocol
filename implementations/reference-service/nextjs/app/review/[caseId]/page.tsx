@@ -1,4 +1,4 @@
-import { getCase, verifyTokenForPurpose, transition, handleTransition, getBaseUrl } from '@/lib/hitl';
+import { getCase, verifyTokenForPurpose, transition, expireCase, serializeReviewData, handleTransition, getBaseUrl } from '@/lib/hitl';
 import { notFound } from 'next/navigation';
 
 const TEMPLATE_MAP: Record<string, string> = {
@@ -26,6 +26,7 @@ export default async function ReviewPage({ params, searchParams }: {
     );
   }
 
+  expireCase(rc, handleTransition);
   // Mark as opened
   if (rc.status === 'pending') {
     try { transition(rc, 'opened', handleTransition); } catch {}
@@ -61,9 +62,8 @@ export default async function ReviewPage({ params, searchParams }: {
   }
 
   const safePrompt = rc.prompt.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  html = html
-    .replace(/\{\{prompt\}\}/g, safePrompt)
-    .replace('{{hitl_data_json}}', JSON.stringify(hitlData));
+  const safeData = serializeReviewData(hitlData);
+  html = html.replace(/\{\{(?:prompt|hitl_data_json)\}\}/g, (placeholder) => placeholder === '{{prompt}}' ? safePrompt : safeData);
 
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }

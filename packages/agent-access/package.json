@@ -1,0 +1,35 @@
+{
+  "name": "@hitl-protocol/agent-access",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup && tsc --emitDeclarationOnly",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "canonicalize": "5.1.0",
+    "http-message-sig": "0.3.0",
+    "jose": "6.2.12",
+    "oauth4webapi": "3.8.8",
+    "structured-headers": "2.1.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "tsup": "8.5.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "vite": "8.3.3"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

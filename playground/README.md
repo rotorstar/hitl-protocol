@@ -1,6 +1,6 @@
 # HITL Protocol Interactive Playground
 
-An interactive HTML playground for exploring the HITL Protocol — review types, transport options, status lifecycle, and complete end-to-end flows.
+An illustrative HITL v0.8 HTML playground using fictional data and simulated outcomes to explore the HITL Protocol — review types, transport options, status lifecycle, and complete end-to-end flows.
 
 ## Usage
 
@@ -16,6 +16,8 @@ xdg-open playground/index.html
 # Or serve locally
 npx serve playground/
 ```
+
+This playground does not call the reference runtime or verify users, signatures or real side effects. A service signature demonstrates integrity and issuer authenticity; it is not proof of a human decision.
 
 ## Features
 

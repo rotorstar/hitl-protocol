@@ -1,0 +1,4171 @@
+{
+  "openapi": "3.2.1",
+  "info": {
+    "title": "HITL Agent Access Reference API",
+    "version": "0.1",
+    "description": "Optional hitl-agent-access/0.1; bindings hitl-agent-access-public-web/0.1 and hitl-agent-access-delegated-api/0.1. DPoP token/proof requirements are conjunctive. Browser sessions are independent reviewer identities. The context does not authorize execution."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Configured service public origin"
+    }
+  ],
+  "paths": {
+    "/.well-known/hitl.json": {
+      "get": {
+        "operationId": "discoverHitl",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Implemented HITL profiles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoveryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "operationId": "discoverProtectedResource",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "RFC 9728 metadata, including the supported authorization server and scopes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/catalog": {
+      "get": {
+        "operationId": "getCatalog",
+        "x-hitl-agent-access-binding": "public-web",
+        "security": [
+          {},
+          {
+            "HttpMessageSignature": [],
+            "HttpMessageSignatureInput": [],
+            "SignatureAgent": []
+          }
+        ],
+        "description": "Public catalog. Anonymous and valid signed requests receive separate quotas. Presenting an invalid signature fails validation; it does not downgrade to anonymous.",
+        "responses": {
+          "200": {
+            "description": "Available public offers; an empty offers list is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent-enrollments": {
+      "post": {
+        "operationId": "proposeAgentEnrollment",
+        "x-hitl-agent-access-binding": "delegated-api",
+        "security": [
+          {
+            "DPoPAccessToken": [],
+            "DPoPProof": []
+          }
+        ],
+        "x-required-scopes": [
+          "hitl:agent:enroll"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollmentInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pending owner confirmation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agent-enrollments/{id}": {
+      "get": {
+        "operationId": "getAgentEnrollment",
+        "x-hitl-agent-access-binding": "delegated-api",
+        "security": [
+          {
+            "DPoPAccessToken": [],
+            "DPoPProof": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "x-required-scopes": [
+          "hitl:agent:enroll"
+        ],
+        "description": "Restricted to original issuer/subject/client/key facts.",
+        "responses": {
+          "200": {
+            "description": "Persisted enrollment status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/bookings/prepare": {
+      "post": {
+        "operationId": "prepareBooking",
+        "x-hitl-agent-access-binding": "delegated-api",
+        "security": [
+          {
+            "DPoPAccessToken": [],
+            "DPoPProof": []
+          }
+        ],
+        "x-required-scopes": [
+          "bookings:prepare"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9._:-]+$"
+            },
+            "description": "Scoped to principal and request fingerprint; reusing with another body is a conflict."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ready operation; no booking has executed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Immutable snapshot needs the authorized human owner decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanInputRequired"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/reviews/{id}": {
+      "get": {
+        "operationId": "getBoundReview",
+        "x-hitl-agent-access-binding": "delegated-api",
+        "security": [
+          {
+            "DPoPAccessToken": [],
+            "DPoPProof": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Reuse a prior ETag; authentication and authorization still apply before any 304 response."
+          }
+        ],
+        "x-required-scopes": [
+          "hitl:reviews:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "HITL v0.9 decision state; completed is not execution",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PollResponse"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Digest of the authorized current response",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Authorized state unchanged; no response body",
+            "headers": {
+              "ETag": {
+                "description": "Digest of the authorized current response",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operations/{id}": {
+      "get": {
+        "operationId": "getBoundOperation",
+        "x-hitl-agent-access-binding": "delegated-api",
+        "security": [
+          {
+            "DPoPAccessToken": [],
+            "DPoPProof": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Reuse a prior ETag; authentication and authorization still apply before any 304 response."
+          }
+        ],
+        "x-required-scopes": [
+          "bookings:read"
+        ],
+        "responses": {
+          "200": {
+            "description": "Persisted operation/result restricted to initiating principal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Digest of the authorized current response",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Authorized state unchanged; no response body",
+            "headers": {
+              "ETag": {
+                "description": "Digest of the authorized current response",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/operations/{id}/commit": {
+      "post": {
+        "operationId": "commitBooking",
+        "x-hitl-agent-access-binding": "delegated-api",
+        "security": [
+          {
+            "DPoPAccessToken": [],
+            "DPoPProof": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "x-required-scopes": [
+          "bookings:commit"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitInput"
+              }
+            }
+          }
+        },
+        "description": "Fresh authorization plus current local grant and exact snapshot/version required. Successful retries return the same persisted booking; completion of a review alone never executes.",
+        "responses": {
+          "200": {
+            "description": "Persisted successful local booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "DPoP-Nonce": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connect/{id}": {
+      "get": {
+        "operationId": "showEnrollmentConfirmation",
+        "x-hitl-agent-access-binding": "browser",
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service-hosted accessible browser view",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Token-free URL or login/confirmation redirect; Location header"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "confirmAgentEnrollment",
+        "x-hitl-agent-access-binding": "browser",
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "csrf"
+                ],
+                "properties": {
+                  "csrf": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Enrollment confirmed; browser redirect"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/{id}": {
+      "get": {
+        "operationId": "showBoundReview",
+        "x-hitl-agent-access-binding": "browser",
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Initial case-access token only. Exchanged for a case-scoped session then redirected to the same token-free URL; independent authenticated owner checks remain mandatory."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service-hosted accessible browser view",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Token-free URL or login/confirmation redirect; Location header"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/{id}/respond": {
+      "post": {
+        "operationId": "respondToBoundReview",
+        "x-hitl-agent-access-binding": "browser",
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "action",
+                  "csrf"
+                ],
+                "properties": {
+                  "csrf": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "action": {
+                    "$ref": "#/components/schemas/ReviewAction"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Immutable decision recorded; browser redirect"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/agents": {
+      "get": {
+        "operationId": "listConnectedAgents",
+        "x-hitl-agent-access-binding": "browser",
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service-hosted accessible browser view",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "303": {
+            "description": "Token-free URL or login/confirmation redirect; Location header"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/agents/{id}/revoke": {
+      "post": {
+        "operationId": "revokeConnectedAgent",
+        "x-hitl-agent-access-binding": "browser",
+        "security": [
+          {
+            "BrowserSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "csrf"
+                ],
+                "properties": {
+                  "csrf": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "description": "Idempotent local revocation; owner identity and CSRF required.",
+        "responses": {
+          "303": {
+            "description": "Grant revoked; browser redirect"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or replayed credentials/proof; nonce challenges include DPoP-Nonce and WWW-Authenticate",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient scope or grant/policy limit",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Object missing or not owned by the authenticated caller",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency, operation version/state, or stock conflict",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Enrollment, review, or operation expired",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; Retry-After indicates delay",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Required authorization server or persistence unavailable; retry safely",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "DPoPAccessToken": {
+        "type": "http",
+        "scheme": "DPoP",
+        "bearerFormat": "JWT",
+        "description": "DPoP-bound access token; a Bearer token is rejected."
+      },
+      "DPoPProof": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "DPoP",
+        "description": "RFC 9449 request proof including method, URI, token hash, replay protection, and server nonce."
+      },
+      "HttpMessageSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Signature",
+        "description": "RFC 9421 plus pinned Web Bot Auth WG draft 00. Requires Signature-Input and dictionary Signature-Agent; signed method and target are mandatory."
+      },
+      "HttpMessageSignatureInput": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Signature-Input",
+        "description": "RFC 9421 covered components and signature parameters, correlated by dictionary key."
+      },
+      "SignatureAgent": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Signature-Agent",
+        "description": "Web Bot Auth WG draft 00 dictionary identifies the signing entity for each signature label."
+      },
+      "BrowserSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-hitl-session",
+        "description": "Independently authenticated owner session; loopback development uses hitl-session. Review rendering/submission additionally requires a case-scoped capability. Browser mutations require matching HttpOnly __Host-hitl-csrf (development hitl-csrf), hidden csrf body value, persisted hash, and trusted Origin."
+      }
+    },
+    "schemas": {
+      "HitlObject": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "HITL Object",
+        "description": "The hitl object within an HTTP 202 response, as defined by HITL Protocol v0.9",
+        "type": "object",
+        "required": [
+          "spec_version",
+          "case_id",
+          "review_url",
+          "poll_url",
+          "type",
+          "prompt",
+          "created_at",
+          "expires_at"
+        ],
+        "properties": {
+          "spec_version": {
+            "type": "string",
+            "const": "0.9",
+            "description": "Protocol version. MUST be '0.9' for this spec."
+          },
+          "case_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "description": "Unique, URL-safe identifier for this review case. RECOMMENDED format: review_{random}"
+          },
+          "review_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+            "description": "Fully qualified review URL to the review page. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
+          },
+          "poll_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+            "description": "Fully qualified URL to the status polling endpoint. MUST be HTTPS in production. For local development, http://localhost and http://127.0.0.1 are allowed."
+          },
+          "callback_url": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If the agent provided a callback URL in the original request, it is echoed here. Otherwise null."
+          },
+          "events_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+            "description": "Optional SSE endpoint for real-time status events."
+          },
+          "type": {
+            "type": "string",
+            "anyOf": [
+              {
+                "enum": [
+                  "approval",
+                  "selection",
+                  "input",
+                  "confirmation",
+                  "escalation"
+                ]
+              },
+              {
+                "pattern": "^x-"
+              }
+            ],
+            "description": "Review type category. One of the five standard types, or a custom type prefixed with 'x-'."
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Short description of what the human needs to decide."
+          },
+          "timeout": {
+            "type": "string",
+            "description": "Duration the review stays open. ISO 8601 duration (PT24H, P7D) or shorthand (24h, 7d). Default: 24h."
+          },
+          "default_action": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "approve",
+              "reject",
+              "abort"
+            ],
+            "description": "Action taken if the review expires without a response."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the review case was created."
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp when the review case expires."
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "form": {
+                "type": "object",
+                "description": "Structured form definition for Input-type reviews. Use either 'fields' (single-step) or 'steps' (multi-step), not both.",
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "title": "SingleStepFormDefinition",
+                    "required": [
+                      "fields"
+                    ],
+                    "properties": {
+                      "fields": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/FormField"
+                        },
+                        "description": "Array of form field definitions for single-step forms."
+                      },
+                      "steps": false,
+                      "session_id": {
+                        "type": "string",
+                        "description": "Optional session identifier for form state persistence. Enables resume after browser close."
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "title": "MultiStepFormDefinition",
+                    "required": [
+                      "steps"
+                    ],
+                    "properties": {
+                      "fields": false,
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "title",
+                            "fields"
+                          ],
+                          "properties": {
+                            "title": {
+                              "type": "string",
+                              "description": "Step heading displayed in the wizard UI."
+                            },
+                            "description": {
+                              "type": "string",
+                              "description": "Subtitle or helper text for the step."
+                            },
+                            "fields": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/FormField"
+                              },
+                              "description": "Array of form field definitions for this step."
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "description": "Array of wizard steps for multi-step forms."
+                      },
+                      "session_id": {
+                        "type": "string",
+                        "description": "Optional session identifier for form state persistence. Enables resume after browser close."
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "description": "Arbitrary key-value pairs providing additional context about the review."
+          },
+          "reminder_at": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            ],
+            "description": "When reminder(s) should be sent. Single timestamp or array of timestamps."
+          },
+          "previous_case_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$",
+            "description": "Links to a prior case in a multi-round review chain."
+          },
+          "surface": {
+            "type": "object",
+            "properties": {
+              "format": {
+                "type": "string",
+                "description": "UI format identifier (e.g., json-render, a2ui, adaptive-cards)"
+              },
+              "version": {
+                "type": "string",
+                "description": "Version of the UI format"
+              }
+            },
+            "description": "Optional declaration of the review page UI format."
+          },
+          "submit_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+            "description": "API endpoint where the agent MAY submit simple responses on behalf of the human via native messaging buttons."
+          },
+          "submit_token": {
+            "type": "string",
+            "minLength": 32,
+            "description": "Opaque bearer token for authenticating agent submissions via submit_url."
+          },
+          "inline_actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Actions permitted via submit_url without visiting review_url."
+          },
+          "verification_policy": {
+            "$ref": "#/components/schemas/VerificationPolicy",
+            "description": "Optional verification requirements. The core standardizes proof_of_human; profiles may define x-prefixed requirements for service-verified identity or authorization."
+          }
+        },
+        "dependentRequired": {
+          "submit_url": [
+            "submit_token"
+          ],
+          "submit_token": [
+            "submit_url"
+          ]
+        },
+        "additionalProperties": false
+      },
+      "PollResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "HITL Poll Response",
+        "description": "Response from the poll endpoint, as defined by HITL Protocol v0.9",
+        "$defs": {
+          "pollBase": {
+            "type": "object",
+            "required": [
+              "status",
+              "case_id"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "opened",
+                  "in_progress",
+                  "completed",
+                  "expired",
+                  "cancelled"
+                ],
+                "description": "Current status of the review case."
+              },
+              "case_id": {
+                "type": "string",
+                "description": "The review case identifier."
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the case was created."
+              },
+              "opened_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the human first opened the review URL."
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the case will expire."
+              },
+              "completed_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the human submitted their response."
+              },
+              "expired_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the case expired."
+              },
+              "cancelled_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the human cancelled."
+              },
+              "result": {
+                "type": "object",
+                "required": [
+                  "action"
+                ],
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "description": "The action taken by the human."
+                  },
+                  "data": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "description": "Structured data from the review. Content depends on the review type."
+                  },
+                  "signature": {
+                    "type": "object",
+                    "properties": {
+                      "algorithm": {
+                        "type": "string",
+                        "description": "Signing algorithm (e.g., RS256)."
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "Base64url-encoded signature."
+                      },
+                      "signed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When the signature was created."
+                      },
+                      "signer": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "URL to the signer's JWKS endpoint."
+                      }
+                    },
+                    "additionalProperties": false,
+                    "description": "Optional cryptographic signature for response integrity."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "The human's response. Present only when status is 'completed'."
+              },
+              "responded_by": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Display name of the respondent."
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Verified email of the respondent."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Optional identity of the person who submitted the response."
+              },
+              "submission_context": {
+                "$ref": "#/components/schemas/SubmissionContext",
+                "description": "Normalized information about the submission path and verification outcome."
+              },
+              "progress": {
+                "type": "object",
+                "properties": {
+                  "current_step": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The step the human is currently on (1-indexed)."
+                  },
+                  "total_steps": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Total number of steps in the form."
+                  },
+                  "completed_fields": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of fields the human has filled so far."
+                  },
+                  "total_fields": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Total number of required fields across all steps."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Optional progress tracking for multi-step Input forms."
+              },
+              "reminder_sent_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the last reminder was sent."
+              },
+              "next_case_id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]+$",
+                "description": "If a follow-up case was created, links to the next case in the chain."
+              },
+              "default_action": {
+                "$ref": "#/components/schemas/HitlObject/properties/default_action",
+                "description": "The default action declared when the case was created. Present when status is expired."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Human-readable reason for cancellation. Present when status is 'cancelled'."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "oneOf": [
+          {
+            "title": "PendingPollResponse",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PollResponse/$defs/pollBase"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "const": "pending"
+                  },
+                  "result": false,
+                  "responded_by": false,
+                  "submission_context": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "OpenedPollResponse",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PollResponse/$defs/pollBase"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "const": "opened"
+                  },
+                  "result": false,
+                  "responded_by": false,
+                  "submission_context": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "InProgressPollResponse",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PollResponse/$defs/pollBase"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "const": "in_progress"
+                  },
+                  "result": false,
+                  "responded_by": false,
+                  "submission_context": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "CompletedPollResponse",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PollResponse/$defs/pollBase"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "status",
+                  "result",
+                  "completed_at"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "const": "completed"
+                  },
+                  "result": {
+                    "$ref": "#/components/schemas/PollResponse/$defs/pollBase/properties/result"
+                  },
+                  "completed_at": {
+                    "$ref": "#/components/schemas/PollResponse/$defs/pollBase/properties/completed_at"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "title": "ExpiredPollResponse",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PollResponse/$defs/pollBase"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "status",
+                  "expired_at",
+                  "default_action"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "const": "expired"
+                  },
+                  "expired_at": {
+                    "$ref": "#/components/schemas/PollResponse/$defs/pollBase/properties/expired_at"
+                  },
+                  "default_action": {
+                    "$ref": "#/components/schemas/PollResponse/$defs/pollBase/properties/default_action"
+                  },
+                  "result": false,
+                  "responded_by": false,
+                  "submission_context": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "CancelledPollResponse",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PollResponse/$defs/pollBase"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "status",
+                  "cancelled_at"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "const": "cancelled"
+                  },
+                  "cancelled_at": {
+                    "$ref": "#/components/schemas/PollResponse/$defs/pollBase/properties/cancelled_at"
+                  },
+                  "result": false,
+                  "responded_by": false,
+                  "submission_context": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "FormField": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "HITL Form Field",
+        "description": "A form field definition used in context.form for Input-type reviews, as defined by HITL Protocol v0.9",
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_]*$",
+            "description": "Unique identifier for the field. Used as key in result.data."
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Human-readable label displayed next to the field."
+          },
+          "type": {
+            "type": "string",
+            "description": "Field type. Standard types: text, textarea, number, date, email, url, boolean, select, multiselect, range. Services MAY extend with x-prefixed custom types.",
+            "examples": [
+              "text",
+              "textarea",
+              "number",
+              "date",
+              "email",
+              "url",
+              "boolean",
+              "select",
+              "multiselect",
+              "range"
+            ],
+            "anyOf": [
+              {
+                "enum": [
+                  "text",
+                  "textarea",
+                  "number",
+                  "date",
+                  "email",
+                  "url",
+                  "boolean",
+                  "select",
+                  "multiselect",
+                  "range"
+                ]
+              },
+              {
+                "pattern": "^x-"
+              }
+            ]
+          },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the field must be filled before submission."
+          },
+          "placeholder": {
+            "type": "string",
+            "description": "Placeholder text shown when the field is empty."
+          },
+          "hint": {
+            "type": "string",
+            "description": "Help text displayed below or beside the field."
+          },
+          "default": {
+            "description": "Pre-filled value. MUST NOT contain sensitive data — use default_ref instead."
+          },
+          "default_ref": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to securely fetch a pre-fill value. Used instead of default for sensitive data. Requires review URL token for access."
+          },
+          "sensitive": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, the review page SHOULD mask the input and MUST NOT log the value."
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "value",
+                "label"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "Machine-readable option value."
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Human-readable option label."
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Available choices. Required for select and multiselect types."
+          },
+          "validation": {
+            "type": "object",
+            "properties": {
+              "minLength": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Minimum character length. Applies to: text, textarea, email, url."
+              },
+              "maxLength": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Maximum character length. Applies to: text, textarea, email, url."
+              },
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression the value must match. Applies to: text, email, url."
+              },
+              "min": {
+                "type": "number",
+                "description": "Minimum value or earliest date. Applies to: number, range, date."
+              },
+              "max": {
+                "type": "number",
+                "description": "Maximum value or latest date. Applies to: number, range, date."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Validation rules for the field."
+          },
+          "conditional": {
+            "type": "object",
+            "required": [
+              "field",
+              "operator",
+              "value"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "description": "The key of the field this condition depends on."
+              },
+              "operator": {
+                "type": "string",
+                "enum": [
+                  "eq",
+                  "neq",
+                  "in",
+                  "gt",
+                  "lt"
+                ],
+                "description": "Comparison operator."
+              },
+              "value": {
+                "description": "The value to compare against. For 'in' operator, an array of values."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Conditional visibility. When the condition is not met, the field is hidden and excluded from result.data."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmitRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Inline Submit Request",
+        "description": "Request body for agent-submitted responses via submit_url, as defined by HITL Protocol v0.9",
+        "type": "object",
+        "required": [
+          "action",
+          "submitted_via",
+          "submitted_by"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "The action taken by the human via a native messaging button. MUST be a valid action for the review type and listed in inline_actions if specified.",
+            "examples": [
+              "confirm",
+              "cancel",
+              "approve",
+              "reject",
+              "retry",
+              "skip",
+              "abort"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Structured data accompanying the action. For simple inline actions, this is typically empty {}.",
+            "default": {}
+          },
+          "submitted_via": {
+            "type": "string",
+            "description": "Identifies the submission channel for audit purposes.",
+            "anyOf": [
+              {
+                "enum": [
+                  "telegram_inline_button",
+                  "slack_block_action",
+                  "discord_component",
+                  "whatsapp_reply_button",
+                  "teams_adaptive_card"
+                ]
+              },
+              {
+                "pattern": "^x-"
+              }
+            ]
+          },
+          "submitted_by": {
+            "type": "object",
+            "required": [
+              "platform",
+              "platform_user_id"
+            ],
+            "properties": {
+              "platform": {
+                "type": "string",
+                "description": "Platform identifier.",
+                "anyOf": [
+                  {
+                    "enum": [
+                      "telegram",
+                      "slack",
+                      "discord",
+                      "whatsapp",
+                      "teams"
+                    ]
+                  },
+                  {
+                    "pattern": "^x-"
+                  }
+                ]
+              },
+              "platform_user_id": {
+                "type": "string",
+                "description": "Platform-specific user identifier."
+              },
+              "display_name": {
+                "type": "string",
+                "description": "Human-readable display name of the user who triggered the action."
+              }
+            },
+            "additionalProperties": false
+          },
+          "verification_evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubmitRequest/$defs/verificationEvidence"
+            },
+            "description": "Optional opaque verification evidence relayed from a human-controlled proof flow. Services must verify it server-side."
+          }
+        },
+        "$defs": {
+          "verificationEvidence": {
+            "type": "object",
+            "required": [
+              "proof_type",
+              "provider",
+              "format",
+              "presentation",
+              "binding"
+            ],
+            "properties": {
+              "proof_type": {
+                "type": "string",
+                "anyOf": [
+                  {
+                    "enum": [
+                      "proof_of_human"
+                    ]
+                  },
+                  {
+                    "pattern": "^x-"
+                  }
+                ],
+                "description": "Normative core value in v0.9 is proof_of_human."
+              },
+              "provider": {
+                "type": "string",
+                "description": "Provider identifier for the proof presentation."
+              },
+              "format": {
+                "type": "string",
+                "anyOf": [
+                  {
+                    "enum": [
+                      "provider_opaque",
+                      "jwt",
+                      "zkp",
+                      "attestation"
+                    ]
+                  },
+                  {
+                    "pattern": "^x-"
+                  }
+                ],
+                "description": "Presentation format used by the provider evidence."
+              },
+              "presentation": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                ],
+                "description": "Opaque provider payload. Agents must treat this as opaque."
+              },
+              "binding": {
+                "type": "object",
+                "properties": {
+                  "case_id": {
+                    "type": "string"
+                  },
+                  "action": {
+                    "type": "string"
+                  },
+                  "challenge": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true,
+                "description": "Provider-agnostic binding hints relayed to the service."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "DiscoveryResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "HITL Discovery Response",
+        "description": "Response body for GET /.well-known/hitl.json, as defined by HITL Protocol v0.9.",
+        "type": "object",
+        "required": [
+          "hitl_protocol"
+        ],
+        "properties": {
+          "hitl_protocol": {
+            "type": "object",
+            "required": [
+              "spec_version"
+            ],
+            "properties": {
+              "spec_version": {
+                "type": "string",
+                "const": "0.9",
+                "description": "Protocol version supported by the service discovery document."
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "logo_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "contact": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "capabilities": {
+                "type": "object",
+                "properties": {
+                  "review_types": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "transports": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "polling",
+                        "sse",
+                        "callback"
+                      ]
+                    }
+                  },
+                  "max_timeout": {
+                    "type": "string"
+                  },
+                  "default_timeout": {
+                    "type": "string"
+                  },
+                  "supports_reminders": {
+                    "type": "boolean"
+                  },
+                  "supports_multi_round": {
+                    "type": "boolean"
+                  },
+                  "supports_signatures": {
+                    "type": "boolean"
+                  },
+                  "supports_inline_submit": {
+                    "type": "boolean"
+                  },
+                  "supports_agent_binding": {
+                    "type": "boolean",
+                    "description": "Whether the service can bind review execution to the initiating agent or host via an external auth/control-plane profile."
+                  },
+                  "supports_surface": {
+                    "type": "boolean",
+                    "description": "Whether the service publishes optional declarative surface payloads via a separate interop profile in addition to the required review_url fallback."
+                  },
+                  "surface_formats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Declarative UI surface formats the service may publish via optional interop profiles."
+                  },
+                  "surface_profiles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional surface interop profiles supported by the service."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "endpoints": {
+                "type": "object",
+                "properties": {
+                  "reviews_base": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "review_page_base": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "events_base": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "well_known": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "authentication": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "token_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "profiles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "External authentication or agent-binding profiles the service composes with HITL."
+                  },
+                  "well_known": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional well-known endpoint for an external auth or agent-binding control plane."
+                  },
+                  "documentation": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Documentation for the service's external auth or agent-binding model."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "rate_limits": {
+                "type": "object",
+                "properties": {
+                  "poll_min_interval_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "poll_recommended_interval_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "max_active_cases_per_agent": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "max_requests_per_minute": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "policies": {
+                "type": "object",
+                "properties": {
+                  "data_retention_days": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "expired_case_retention_days": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "privacy_policy": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "terms_of_service": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "examples": {
+                "type": "object",
+                "properties": {
+                  "documentation": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "openapi": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerificationPolicy": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Verification Policy",
+        "description": "Optional verification policy for HITL Protocol v0.9. Defines when proof_of_human evidence is required and how it must be bound.",
+        "type": "object",
+        "required": [
+          "mode",
+          "required_for",
+          "requirements",
+          "binding",
+          "fallback"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "optional",
+              "required",
+              "step_up"
+            ],
+            "description": "Whether verification evidence is optional, required, or only required as a step-up."
+          },
+          "required_for": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "inline_submit",
+                "browser_submit"
+              ]
+            },
+            "description": "Submission paths for which verification must be satisfied."
+          },
+          "requirements": {
+            "type": "object",
+            "required": [
+              "any_of"
+            ],
+            "properties": {
+              "any_of": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "all_of"
+                  ],
+                  "properties": {
+                    "all_of": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "$ref": "#/components/schemas/VerificationPolicy/$defs/evidenceRequirement"
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "description": "OR-of-AND policy logic. Any option may satisfy the policy; each option requires all listed evidence requirements."
+              }
+            },
+            "additionalProperties": false
+          },
+          "binding": {
+            "type": "object",
+            "required": [
+              "case_id",
+              "action",
+              "freshness_seconds",
+              "single_use"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "boolean",
+                "description": "Whether accepted evidence must be bound to the HITL case_id."
+              },
+              "action": {
+                "type": "boolean",
+                "description": "Whether accepted evidence must be bound to the submitted action."
+              },
+              "challenge": {
+                "type": "string",
+                "description": "Opaque service-generated challenge for provider-specific binding."
+              },
+              "freshness_seconds": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum age of the accepted evidence at the time of verification."
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Absolute policy expiry timestamp for the verification challenge."
+              },
+              "single_use": {
+                "type": "boolean",
+                "description": "Whether equivalent evidence can only be used once for the declared case/action binding."
+              }
+            },
+            "additionalProperties": false
+          },
+          "fallback": {
+            "type": "object",
+            "required": [
+              "on_missing",
+              "on_invalid"
+            ],
+            "properties": {
+              "on_missing": {
+                "type": "string",
+                "enum": [
+                  "browser_review",
+                  "reject"
+                ],
+                "description": "Fallback behavior when required evidence is missing."
+              },
+              "on_invalid": {
+                "type": "string",
+                "enum": [
+                  "browser_review",
+                  "reject"
+                ],
+                "description": "Fallback behavior when presented evidence fails verification."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "$defs": {
+          "evidenceRequirement": {
+            "type": "object",
+            "required": [
+              "proof_type"
+            ],
+            "properties": {
+              "proof_type": {
+                "type": "string",
+                "anyOf": [
+                  {
+                    "enum": [
+                      "proof_of_human"
+                    ]
+                  },
+                  {
+                    "pattern": "^x-"
+                  }
+                ],
+                "description": "Normative core value in v0.9 is proof_of_human. Custom extensions MUST use x- prefixes."
+              },
+              "provider": {
+                "type": "string",
+                "description": "Provider identifier (for example world_id). Omit to accept any provider for the proof type."
+              },
+              "min_assurance": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ],
+                "description": "Minimum service-defined assurance level required for this proof."
+              },
+              "presentation_formats": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "provider_opaque",
+                        "jwt",
+                        "zkp",
+                        "attestation"
+                      ]
+                    },
+                    {
+                      "pattern": "^x-"
+                    }
+                  ]
+                },
+                "description": "Optional allowed presentation formats for provider evidence."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerificationResult": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Verification Result",
+        "description": "Normalized verification outcome for HITL Protocol v0.9. Raw provider payloads must not be returned here.",
+        "type": "object",
+        "required": [
+          "satisfied"
+        ],
+        "properties": {
+          "satisfied": {
+            "type": "boolean",
+            "description": "Whether the declared verification policy was satisfied."
+          },
+          "verified_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "proof_type",
+                "provider"
+              ],
+              "properties": {
+                "proof_type": {
+                  "type": "string",
+                  "description": "Normalized proof type that was accepted."
+                },
+                "provider": {
+                  "type": "string",
+                  "description": "Provider that produced the accepted evidence."
+                },
+                "assurance_level": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ],
+                  "description": "Service-defined assurance level after provider verification."
+                },
+                "bound_to_case": {
+                  "type": "boolean",
+                  "description": "Whether the service verified binding to the HITL case_id."
+                },
+                "bound_to_action": {
+                  "type": "boolean",
+                  "description": "Whether the service verified binding to the submitted action."
+                },
+                "fresh": {
+                  "type": "boolean",
+                  "description": "Whether the evidence satisfied the service freshness window."
+                },
+                "single_use_enforced": {
+                  "type": "boolean",
+                  "description": "Whether the service enforced single-use semantics for the accepted evidence."
+                },
+                "verified_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Timestamp at which the provider verification result was accepted."
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Normalized accepted evidence only. No provider proof material or secrets."
+          },
+          "missing_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Human-readable identifiers for requirement branches that were not satisfied."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SubmissionContext": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Submission Context",
+        "description": "Context about how a completed HITL review was submitted in v0.9.",
+        "oneOf": [
+          {
+            "title": "BrowserSubmissionContext",
+            "type": "object",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "const": "browser_submit"
+              },
+              "submitted_via": {
+                "type": "string",
+                "description": "Audit string describing the submission channel or surface."
+              },
+              "submitted_by": {
+                "type": "object",
+                "required": [
+                  "platform",
+                  "platform_user_id"
+                ],
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "description": "Platform or surface identifier."
+                  },
+                  "platform_user_id": {
+                    "type": "string",
+                    "description": "Platform-specific user identifier."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "Human-readable display name if known."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Submission origin metadata for inline-path auditability."
+              },
+              "verification_result": {
+                "$ref": "#/components/schemas/VerificationResult",
+                "description": "Normalized outcome of the service-side verification flow."
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "title": "InlineSubmissionContext",
+            "type": "object",
+            "required": [
+              "mode",
+              "submitted_via",
+              "submitted_by"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "const": "inline_submit"
+              },
+              "submitted_via": {
+                "type": "string",
+                "description": "Audit string describing the submission channel or surface."
+              },
+              "submitted_by": {
+                "type": "object",
+                "required": [
+                  "platform",
+                  "platform_user_id"
+                ],
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "description": "Platform or surface identifier."
+                  },
+                  "platform_user_id": {
+                    "type": "string",
+                    "description": "Platform-specific user identifier."
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "Human-readable display name if known."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Submission origin metadata for inline-path auditability."
+              },
+              "verification_result": {
+                "$ref": "#/components/schemas/VerificationResult",
+                "description": "Normalized outcome of the service-side verification flow."
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "PrepareInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "grant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "offer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "offer_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "grant_id",
+          "offer_id",
+          "offer_version",
+          "quantity"
+        ],
+        "additionalProperties": false
+      },
+      "EnrollmentInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "max_total_cents": {
+            "default": 50000,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50000
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommitInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "expected_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "snapshot_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "expected_version",
+          "snapshot_digest"
+        ],
+        "additionalProperties": false
+      },
+      "OfferSnapshot": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "offer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "offer_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "unit_price_cents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fee_cents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total_cents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "const": "EUR"
+          },
+          "refundable": {
+            "type": "boolean"
+          },
+          "terms": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "policy_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "grant_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "offer_id",
+          "offer_version",
+          "title",
+          "unit_price_cents",
+          "fee_cents",
+          "quantity",
+          "total_cents",
+          "currency",
+          "refundable",
+          "terms",
+          "policy_version",
+          "grant_version"
+        ],
+        "additionalProperties": false
+      },
+      "AgentFacts": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "iss": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sub": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "client_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "jkt": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "scopes": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "exp": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "iss",
+          "sub",
+          "client_id",
+          "jkt",
+          "scopes",
+          "exp",
+          "observed_at"
+        ],
+        "additionalProperties": false
+      },
+      "BrowserIdentity": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "iss": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sub": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "auth_time": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "display_name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "verified_email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          }
+        },
+        "required": [
+          "iss",
+          "sub",
+          "auth_time"
+        ],
+        "additionalProperties": false
+      },
+      "AgentAccessContext": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "const": "hitl-agent-access/0.1"
+          },
+          "binding": {
+            "type": "string",
+            "const": "delegated-api"
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "operation_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "snapshot_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "execution_mode": {
+            "type": "string",
+            "const": "explicit_commit"
+          }
+        },
+        "required": [
+          "profile",
+          "binding",
+          "operation_id",
+          "operation_version",
+          "snapshot_digest",
+          "execution_mode"
+        ],
+        "additionalProperties": false
+      },
+      "OperationResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "operation_version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "snapshot_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "awaiting_approval",
+              "ready",
+              "succeeded",
+              "cancelled",
+              "expired",
+              "superseded",
+              "failed"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "snapshot": {
+            "type": "object",
+            "properties": {
+              "offer_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "offer_version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "unit_price_cents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "fee_cents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "quantity": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "total_cents": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "currency": {
+                "type": "string",
+                "const": "EUR"
+              },
+              "refundable": {
+                "type": "boolean"
+              },
+              "terms": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10000
+              },
+              "policy_version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "grant_version": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "offer_id",
+              "offer_version",
+              "title",
+              "unit_price_cents",
+              "fee_cents",
+              "quantity",
+              "total_cents",
+              "currency",
+              "refundable",
+              "terms",
+              "policy_version",
+              "grant_version"
+            ],
+            "additionalProperties": false
+          },
+          "review_case_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "booking_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "offer_id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "total_cents": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "currency": {
+                    "type": "string",
+                    "const": "EUR"
+                  }
+                },
+                "required": [
+                  "booking_id",
+                  "offer_id",
+                  "quantity",
+                  "total_cents",
+                  "currency"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "error": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "error"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "operation_id",
+          "operation_version",
+          "snapshot_digest",
+          "status",
+          "created_at",
+          "expires_at",
+          "snapshot"
+        ],
+        "additionalProperties": false
+      },
+      "EnrollmentResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "verification_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "expired"
+            ]
+          },
+          "principal_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "grant_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "id",
+          "verification_url",
+          "expires_at",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "BookingResult": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "booking_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "offer_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "total_cents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "const": "EUR"
+          }
+        },
+        "required": [
+          "booking_id",
+          "offer_id",
+          "quantity",
+          "total_cents",
+          "currency"
+        ],
+        "additionalProperties": false
+      },
+      "CatalogOffer": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "unit_price_cents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "fee_cents": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "currency": {
+            "type": "string",
+            "const": "EUR"
+          },
+          "refundable": {
+            "type": "boolean"
+          },
+          "terms": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "title",
+          "unit_price_cents",
+          "fee_cents",
+          "currency",
+          "refundable",
+          "terms",
+          "stock"
+        ],
+        "additionalProperties": false
+      },
+      "CatalogResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "offers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "unit_price_cents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "fee_cents": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "currency": {
+                  "type": "string",
+                  "const": "EUR"
+                },
+                "refundable": {
+                  "type": "boolean"
+                },
+                "terms": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 10000
+                },
+                "stock": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "version",
+                "title",
+                "unit_price_cents",
+                "fee_cents",
+                "currency",
+                "refundable",
+                "terms",
+                "stock"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "agent": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "anonymous",
+                  "verified"
+                ]
+              },
+              "identifier": {
+                "type": "string",
+                "format": "uri"
+              },
+              "keyid": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              },
+              "observed_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "offers",
+          "agent"
+        ],
+        "additionalProperties": false
+      },
+      "OperationStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": [
+          "awaiting_approval",
+          "ready",
+          "succeeded",
+          "cancelled",
+          "expired",
+          "superseded",
+          "failed"
+        ]
+      },
+      "ReviewAction": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "enum": [
+          "confirm",
+          "cancel"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "enum": [
+              "invalid_request",
+              "invalid_token",
+              "invalid_dpop_proof",
+              "use_dpop_nonce",
+              "insufficient_scope",
+              "limit_exceeded",
+              "not_found",
+              "idempotency_conflict",
+              "version_conflict",
+              "state_conflict",
+              "out_of_stock",
+              "expired",
+              "rate_limited",
+              "temporarily_unavailable"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "HumanInputRequired": {
+        "type": "object",
+        "required": [
+          "status",
+          "hitl"
+        ],
+        "properties": {
+          "status": {
+            "const": "human_input_required"
+          },
+          "hitl": {
+            "$ref": "#/components/schemas/HitlObject"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

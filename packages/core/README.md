@@ -27,7 +27,7 @@ const ok = verifyTokenForPurpose(token, reviewCase, 'submit')
 
 ### State Machine
 
-6 states, 13 valid transitions, 3 terminal states.
+6 states, 11 valid transitions, 3 terminal states.
 
 ```typescript
 import { transition, canTransition, VALID_TRANSITIONS, TERMINAL_STATES } from '@hitl-protocol/core'
@@ -43,6 +43,7 @@ if (canTransition(rc.status, 'completed')) {
 stateDiagram-v2
     [*] --> pending
     pending --> opened
+    pending --> completed
     pending --> expired
     pending --> cancelled
     opened --> in_progress
@@ -56,6 +57,12 @@ stateDiagram-v2
     expired --> [*]
     cancelled --> [*]
 ```
+
+### Completing a local review
+
+Use `parseSubmission(body, rc, mode)` and `completeCase(rc, submission, callback)` for decisions. Parsing validates browser and inline requests separately. Completion resolves request-time expiry and rechecks the terminal state immediately before its synchronous mutation. Events observe the complete winning decision. `expireCase` must also run before status reads or opening a review.
+
+These helpers provide atomicity inside one process. They do not authenticate an agent or reviewer, persist data, or make business execution idempotent across instances. URL/submit tokens prove possession only. Inline `submitted_by` is recorded under `submission_context` as a client claim; it is never promoted to verified `responded_by`.
 
 ### Rate Limiting
 

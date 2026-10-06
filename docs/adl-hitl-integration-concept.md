@@ -18,6 +18,8 @@ The ideal integration is therefore **not** "ADL with some review URLs attached" 
 
 **ADL owns truth. HITL owns interaction.**
 
+This document is an integration concept, not an implemented ADL adapter. Its historical examples remain illustrative. HITL v0.9 and the optional [Agent Access profile](../profiles/agent-access/v0.1/README.md) separate a review decision from execution authority. An ADL snapshot hash, `responded_by`, a UI payload or a returned decision patch conveys no grant and does not authenticate a reviewer. A concrete adapter must validate the service-held operation, verified identities, current rights and relevant versions before its explicit execution step; the Agent Access reference implements this only for local booking operations.
+
 That implies five normative rules:
 
 1. A HITL case is always a **derived projection** of an ADL deal or term set, never the canonical deal itself.

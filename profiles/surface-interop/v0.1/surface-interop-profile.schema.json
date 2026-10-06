@@ -45,7 +45,9 @@
           },
           "fallback_review_url": {
             "type": "string",
-            "format": "uri"
+            "format": "uri",
+            "pattern": "^(https://.+|http://(localhost|127\\.0\\.0\\.1)(:[0-9]+)?(/.*)?$)",
+            "description": "Trusted core review URL. HTTPS is required except for explicit localhost development; the consumer must additionally verify service and case correlation."
           },
           "payload": {}
         },

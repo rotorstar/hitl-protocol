@@ -1,4 +1,4 @@
-import { getCase, registerSSE } from '@/lib/hitl';
+import { getCase, registerSSE, expireCase, handleTransition, pollCase } from '@/lib/hitl';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -7,13 +7,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
   const { caseId } = await params;
   const rc = getCase(caseId);
   if (!rc) return new Response(JSON.stringify({ error: 'not_found' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  expireCase(rc, handleTransition);
 
   const encoder = new TextEncoder();
 
+  let cleanup = () => {};
   const stream = new ReadableStream({
     start(controller) {
       // Send current status
-      const initial = JSON.stringify({ case_id: rc.case_id, status: rc.status });
+      const initial = JSON.stringify(pollCase(rc));
       controller.enqueue(encoder.encode(`event: review.${rc.status}\ndata: ${initial}\nid: evt_init\n\n`));
 
       // Register for updates
@@ -21,18 +23,17 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cas
 
       // Heartbeat
       const heartbeat = setInterval(() => {
-        try { controller.enqueue(encoder.encode(': heartbeat\n\n')); } catch { clearInterval(heartbeat); }
+        try { controller.enqueue(encoder.encode(': heartbeat\n\n')); } catch { cleanup(); }
       }, 30000);
 
       // Store cleanup for disconnect handling
-      (controller as unknown as Record<string, () => void>)._cleanup = () => {
+      cleanup = () => {
         clearInterval(heartbeat);
         unregister();
       };
     },
-    cancel(controller) {
-      const ctrl = controller as unknown as Record<string, (() => void) | undefined>;
-      ctrl._cleanup?.();
+    cancel() {
+      cleanup();
     },
   });
 

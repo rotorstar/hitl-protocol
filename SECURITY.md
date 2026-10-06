@@ -33,17 +33,24 @@ This security policy covers:
 
 ### Known Security Model
 
-The HITL Protocol's security model is documented in [Section 13 of the specification](spec/v0.5/hitl-protocol.md#13-security-considerations). Key design decisions:
+The current security model is documented in [HITL v0.9](spec/v0.9/hitl-protocol.md#13-security-considerations). Historical v0.8 contracts remain available unchanged. Review interaction, verified identity, delegation and execution authorization are separate checks.
 
 | Property | Design | Rationale |
 |----------|--------|-----------|
-| **Bearer token URLs** | Anyone with the URL can respond | Intentional delegation model (like Google Docs links) |
-| **No login required** | Opaque token in URL IS the authentication | Zero-friction for humans on any device |
-| **One-time response** | 409 Conflict on duplicate submissions | Prevents response tampering |
-| **Time-limited tokens** | Service tracks `expires_at` in DB | Limits exposure window |
+| **Review URL** | Baseline capability, with additional profile checks when required | A signed URL does not establish a human identity or execution authority |
+| **Browser identity** | The Agent Access profile requires its own recent OIDC owner session | Agent credentials cannot authenticate the reviewer |
+| **Terminal decisions** | Exactly one decision wins; terminal results cannot change | Concurrent submissions cannot overwrite the winner |
+| **Deadline** | Rechecked using DB time after locks and at the write boundary | Timer delays do not extend authorization |
+| **Execution** | Explicit fresh OAuth/DPoP commit with current local grant and immutable operation | Confirmation does not book or expand permissions |
 | **HTTPS only** | All URLs must use HTTPS | Prevents URL interception |
 
-These are deliberate design choices, not vulnerabilities. Reports about the bearer token model being "insecure" will be acknowledged but are by design.
+The historical HTTP/MCP demos are local, in-memory examples and do not implement this complete security model. The new [Agent Access reference](implementations/agent-access/README.md) persists authoritative state in PostgreSQL. Its explicit insecure-loopback configuration and fixture credentials are restricted to development/evals.
+
+Public Web attribution proves control of the resolved directory URL/key pair. It does not prove a vendor, a human, or delegated user rights. Directory retrieval blocks private destinations, redirects and DNS rebinding; shared persistent stores enforce replay protection and quotas across processes. No review capability or agent access token is persisted in plaintext.
+
+Proof acceptance, replay expiration and execution freshness use the same database clock. Browser login rotates the session and CSRF secret; switching owner clears case bindings. Admission limits apply before nonce challenges, provider calls and browser-session creation. The [2026-10-06 security re-audit](implementations/agent-access/security-review.md) records confirmed defects, corrective acceptance criteria and verification separately from the initial functional eval report.
+
+Local revocation and local execution use one transaction/lock order. External authorization-server revocation has an observation window after live introspection; it is not atomic with the local database. Confirmation is not proof of human presence, and UI/surface payloads never convey authorization. The profile remains a draft pending independent interoperability and threat-model review.
 
 ### Threat Vectors We Track
 

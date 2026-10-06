@@ -7,7 +7,7 @@ export async function GET() {
   return NextResponse.json(
     {
       hitl_protocol: {
-        spec_version: '0.7',
+        spec_version: '0.8',
         service: {
           name: 'HITL Reference Service (Next.js)',
           description: 'Reference implementation for testing',

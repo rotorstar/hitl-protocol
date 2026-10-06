@@ -1,10 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hitl-protocol.org/schemas/v0.8/verification-result.json",
+  "$id": "https://hitl-protocol.org/schemas/v0.9/verification-result.json",
   "title": "Verification Result",
-  "description": "Normalized verification outcome for HITL Protocol v0.8. Raw provider payloads must not be returned here.",
+  "description": "Normalized verification outcome for HITL Protocol v0.9. Raw provider payloads must not be returned here.",
   "type": "object",
-  "required": ["satisfied"],
+  "required": [
+    "satisfied"
+  ],
   "properties": {
     "satisfied": {
       "type": "boolean",
@@ -14,7 +16,10 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["proof_type", "provider"],
+        "required": [
+          "proof_type",
+          "provider"
+        ],
         "properties": {
           "proof_type": {
             "type": "string",
@@ -26,7 +31,11 @@
           },
           "assurance_level": {
             "type": "string",
-            "enum": ["low", "medium", "high"],
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
             "description": "Service-defined assurance level after provider verification."
           },
           "bound_to_case": {

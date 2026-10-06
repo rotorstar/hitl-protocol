@@ -2,7 +2,8 @@ export default function Home() {
   return (
     <main style={{ fontFamily: 'system-ui', maxWidth: '600px', margin: '4rem auto', padding: '0 1rem' }}>
       <h1>HITL Reference Service</h1>
-      <p>HITL Protocol v0.7 reference implementation (Next.js App Router).</p>
+      <p>HITL Protocol v0.8 local demo (Next.js App Router, one process).</p>
+      <p>For local testing only. Decisions and polling do not authenticate a user, and cases are lost on restart.</p>
       <p>
         This demo implements the HITL core flow with browser fallback and inline submit support.
         Declarative surface interop remains profile-defined and is not emitted by this reference service.

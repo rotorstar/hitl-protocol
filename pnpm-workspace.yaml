@@ -2,4 +2,10 @@ packages:
   - 'packages/*'
   - 'implementations/reference-service/*'
   - 'implementations/mcp-server'
+  - 'implementations/agent-access/*'
   - 'tests/*'
+
+# tsup 8.5.1 still selects vulnerable esbuild 0.27.x. Use the patched build API
+# until upstream widens its range: https://github.com/advisories/GHSA-g7r4-m6w7-qqqr
+overrides:
+  'esbuild@>=0.27.3 <0.28.1': '0.28.2'

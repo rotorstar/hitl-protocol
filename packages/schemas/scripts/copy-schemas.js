@@ -1,36 +1,21 @@
-/**
- * Copies JSON schema files from the repository root schemas/ directory
- * into packages/schemas/schemas/ for npm publishing.
- *
- * Source of truth: ../../schemas/*.schema.json (+ local ref aliases)
- */
-
-import { cpSync, mkdirSync, realpathSync } from 'node:fs'
+/** Canonical root schemas are v0.9; v0.8 is an immutable archive. */
+import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT_SCHEMAS = join(__dirname, '..', '..', '..', 'schemas')
-const PKG_SCHEMAS = join(__dirname, '..', 'schemas')
-
-mkdirSync(PKG_SCHEMAS, { recursive: true })
-
-const files = [
-  'hitl-object.schema.json',
-  'poll-response.schema.json',
-  'form-field.schema.json',
-  'submit-request.schema.json',
-  'discovery-response.schema.json',
-  'verification-policy.schema.json',
-  'verification-result.schema.json',
-  'submission-context.schema.json',
-  'form-field.json', // $ref target for hitl-object.schema.json (symlink in source)
-]
-
-for (const file of files) {
-  // Resolve symlinks so npm pack gets real files
-  const src = realpathSync(join(ROOT_SCHEMAS, file))
-  cpSync(src, join(PKG_SCHEMAS, file), { force: true })
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'schemas')
+const DESTINATION = join(dirname(fileURLToPath(import.meta.url)), '..', 'schemas')
+const files = readdirSync(ROOT).filter((file) => file.endsWith('.schema.json'))
+rmSync(DESTINATION, { recursive: true, force: true })
+mkdirSync(DESTINATION, { recursive: true })
+for (const version of ['0.8', '0.9']) {
+  const destination = join(DESTINATION, `v${version}`)
+  const source = version === '0.8' ? join(ROOT, 'v0.8') : ROOT
+  mkdirSync(destination, { recursive: true })
+  for (const file of files) {
+    for (const name of [file, file.replace('.schema.json', '.json')]) {
+      cpSync(join(source, file), join(destination, name))
+      if (version === '0.9') cpSync(join(source, file), join(DESTINATION, name))
+    }
+  }
 }
-
-console.log(`Copied ${files.length} schema files to packages/schemas/schemas/`)

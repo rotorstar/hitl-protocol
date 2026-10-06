@@ -81,7 +81,7 @@
   </main>
 
   <footer class="container">
-    <small>Powered by <a href="https://github.com/rotorstar/hitl-protocol" target="_blank" rel="noopener">HITL Protocol</a> v0.7</small>
+    <small>Powered by <a href="https://github.com/rotorstar/hitl-protocol" target="_blank" rel="noopener">HITL Protocol</a> v0.8 local demo</small>
   </footer>
 
   <script type="application/json" id="hitl-data">{{hitl_data_json}}</script>
@@ -98,6 +98,9 @@
         localStorage.setItem('hitl-theme', next);
       });
 
+      /* Restore navigation from the server, not a stale back/forward cache. */
+      window.addEventListener('pageshow', function (event) { if (event.persisted) window.location.reload(); });
+
       /* Parse data */
       var raw = document.getElementById('hitl-data').textContent;
       var data;
@@ -110,12 +113,13 @@
       document.getElementById('prompt-heading').textContent = data.prompt || 'Complete form';
 
       /* Handle status */
-      if (status === 'expired') {
+      if (status === 'expired' || (!['completed', 'cancelled'].includes(status) && Date.parse(data.expires_at) <= Date.now())) {
         document.getElementById('expired-banner').hidden = false;
         document.getElementById('review-content').hidden = true;
         return;
       }
-      if (status === 'completed') {
+      if (status === 'completed' || status === 'cancelled') {
+        if (status === 'cancelled') document.getElementById('completed-banner').textContent = 'Cancelled — this review is no longer accepting responses.';
         document.getElementById('completed-banner').hidden = false;
         document.getElementById('review-content').hidden = true;
         return;
@@ -364,7 +368,7 @@
         var step = steps[currentStep];
         (step.fields || []).forEach(function (f) {
           var wrapper = document.querySelector('[data-field-key="' + f.key + '"]');
-          if (!wrapper || wrapper.hidden) return;
+          if (!wrapper || wrapper.hidden) { delete formData[f.key]; return; }
 
           if (f.type === 'multiselect') {
             var checked = wrapper.querySelectorAll('input:checked');
@@ -388,7 +392,7 @@
         var valid = true;
         (step.fields || []).forEach(function (f) {
           var wrapper = document.querySelector('[data-field-key="' + f.key + '"]');
-          if (!wrapper || wrapper.hidden) return;
+          if (!wrapper || wrapper.hidden) { delete formData[f.key]; return; }
           var input = wrapper.querySelector('input, select, textarea');
           if (!input) return;
           var errDiv = document.getElementById('error-' + f.key);
@@ -496,7 +500,13 @@
           body: JSON.stringify({ action: 'submit', data: cleanData })
         })
         .then(function (res) {
+          if (res.status === 410) {
+            document.getElementById('expired-banner').hidden = false;
+            document.getElementById('review-content').hidden = true;
+            return;
+          }
           if (res.status === 409) {
+            document.getElementById('completed-banner').textContent = 'This review is no longer accepting responses.';
             document.getElementById('completed-banner').hidden = false;
             document.getElementById('review-content').hidden = true;
             return;

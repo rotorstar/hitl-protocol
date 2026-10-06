@@ -65,6 +65,7 @@ The profile standardizes a portable wrapper object. The transport carrying this 
 
 - Every surface MUST include `fallback_review_url`.
 - `fallback_review_url` MUST be the same review experience the service already exposes via HITL core.
+- Clients MUST correlate the wrapper's `case_id` and fallback with the validated core case and trusted service before navigation. The fallback follows the core HTTPS requirement, with HTTP allowed only for explicit localhost development; schema validation alone does not establish service trust.
 - Unknown `format` values MUST be ignored by clients.
 - Invalid payloads MUST fall back to the browser review page.
 - The `payload` field is opaque to HITL core and interpreted only by clients that understand the selected format.
@@ -123,6 +124,8 @@ Use when the client understands A2UI surfaces and data models.
 ## Security and UX Rules
 
 - Embedded rendering is optional convenience, not an authorization boundary.
+- Clients MUST treat surface payloads as untrusted data and restrict components, actions and resource URLs to their locally approved renderer catalog and service policy. A payload or `catalog_id` MUST NOT authorize arbitrary script execution, credential disclosure, or access to internal network resources. Unsupported or rejected surfaces fall back to the already validated core review URL.
+- Surface payloads, state bindings, action handlers and review results cannot transfer user grants or authenticate an agent/reviewer. Under the optional [Agent Access profile](../../agent-access/v0.1/README.md), the service checks the persisted operation and current authority again at explicit commit; a UI confirmation records only a decision.
 - Services SHOULD prefer the browser fallback for high-stakes actions.
 - Clients SHOULD preserve a visible path to `fallback_review_url`.
 - Mobile-first, keyboard support, screen-reader labels, and explicit expired/completed states remain required whether the UI is embedded or browser-hosted.

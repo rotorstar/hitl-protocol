@@ -18,6 +18,8 @@ HITL Protocol = what happens at the URL, and how the structured result returns
 
 ```bash
 pnpm install   # from the repository root
+pnpm --filter @hitl-protocol/schemas build
+pnpm --filter @hitl-protocol/core build
 
 # Register with Claude Code:
 claude mcp add hitl-demo -- node /absolute/path/to/implementations/mcp-server/server.js
@@ -33,8 +35,8 @@ You'll get a consent prompt showing the review URL, the browser opens the servic
 
 - The review token is generated, SHA-256-hashed, and verified with the [`@hitl-protocol/core`](../../packages/core) helpers, exactly like the [reference services](../reference-service/).
 - The `elicitationId` is correlated with the HITL `case_id`; the completion notification replaces agent-side polling, while `poll_url` remains available as the universal fallback.
-- Everything is in-memory and `localhost` — this is a teaching demo, not a production service. For production guidance see the [spec](../../spec/v0.8/hitl-protocol.md) and [service integration guide](../../skills/references/service-integration.md).
+- Everything is in-memory and bound to `127.0.0.1` — this is a teaching demo, not a production service. It records confirmation and never sends emails. Polling is unauthenticated, and review tokens do not authenticate the reviewer. For production guidance see the [spec](../../spec/v0.8/hitl-protocol.md) and [service integration guide](../../skills/references/service-integration.md).
 
 ## MCP revision compatibility
 
-This demo implements **Binding A (MCP 2025-11-25, current stable)** and works against clients on that revision. The **2026-07-28 revision** (release candidate; final targeted 2026-07-28) removes `elicitationId` and `notifications/elicitation/complete` — server-initiated elicitation is replaced by the MRTR pattern (`resultType: "input_required"` + `requestState` re-issue), and long-running approval gates move to the Tasks extension (`io.modelcontextprotocol/tasks`). See [Bindings B and C](../../docs/mcp-elicitation-binding.md#binding-b--mcp-2026-07-28-release-candidate-mrtr) for the mappings. A migration of this demo is planned once the final spec and SDK support land; the form-mode/no-elicitation fallback path (`poll_review`) is revision-independent and keeps working either way.
+This demo explicitly implements **Binding A (MCP 2025-11-25)**. Protocol revision support is negotiated with the MCP client; this example does not claim support for every newer revision. Other bindings are documented separately in the [binding guide](../../docs/mcp-elicitation-binding.md). The form-mode/no-elicitation fallback returns the HITL URL and `poll_review` tool result.

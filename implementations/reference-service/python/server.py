@@ -1,5 +1,5 @@
 """
-HITL Protocol v0.7 — Reference Implementation (FastAPI)
+HITL Protocol v0.8 — Local single-process demo (FastAPI)
 
 Demonstrates all HITL features:
   - 5 review types (approval, selection, input, confirmation, escalation)
@@ -14,7 +14,7 @@ Demonstrates all HITL features:
 
 Usage:
     pip install -r requirements.txt
-    uvicorn server:app --port 3458
+    uvicorn server:app --host 127.0.0.1 --port 3458
     curl -X POST http://localhost:3458/api/demo?type=selection
 """
 
@@ -26,18 +26,23 @@ import json
 import os
 import secrets
 import time
-from datetime import datetime, timedelta, timezone
+import copy
+import re
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from jsonschema import Draft202012Validator
 
 app = FastAPI(title="HITL Reference Service (FastAPI)")
 
 PORT = int(os.environ.get("PORT", "3458"))
 BASE_URL = os.environ.get("BASE_URL", f"http://localhost:{PORT}")
 TEMPLATES_DIR = Path(__file__).parent.parent.parent.parent / "templates"
+INLINE_SCHEMA = json.loads((TEMPLATES_DIR.parent / "schemas" / "v0.8" / "submit-request.schema.json").read_text())
+INLINE_VALIDATOR = Draft202012Validator(INLINE_SCHEMA)
 
 
 # ============================================================
@@ -87,7 +92,7 @@ rate_limits: dict[str, dict[str, Any]] = {}
 RATE_LIMIT = 60
 
 VALID_TRANSITIONS = {
-    "pending": ["opened", "expired", "cancelled"],
+    "pending": ["opened", "completed", "expired", "cancelled"],
     "opened": ["in_progress", "completed", "expired", "cancelled"],
     "in_progress": ["completed", "expired", "cancelled"],
     "completed": [],
@@ -107,6 +112,9 @@ def transition(rc: dict, new_status: str) -> None:
     # Clean up resources on terminal state
     if new_status in ("completed", "expired", "cancelled"):
         rate_limits.pop(rc["case_id"], None)
+        expiration_task = rc.pop("_expiration_task", None)
+        if expiration_task is not None and expiration_task is not asyncio.current_task():
+            expiration_task.cancel()
     # Notify SSE
     queues = sse_queues.get(rc["case_id"], [])
     payload = {"case_id": rc["case_id"], "status": rc["status"]}
@@ -115,6 +123,77 @@ def transition(rc: dict, new_status: str) -> None:
     msg = f"event: review.{new_status}\ndata: {json.dumps(payload)}\nid: evt_{int(time.time() * 1000)}\n\n"
     for q in queues:
         q.put_nowait(msg)
+
+
+def expire_case(rc: dict) -> None:
+    if rc["status"] not in ("completed", "expired", "cancelled") and datetime.now(timezone.utc) >= datetime.fromisoformat(rc["expires_at"].replace("Z", "+00:00")):
+        transition(rc, "expired")
+
+
+def parse_submission(body: Any, rc: dict, inline: bool) -> dict:
+    if not isinstance(body, dict) or not isinstance(body.get("action"), str) or not isinstance(body.get("data", {}), dict):
+        raise HTTPException(400, detail={"error": "invalid_submission"})
+    context = {"mode": "inline_submit" if inline else "browser_submit"}
+    if inline:
+        if not INLINE_VALIDATOR.is_valid(body):
+            raise HTTPException(400, detail={"error": "invalid_submission"})
+        if body.get("verification_evidence"):
+            raise HTTPException(400, detail={"error": "unsupported_verification"})
+        if body["action"] not in rc["inline_actions"]:
+            raise HTTPException(403, detail={"error": "action_not_inline", "case_id": rc["case_id"]})
+        context.update({"submitted_via": body["submitted_via"], "submitted_by": body["submitted_by"]})
+    elif any(key not in ("action", "data") for key in body):
+        raise HTTPException(400, detail={"error": "invalid_submission"})
+    actions = {"confirmation": ["confirm", "cancel"], "escalation": ["retry", "skip", "abort"], "approval": ["approve", "edit", "reject"], "selection": ["select"], "input": ["submit"]}
+    if body["action"] not in actions[rc["type"]]:
+        raise HTTPException(400, detail={"error": "invalid_action"})
+    data = body.get("data", {})
+    if rc["type"] == "selection":
+        selected = data.get("selected")
+        ids = {item["id"] for item in rc["context"]["items"]}
+        if not isinstance(selected, list) or not selected or any(not isinstance(item, str) or item not in ids for item in selected) or len(set(selected)) != len(selected):
+            raise HTTPException(400, detail={"error": "invalid_selection"})
+    if rc["type"] == "input":
+        fields = rc["context"]["form"]["fields"]
+        if any(key not in {field["key"] for field in fields} for key in data):
+            raise HTTPException(400, detail={"error": "invalid_input"})
+        for field in fields:
+            value = data.get(field["key"])
+            if value is None or value == "":
+                if field.get("required"):
+                    raise HTTPException(400, detail={"error": "invalid_input"})
+                continue
+            rules = field.get("validation", {})
+            if field["type"] == "number":
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not rules.get("min", float("-inf")) <= value <= rules.get("max", float("inf")):
+                    raise HTTPException(400, detail={"error": "invalid_input"})
+            elif not isinstance(value, str) or (field["type"] == "select" and value not in {option["value"] for option in field["options"]}):
+                raise HTTPException(400, detail={"error": "invalid_input"})
+            if field["type"] == "date":
+                try:
+                    if date.fromisoformat(value).isoformat() != value:
+                        raise ValueError("Invalid calendar date")
+                except ValueError:
+                    raise HTTPException(400, detail={"error": "invalid_input"})
+            if isinstance(value, str):
+                try:
+                    pattern = re.compile(rules["pattern"]) if "pattern" in rules else None
+                except re.error:
+                    raise HTTPException(500, detail={"error": "invalid_form"})
+                if len(value) < rules.get("minLength", 0) or len(value) > rules.get("maxLength", float("inf")) or (pattern and not pattern.search(value)):
+                    raise HTTPException(400, detail={"error": "invalid_input"})
+    return copy.deepcopy({"result": {"action": body["action"], "data": data}, "submission_context": context})
+
+
+def complete_case(rc: dict, submission: dict) -> None:
+    # No await from final deadline/state check through the complete mutation.
+    expire_case(rc)
+    if rc["status"] == "expired":
+        raise HTTPException(410, detail={"error": "case_expired"})
+    if rc["status"] in ("completed", "cancelled"):
+        raise HTTPException(409, detail={"error": "duplicate_submission"})
+    rc.update(submission)
+    transition(rc, "completed")
 
 
 async def schedule_expiration(case_id: str, delay: float) -> None:
@@ -204,11 +283,11 @@ async def create_demo(type: str = Query(default="selection")):
     store[case_id] = rc
 
     # Auto-expire after 24h (matching Express/Hono behavior)
-    asyncio.create_task(schedule_expiration(case_id, 86400))
+    rc["_expiration_task"] = asyncio.create_task(schedule_expiration(case_id, 86400))
 
     # v0.7: Inline submit fields (only for types that support it)
     hitl: dict[str, Any] = {
-        "spec_version": "0.7", "case_id": case_id,
+        "spec_version": "0.8", "case_id": case_id,
         "review_url": f"{BASE_URL}/review/{case_id}?token={token}",
         "poll_url": f"{BASE_URL}/api/reviews/{case_id}/status",
         "type": type, "prompt": rc["prompt"], "timeout": "24h",
@@ -238,6 +317,7 @@ async def review_page(case_id: str, token: str = Query()):
         raise HTTPException(404, detail={"error": "not_found"})
     if not verify_token_for_purpose(token, rc, "review"):
         raise HTTPException(401, detail={"error": "invalid_token", "message": "Invalid or expired review token."})
+    expire_case(rc)
 
     if rc["status"] == "pending":
         try:
@@ -257,7 +337,8 @@ async def review_page(case_id: str, token: str = Query()):
         "expires_at": rc["expires_at"], "context": rc["context"],
     }
     safe_prompt = html_module.escape(rc["prompt"])
-    html = html.replace("{{prompt}}", safe_prompt).replace("{{hitl_data_json}}", json.dumps(hitl_data))
+    safe_data = json.dumps(hitl_data).replace("<", "\\u003c")
+    html = re.sub(r"\{\{(?:prompt|hitl_data_json)\}\}", lambda match: safe_prompt if match[0] == "{{prompt}}" else safe_data, html)
     return HTMLResponse(html)
 
 
@@ -282,31 +363,12 @@ async def submit_response(case_id: str, request: Request, token: str = Query(def
         if not token or not verify_token_for_purpose(token, rc, "review"):
             raise HTTPException(401, detail={"error": "invalid_token", "message": "Invalid or expired review token."})
 
-    if rc["status"] == "expired":
-        raise HTTPException(410, detail={"error": "case_expired", "message": f"This review case expired on {rc['expires_at']}."})
-    if rc["status"] == "completed":
-        raise HTTPException(409, detail={"error": "duplicate_submission", "message": "This review case has already been responded to."})
-
-    body = await request.json()
-    action = body.get("action")
-    if not action:
-        raise HTTPException(400, detail={"error": "missing_action", "message": 'Request body must include "action".'})
-
-    # v0.7: Validate inline_actions for Bearer path
-    allowed = rc.get("inline_actions", [])
-    if is_inline_submit and allowed and action not in allowed:
-        raise HTTPException(403, detail={
-            "error": "action_not_inline",
-            "message": f"Action '{action}' is not allowed via inline submit. Use the original hitl.review_url for full review.",
-            "case_id": rc["case_id"],
-            "review_url": f"{BASE_URL}/review/{rc['case_id']}",
-        })
-
-    rc["result"] = {"action": action, "data": body.get("data", {})}
-    rc["responded_by"] = body.get("submitted_by", {"name": "Demo User", "email": "demo@example.com"})
-    if body.get("submitted_via"):
-        rc["submitted_via"] = body["submitted_via"]
-    transition(rc, "completed")
+    try:
+        body = await request.json()
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(400, detail={"error": "invalid_json"})
+    submission = parse_submission(body, rc, is_inline_submit)
+    complete_case(rc, submission)
     return {"status": "completed", "case_id": rc["case_id"], "completed_at": rc["completed_at"]}
 
 
@@ -315,6 +377,8 @@ async def poll_status(case_id: str, request: Request, response: Response):
     rc = store.get(case_id)
     if not rc:
         raise HTTPException(404, detail={"error": "not_found"})
+
+    expire_case(rc)
 
     rl = check_rate_limit(rc["case_id"])
     response.headers["X-RateLimit-Limit"] = str(RATE_LIMIT)
@@ -337,6 +401,8 @@ async def poll_status(case_id: str, request: Request, response: Response):
         resp["result"] = rc["result"]
     if rc["responded_by"]:
         resp["responded_by"] = rc["responded_by"]
+    if rc.get("submission_context"):
+        resp["submission_context"] = rc["submission_context"]
     if rc["status"] == "expired":
         resp["default_action"] = rc["default_action"]
 
@@ -350,6 +416,7 @@ async def event_stream(case_id: str):
     rc = store.get(case_id)
     if not rc:
         raise HTTPException(404, detail={"error": "not_found"})
+    expire_case(rc)
 
     queue: asyncio.Queue = asyncio.Queue()
     if case_id not in sse_queues:
@@ -378,7 +445,7 @@ async def event_stream(case_id: str):
 async def discovery():
     return JSONResponse(
         content={"hitl_protocol": {
-            "spec_version": "0.7",
+            "spec_version": "0.8",
             "service": {"name": "HITL Reference Service (FastAPI)", "description": "Reference implementation for testing", "url": BASE_URL},
             "capabilities": {
                 "review_types": ["approval", "selection", "input", "confirmation", "escalation"],

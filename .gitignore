@@ -1,4 +1,5 @@
 node_modules/
+.pnpm-store/
 *.tsbuildinfo
 .next/
 __pycache__/
@@ -15,3 +16,9 @@ Business/docs/PRD.md
 
 # Launch material (local only)
 launch/
+
+# Local Agent Access eval results and credentials
+.eval/
+test-results/
+playwright-report/
+implementations/agent-access/reference/.env

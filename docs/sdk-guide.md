@@ -90,7 +90,7 @@ export async function handleHitl(
       return data as PollResult;
     }
   }
-  return { status: 'expired' };
+  throw new Error('Client wait timed out; the server case may still be pending.');
 }
 ```
 

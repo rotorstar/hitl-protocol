@@ -1,7 +1,7 @@
-openapi: 3.1.0
+openapi: 3.2.1
 info:
   title: HITL Protocol API
-  version: "0.8"
+  version: "0.9"
   description: |
     The Open Standard for Human Decisions in Agent Workflows.
 
@@ -400,7 +400,7 @@ paths:
                     status: human_input_required
                     message: "5 matching jobs found. Please select which ones to apply for."
                     hitl:
-                      spec_version: "0.8"
+                      spec_version: "0.9"
                       case_id: review_abc123
                       review_url: "https://service.example/review/abc123?token=K7xR2mN4pQ8sT1vW3xY5zA9bC6dE8fG0hI2jK4lM6n"
                       poll_url: "https://api.service.example/v1/reviews/abc123/status"
@@ -416,7 +416,7 @@ paths:
                     status: human_input_required
                     message: "Production deployment requires approval."
                     hitl:
-                      spec_version: "0.8"
+                      spec_version: "0.9"
                       case_id: review_deploy_789
                       review_url: "https://service.example/review/deploy_789?token=X9yZ1aB3cD5eF7gH9iJ1kL3mN5oP7qR9sT1uV3wX5y"
                       poll_url: "https://api.service.example/v1/reviews/deploy_789/status"
@@ -433,6 +433,9 @@ paths:
       summary: Poll review case status
       description: |
         Agent polls this endpoint to check the current status of a review case.
+        The service authenticates the caller and checks persisted case ownership before disclosing status/results.
+        A case_id is not a capability; authenticated profile bindings may strengthen this BearerAuth placeholder.
+        Responses with private case data use Cache-Control: no-store.
         Returns one of 6 statuses: `pending`, `opened`, `in_progress`, `completed`, `expired`, `cancelled`.
 
         **Efficient polling:** Use `If-None-Match` with the `ETag` from a previous response.
@@ -535,6 +538,20 @@ paths:
                     opened_at: "2026-02-22T11:15:00Z"
                     cancelled_at: "2026-02-22T11:16:30Z"
                     reason: "Changed my mind about the application."
+        '401':
+          description: Missing or invalid authenticated agent credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Authenticated caller is not authorized to read the stored case.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Case missing or deliberately undisclosed to a non-owner.
         '304':
           $ref: '#/components/responses/NotModified'
         '429':
@@ -546,15 +563,16 @@ paths:
       summary: Submit human response
       description: |
         The review page submits the human's decision to this endpoint.
-        Authenticated via the opaque bearer token from the review URL.
+        The opaque review token grants case access. When a profile or verification_policy requires an authenticated reviewer, the service independently verifies that reviewer and decision authority. No bearer-only downgrade is permitted.
 
         **One-time response:** Each case accepts exactly one response. Subsequent submissions
-        return HTTP 409 Conflict. A RECOMMENDED 5-minute grace period allows edits.
+        return HTTP 409 Conflict. Terminal decisions are immutable; corrections require a new linked case.
 
         If `verification_policy.required_for` contains `browser_submit`, the service performs
         verification on the service-hosted review surface. The agent is not expected to transport
         raw verification evidence for browser-based paths.
       operationId: submitReviewResponse
+      x-hitl-reviewer-authentication: case-policy
       security:
         - ReviewToken: []
       parameters:
@@ -623,7 +641,7 @@ paths:
   /reviews/{caseId}/submit:
     post:
       tags: [Agent API]
-      summary: Inline submit via agent (v0.8)
+      summary: Inline submit via agent (v0.9)
       description: |
         Agent submits a response on behalf of the human after the human explicitly triggered
         a native messaging button (Telegram inline button, Slack action, Discord component, etc.).
@@ -716,6 +734,8 @@ paths:
       description: |
         Optional Server-Sent Events (SSE) endpoint for real-time status updates.
         Services that offer SSE MUST also support polling.
+        The caller is authenticated and checked against the stored case owner before opening a stream.
+        An unguessable case_id does not authorize event access.
 
         **Events:**
         - `review.opened` — Human opened the review URL
@@ -789,7 +809,7 @@ paths:
                 $ref: '#/components/schemas/DiscoveryResponse'
               example:
                 hitl_protocol:
-                  spec_version: "0.8"
+                  spec_version: "0.9"
                   service:
                     name: Example Service
                     description: HITL-enabled service
