@@ -18,7 +18,7 @@
 
 You run a website or service, and you know that AI agents will increasingly visit it on behalf of their users: searching, booking, applying, purchasing. But some decisions should not be left to an agent alone. An agent can hallucinate, misinterpret, or make the wrong call at a critical moment — cancel the wrong insurance policy, book a non-refundable trip to the wrong city, wire money to the wrong account. HITL Protocol ("Human in the Loop") is an open standard that puts you in control of these moments. Your users stay in their favorite messenger — Telegram, WhatsApp, Slack. They either tap a decision button right there or follow a link to a web page with a comfortable UI: cards, forms, buttons. No wall of text. No blind agent decisions. Honest, transparent communication in everyone's interest.
 
-**HITL Protocol** is to human decisions what OAuth is to authentication — an open standard connecting **Services**, **Agents**, and **Humans**.
+**HITL Protocol** is to human decisions what OAuth is to delegated access — an open standard connecting **Services**, **Agents**, and **Humans**.
 
 Any website or API integrates HITL to become agent-ready: when human input is needed, return HTTP 202 with a review URL. Any autonomous agent (OpenClaw, Claude Code, Codex, Goose) handles the `hitl` response — forward the URL, poll for the result. The human opens the URL, gets a rich browser UI (not a chat wall of text), and makes an informed decision.
 
@@ -264,9 +264,17 @@ HITL transport auth and external agent-auth systems solve different problems:
 
 `supports_agent_binding` may be advertised only when the service enforces the initiator → stored operation → review → execution chain. Correlation IDs or signatures alone do not establish that guarantee. The [Agent Access OpenAPI 3.2.1 contract](profiles/agent-access/v0.1/openapi.json) declares operation-specific security; the core OpenAPI and historical demos retain their separate transport scope.
 
+### AAuth: tracked draft, future binding
+
+[AAuth Protocol](https://datatracker.ietf.org/doc/draft-hardt-oauth-aauth-protocol/) is an emerging agent authorization protocol. Checked on **2026-10-06**, its latest revision is **draft-hardt-oauth-aauth-protocol-11** (2026-09-25): an individual Internet-Draft, not an adopted IETF standard or RFC.
+
+The implemented Agent Access bindings use **OAuth/DPoP** and the pinned **Web Bot Auth draft 00**. They do not implement AAuth. Shared cryptographic primitives and similar HTTP 202/polling flows do not establish interoperability. AAuth also defines consent and interaction flows; composition requires an explicit mapping between authorization consent and a service's business decision.
+
+Our immutable-operation, review and explicit-commit boundaries provide useful foundations. A future AAuth binding still needs its own verified identity/authorization contract, wire adapter and independent interoperability tests before discovery can advertise it. See the [code-based readiness assessment and implementation gates](docs/aauth-readiness.md).
+
 ## Protocol Standards Landscape
 
-HITL Protocol fills a gap no existing standard addresses:
+HITL defines a service-hosted decision handoff alongside these discovery, communication, authorization and UI mechanisms:
 
 | Standard | What it solves | HITL Protocol's role |
 |----------|---------------|---------------------|
@@ -275,8 +283,9 @@ HITL Protocol fills a gap no existing standard addresses:
 | **MCP** | Agent tool/resource access | URL-mode elicitation delivers a HITL `review_url`; the 2026-07-28 revision adds async human-approval plumbing *inside* MCP (MRTR, Tasks `input_required`) — HITL standardizes the same handoff on the open HTTP layer, for any agent, and defines the typed decision at the URL ([binding](docs/mcp-elicitation-binding.md)) |
 | **AG-UI** (CopilotKit) | Agent ↔ embedded frontend | HITL serves agents with no frontend (CLI, Telegram) |
 | **AP2 / ACP / x402** | Payment authorization & agentic checkout | Domain-locked to commerce; HITL covers the same "human authorizes the critical action" moment for **any** domain, with the service hosting the review UI |
-| **CHEQ** (IETF drafts, expired) | Human confirmation of agent decisions | Closest prior art: `draft-rosenberg-cheq-00` (07/2025) used 202 + URI package + polling; its successor pivoted to signed objects carried over MCP/A2A and both drafts expired without WG adoption — HITL is the active standard for this pattern at the HTTP layer ([details](docs/feature-matrix.md#adjacent-standards-landscape-july-2026)) |
-| **OAuth 2.0** | User authentication | HITL follows the same three-party pattern |
+| **CHEQ** (IETF drafts, expired) | Human confirmation of agent decisions | Closest prior art: `draft-rosenberg-cheq-00` (07/2025) used 202 + URI package + polling; its successor pivoted to signed objects carried over MCP/A2A and both drafts expired without WG adoption — HITL v0.9 specifies a current draft HTTP handoff ([details](docs/feature-matrix.md#adjacent-standards-landscape-july-2026)) |
+| **OAuth 2.0 / DPoP** | Delegated API authorization / proof of possession | Implemented by the optional Agent Access binding; human confirmation cannot expand the grant. OIDC supplies browser authentication. |
+| **AAuth** (individual Internet-Draft) | Agent/resource authorization, identity and consent | Tracked for a future optional binding; current OAuth/DPoP and Web Bot Auth bindings do not implement it ([readiness](docs/aauth-readiness.md)) |
 
 ## Optional Surface Interop Profiles
 
@@ -444,6 +453,7 @@ Code and specification: Apache License 2.0 — see [LICENSE](LICENSE). The bundl
 - [Full Specification (v0.9)](spec/v0.9/hitl-protocol.md)
 - [Historical Specification (v0.8)](spec/v0.8/hitl-protocol.md)
 - [Agent Access Profile](profiles/agent-access/v0.1/README.md) — Optional draft public/delegated bindings
+- [AAuth Readiness Assessment](docs/aauth-readiness.md) — Implemented boundaries, missing adapter and future interoperability gates
 - [Persistent Agent Access Reference](implementations/agent-access/README.md) — OAuth, PostgreSQL, native browser forms and reproducible evals
 - [Quick Start Guide](docs/quick-start.md) — Run the historical v0.8 demonstrations
 - [OpenAPI Spec](schemas/openapi.yaml) — All endpoints documented

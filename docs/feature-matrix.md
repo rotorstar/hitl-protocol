@@ -1,9 +1,10 @@
 # HITL Feature Matrix
 
-This document is the evidence-backed comparison source of truth. It covers two distinct questions:
+This document is the evidence-backed comparison source of truth. It covers three distinct questions:
 
 1. **Approval-mechanism landscape** — how HITL relates to framework-internal approvals and adjacent protocols (MCP elicitation, LangGraph, OpenAI Agents SDK, HumanLayer).
 2. **Surface comparison** — how HITL core relates to declarative UI layers (`json-render`, A2UI).
+3. **Agent authorization compatibility** — which access bindings are implemented and what remains future AAuth work.
 
 ## Approval-Mechanism Landscape
 
@@ -40,6 +41,10 @@ Adjacent standards frequently compared with HITL, evaluated against HITL's load-
 | **HumanLayer / gotoHuman** | Active products | Agent contacts a human via Slack/Email or a SaaS approval UI | Partial: products/SDKs, not open wire standards; agent-initiated, vendor-hosted UI | [humanlayer](https://pypi.org/project/humanlayer/); [gotohuman.com](https://www.gotohuman.com/) |
 
 **Reading:** as of July 2026, no active standard combines all six HITL axes. Payment standards own the commerce slice, MCP/A2A own the in-protocol slice, WebMCP owns the in-page slice — the service-initiated, cross-agent, service-hosted review handoff remains HITL's slot. Demand-side, the EU AI Act's human-oversight duties for high-risk systems ([Art. 14](https://artificialintelligenceact.eu/article/14/), applying from 2026-08) require demonstrable oversight — which favors auditable protocol state over prompt-level approvals.
+
+## Agent Authorization Compatibility (October 2026)
+
+Checked **2026-10-06**. The optional [Agent Access profile](../profiles/agent-access/v0.1/README.md) implements OAuth/DPoP for delegated API access and pinned Web Bot Auth draft 00 for public attribution. [AAuth Protocol](https://datatracker.ietf.org/doc/draft-hardt-oauth-aauth-protocol/) is tracked as an individual Internet-Draft; no AAuth binding is implemented or advertised. Its authorization interactions overlap with human-review handoffs, so composition needs a defined adapter rather than an assumption based on HTTP 202. The [readiness assessment](aauth-readiness.md) records the code evidence, gaps and future gates.
 
 ## Surface Comparison
 

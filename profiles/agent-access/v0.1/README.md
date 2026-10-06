@@ -12,6 +12,12 @@ A service advertises implemented identifiers in HITL v0.9 discovery `authenticat
 
 The generated [context schema](agent-access-context.schema.json) and OpenAPI domain schemas are projections of the canonical runtime Zod contracts in `packages/agent-access/src/contracts.ts`. Schema artifacts are regenerated and checked for drift. Snapshot arithmetic and authorization are runtime constraints, not guarantees of JSON Schema validation alone.
 
+## AAuth composition status
+
+AAuth is tracked for a future, separately versioned binding. The current public-web and delegated-api bindings do not accept AAuth credentials or advertise AAuth support. Their verified identities and grants must not be inferred from an AAuth-looking header or client-supplied context.
+
+The [readiness assessment](../../../docs/aauth-readiness.md) pins the reviewed draft, records the actual code boundaries and defines the contract, adapter and interoperability gates required before implementation. It is a design assessment, not an additional normative binding or a conformance claim.
+
 ## Public web binding
 
 The binding uses [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html) with the pinned [Web Bot Auth working-group draft 00](https://datatracker.ietf.org/doc/html/draft-ietf-webbotauth-httpsig-protocol-00). The draft is not an RFC. Signers MUST use the draft's dictionary-form `Signature-Agent`; the legacy single-string form is not accepted by this profile. Matching dictionary keys correlate each agent assertion and signature. The verified signer is a signing entity; it is not automatically a named user or an enrolled delegated principal.
